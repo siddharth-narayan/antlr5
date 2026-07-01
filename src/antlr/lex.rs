@@ -1,5 +1,7 @@
-use crate::antlr::{LexerErr::{UnkownCharacter, UnmatchedString}, lex::LexerErr::UnexpectedCharacter};
-
+use crate::antlr::{
+    LexerErr::{UnkownCharacter, UnmatchedString},
+    lex::LexerErr::UnexpectedCharacter,
+};
 
 #[derive(Debug)]
 pub enum ANTLRTokenType {
@@ -47,30 +49,27 @@ pub enum ANTLRTokenType {
     Catch,
     Finally,
     Mode,
-    StringLit
+    StringLit,
 }
 
 pub struct ANTLRToken {
     token_type: ANTLRTokenType,
-    text: String
+    text: String,
 }
 
 #[derive(Debug)]
 pub enum LexerErr {
     EOF,
-    UnexpectedCharacter {
-        expected: char,
-        got: Option<char>
-    },
+    UnexpectedCharacter { expected: char, got: Option<char> },
     // A character that is not recognized by the lexer
     UnkownCharacter(char),
-    UnmatchedString
+    UnmatchedString,
 }
 
 pub struct Lexer {
-    input: Vec<char>, 
+    input: Vec<char>,
     head: usize,
-    current_text: Vec<char>
+    current_text: Vec<char>,
 }
 
 impl Lexer {
@@ -78,7 +77,7 @@ impl Lexer {
         Lexer {
             input: input.chars().collect(),
             head: 0,
-            current_text: Vec::new()
+            current_text: Vec::new(),
         }
     }
 
@@ -98,7 +97,8 @@ impl Lexer {
     }
 
     pub fn peek_n(&self, by: usize, count: usize) -> Option<&[char]> {
-        self.input.get((self.head + by - 1)..(self.head + by + count - 1))
+        self.input
+            .get((self.head + by - 1)..(self.head + by + count - 1))
     }
 
     pub fn next_token(&mut self) -> Result<ANTLRTokenType, LexerErr> {
@@ -142,7 +142,7 @@ impl Lexer {
                 Some(':') => {
                     self.consume(1);
                     ANTLRTokenType::DoubleColon
-                },
+                }
                 _ => ANTLRTokenType::Colon,
             },
 
@@ -150,7 +150,7 @@ impl Lexer {
                 Some('=') => {
                     self.consume(1);
                     ANTLRTokenType::PlusAssign
-                },
+                }
                 _ => ANTLRTokenType::Plus,
             },
 
@@ -158,7 +158,7 @@ impl Lexer {
                 Some('.') => {
                     self.consume(1);
                     ANTLRTokenType::Range
-                },
+                }
                 _ => ANTLRTokenType::Dot,
             },
 
@@ -166,21 +166,23 @@ impl Lexer {
                 Some('>') => {
                     self.consume(1);
                     ANTLRTokenType::Arrow
-                },
+                }
 
-                Some(n) => return Err(UnexpectedCharacter { expected: '>', got: Some(n) }),
-                None => return Err(LexerErr::EOF)
+                Some(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: '>',
+                        got: Some(n),
+                    });
+                }
+                None => return Err(LexerErr::EOF),
             },
 
-
-            ' ' | '\t' | '\r' | '\n' => {
-                loop {
-                    match self.peek(1) {
-                        Some(' ') | Some('\t') | Some('\r') | Some('\n') => {
-                            self.consume(1);
-                        },
-                        _ => break ANTLRTokenType::WS
+            ' ' | '\t' | '\r' | '\n' => loop {
+                match self.peek(1) {
+                    Some(' ') | Some('\t') | Some('\r') | Some('\n') => {
+                        self.consume(1);
                     }
+                    _ => break ANTLRTokenType::WS,
                 }
             },
 
@@ -194,43 +196,37 @@ impl Lexer {
                 } else if self.match_string("rivate").is_ok() {
                     ANTLRTokenType::Private
                 } else {
-                    return Err(UnmatchedString)
+                    return Err(UnmatchedString);
+                }
+            }
+
+            'o' => match self.match_string("ptions") {
+                Ok(_) => ANTLRTokenType::Options,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "ptions".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
-            'o' => {
-                match self.match_string("ptions") {
-                    Ok(_) => ANTLRTokenType::Options,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "ptions".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
+            'f' => match self.match_string("inally") {
+                Ok(_) => ANTLRTokenType::Finally,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "inally".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
-            'f' => {
-                match self.match_string("inally") {
-                    Ok(_) => ANTLRTokenType::Finally,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "inally".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
-                }
-            },
-
-            't' => {
-                match self.match_string("hrows") {
-                    Ok(_) => ANTLRTokenType::Throws,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "hrows".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
+            't' => match self.match_string("hrows") {
+                Ok(_) => ANTLRTokenType::Throws,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "hrows".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
@@ -240,57 +236,48 @@ impl Lexer {
                     ANTLRTokenType::Catch
                 } else if self.match_string("hannels").is_ok() {
                     ANTLRTokenType::Channels
+                } else {
+                    return Err(UnmatchedString);
                 }
-                else {
-                    return Err(UnmatchedString)
+            }
+
+            'r' => match self.match_string("eturns") {
+                Ok(_) => ANTLRTokenType::Returns,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "eturns".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
-            'r' => {
-                match self.match_string("eturns") {
-                    Ok(_) => ANTLRTokenType::Returns,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "eturns".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
+            'g' => match self.match_string("rammar") {
+                Ok(_) => ANTLRTokenType::Grammar,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "rammar".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
-            'g' => {
-                match self.match_string("rammar") {
-                    Ok(_) => ANTLRTokenType::Grammar,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "rammar".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
+            'i' => match self.match_string("mport") {
+                Ok(_) => ANTLRTokenType::Import,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "mport".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
-            'i' => {
-                match self.match_string("mport") {
-                    Ok(_) => ANTLRTokenType::Import,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "mport".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
-                }
-            },
-
-            'm' => {
-                match self.match_string("ode") {
-                    Ok(_) => ANTLRTokenType::Mode,
-                    Err(n) => {
-                        return Err(UnexpectedCharacter {
-                            expected: "ode".chars().nth(n).unwrap(),
-                            got: self.peek(n + 1)
-                        })
-                    }
+            'm' => match self.match_string("ode") {
+                Ok(_) => ANTLRTokenType::Mode,
+                Err(n) => {
+                    return Err(UnexpectedCharacter {
+                        expected: "ode".chars().nth(n).unwrap(),
+                        got: self.peek(n + 1),
+                    });
                 }
             },
 
@@ -300,7 +287,7 @@ impl Lexer {
                 } else if self.match_string("ocals").is_ok() {
                     ANTLRTokenType::Locals
                 } else {
-                    return Err(UnmatchedString)
+                    return Err(UnmatchedString);
                 }
             }
 
@@ -312,15 +299,13 @@ impl Lexer {
                             return Err(LexerErr::EOF);
                         }
 
-                        Some('\\') => {
-                            esc = true
-                        },
+                        Some('\\') => esc = true,
 
                         Some('\'') => {
                             if esc {
                                 self.current_text.push('\'')
                             } else {
-                                break ANTLRTokenType::StringLit
+                                break ANTLRTokenType::StringLit;
                             }
                         }
 
@@ -330,7 +315,7 @@ impl Lexer {
                             } else {
                                 self.current_text.push('n')
                             }
-                        },
+                        }
 
                         Some('t') => {
                             if esc {
@@ -338,7 +323,7 @@ impl Lexer {
                             } else {
                                 self.current_text.push('t')
                             }
-                        },
+                        }
 
                         Some('r') => {
                             if esc {
@@ -346,7 +331,7 @@ impl Lexer {
                             } else {
                                 self.current_text.push('r')
                             }
-                        },
+                        }
 
                         Some('u') => {
                             if esc {
@@ -354,14 +339,14 @@ impl Lexer {
                             } else {
                                 self.current_text.push('u')
                             }
-                        },
+                        }
 
                         Some(n) => {
                             self.current_text.push(n);
                         }
                     }
                 }
-            },
+            }
 
             n => return Err(UnkownCharacter(n)),
         };
@@ -374,7 +359,7 @@ impl Lexer {
 
         for (index, c) in chars.enumerate() {
             if c != self.peek(index + 1).ok_or(index)? {
-                return Err(index)
+                return Err(index);
             }
         }
 

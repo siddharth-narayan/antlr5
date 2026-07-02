@@ -3,7 +3,7 @@ use crate::antlr::{
     lex::LexerErr::UnexpectedCharacter,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ANTLRTokenType {
     Comma,
     Semi,
@@ -52,10 +52,20 @@ pub enum ANTLRTokenType {
     StringLit,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ANTLRToken {
     token_type: ANTLRTokenType,
     text: String,
+}
+
+impl ANTLRToken {
+    pub fn token_type(&self) -> ANTLRTokenType {
+        self.token_type
+    }
+
+    pub fn text(&self) -> &String {
+        &self.text
+    }
 }
 
 #[derive(Debug)]

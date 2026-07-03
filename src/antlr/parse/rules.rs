@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::antlr::{ANTLRTokenType, Parser, ParserErr, parse::{alternative::Alt, ebnf::EBNFSuffix, rules::EBNFSuffix::{Star, StarOptional}}};
+use crate::antlr::{ANTLRTokenType, Parser, ParserErr, parse::{alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::EBNFSuffix::{Star, StarOptional}}};
 
 pub struct GrammarSpec {
     rule: Vec<Rule>
@@ -17,11 +17,11 @@ pub struct Rule {
     // prequel: PhantomData<()>,
 
     name: String,
-    alts: Vec<Alt>
+    alts: AltList
 }
 
 impl Rule {
-    pub fn new(name: String, alts: Vec<Alt>) -> Rule {
+    pub fn new(name: String, alts: AltList) -> Rule {
         Rule {
             name,
             alts
@@ -44,7 +44,7 @@ pub enum Element {
 }
 
 #[derive(Debug)]
-pub struct Block(pub Vec<Alt>);
+pub struct Block(pub AltList);
 
 #[derive(Debug)]
 pub enum Atom {

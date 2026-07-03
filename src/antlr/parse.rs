@@ -15,8 +15,21 @@ pub enum ParserErr {
         expected: Vec<ANTLRTokenType>,
         got: ANTLRTokenType
     },
-
+    SyntaxErr {
+        reason: String
+    },
     UnexpectedEOF
+}
+
+#[derive(Debug)]
+pub struct ANTLRAst {
+    rules: Vec<Rule>
+}
+
+impl ANTLRAst {
+    pub fn new(rules: Vec<Rule>) -> ANTLRAst {
+        ANTLRAst { rules }
+    }
 }
 
 pub struct Parser {

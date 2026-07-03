@@ -63,8 +63,8 @@ impl ANTLRToken {
         self.token_type
     }
 
-    pub fn text(&self) -> &String {
-        &self.text
+    pub fn text(&self) -> String {
+        self.text.clone()
     }
 }
 

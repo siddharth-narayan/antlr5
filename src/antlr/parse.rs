@@ -61,7 +61,7 @@ impl Parser {
         self.tokens.get(self.head + by - 1).cloned()
     }
 
-    pub fn peek_token_type(&self, by: usize) -> Option<ANTLRTokenType> {
+    pub fn peek_type(&self, by: usize) -> Option<ANTLRTokenType> {
         self.tokens.get(self.head + by - 1).map(|t| t.token_type())
     }
 

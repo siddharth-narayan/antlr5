@@ -1,4 +1,4 @@
-use crate::antlr::{ANTLRTokenType, Parser, ParserErr, parse::{alternative::Alt, ebnf::EBNFSuffix, rules::Rule}};
+use crate::antlr::{ANTLRTokenType::{self, ID, LParen, StringLit}, Parser, ParserErr, parse::{alternative::Alt, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule}}};
 
 impl Parser {
     pub fn rule_spec(&mut self) -> Result<Rule, ParserErr> {
@@ -13,9 +13,72 @@ impl Parser {
         Ok(Rule::new(rule_name, alts))
     }
 
+    pub fn block(&mut self) -> Result<Block, ParserErr> {
+        self.match_token(ANTLRTokenType::LParen)?;
+        let alts = self.alt_list()?;
+        self.match_token(ANTLRTokenType::RParen)?;
+
+        Ok(Block(alts))
+    }
+
+    pub fn element(&mut self) -> Result<Element, ParserErr> {
+        // Elements are atom or block  and then a suffix?
+        match self.peek_type(1).ok_or(ParserErr::UnexpectedEOF)? {
+            StringLit => {
+                let atom = self.atom()?;
+                let suffix = self.ebnf_suffix().ok();
+                Ok(Element::Atom { atom, suffix })
+            },
+
+            ID => {
+                let atom = self.atom()?;
+                let suffix = self.ebnf_suffix().ok();
+                Ok(Element::Atom { atom, suffix })
+            },
+
+            LParen => {
+                let block = self.block()?;
+                let suffix = self.ebnf_suffix().ok();
+
+                Ok(Element::Block { block, suffix })
+            }
+
+            t => {
+                Err(ParserErr::NoTokenMatched { expected: vec![StringLit, ID, LParen], got: t })
+            }
+        }
+    }
+
     pub fn alt(&mut self) -> Result<Alt, ParserErr> {
-        match self.peek_token_type(1) {
-            None
+        let mut elements = Vec::new();
+
+        while let Ok(e) = self.element() {
+            elements.push(e);
+        };
+
+        Ok(Alt::new(elements))
+    }
+
+    // Alts seperated by OR
+    pub fn alt_list(&mut self) -> Result<Vec<Alt>, ParserErr> {
+        let mut out = Vec::new();
+
+        out.push(self.alt()?);
+
+        while let Some(ANTLRTokenType::OR) = self.peek_type(1) {
+            out.push(self.alt()?);
+        }
+
+        Ok(out)
+    }
+
+    pub fn atom(&mut self) -> Result<Atom, ParserErr> {
+        let token = self.match_any_token(vec![ANTLRTokenType::StringLit, ANTLRTokenType::ID])?;
+
+        match token.token_type() {
+            ANTLRTokenType::StringLit => Ok(Atom::StringLit(token.text().clone())),
+            ANTLRTokenType::ID => Ok(Atom::ID(token.text().clone())),
+            _ => unreachable!()
         }
     }
 

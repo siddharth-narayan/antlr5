@@ -1,6 +1,6 @@
 use std::{env, fs::read_to_string};
 
-use crate::antlr::Lexer;
+use crate::antlr::{Lexer, Parser};
 
 mod antlr;
 
@@ -11,17 +11,11 @@ fn main() -> Result<(), ()> {
 
     println!("{}", content);
 
-    let mut lexer = Lexer::new(content);
-    
-    loop {
-        match lexer.next_token() {
-            Ok(t) => println!("{:#?}", t),
-            Err(e) => {
-                println!("{:#?}", e);
-                break
-            }
-        }
-    }
+    let lexer = Lexer::new(content);
+    let mut parser = Parser::new(lexer).unwrap();
+
+    let result = parser.rule_spec().unwrap();
+    println!("{:#?}", result);
 
     Ok(())
 }

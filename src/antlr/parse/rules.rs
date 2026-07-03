@@ -6,6 +6,7 @@ pub struct GrammarSpec {
     rule: Vec<Rule>
 }
 
+#[derive(Debug)]
 pub struct Rule {
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
@@ -29,13 +30,25 @@ impl Rule {
 }
 
 
+#[derive(Debug)]
 pub enum Element {
     Atom {
         atom: Atom,
         suffix: Option<EBNFSuffix>
     },
-    EBNF(EBNF)
+    Block {
+        block: Block,
+        suffix: Option<EBNFSuffix>
+    }
+    // EBNF(EBNF)
 }
 
+#[derive(Debug)]
+pub struct Block(pub Vec<Alt>);
 
+#[derive(Debug)]
+pub enum Atom {
+    StringLit(String),
+    ID(String)
+}
 

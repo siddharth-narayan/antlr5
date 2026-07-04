@@ -42,15 +42,18 @@ impl Parser {
         let mut tokens = Vec::new();
 
         loop {
-            match lexer.next_token() {
-                Ok(t) => {
-                    if t.token_type() != ANTLRTokenType::WS {
-                        tokens.push(t)
-                    }
-                },
+            let token = match lexer.next_token() {
+                Ok(t) => t,
                 Err(EOF) => break,
                 Err(e) => return Err(e)
+            };
+
+            if token.token_type() == ANTLRTokenType::WS || token.token_type() == ANTLRTokenType::Comment || token.token_type() == ANTLRTokenType::CommentBlock{
+                continue;
             }
+
+            println!("{:#?}", token);
+            tokens.push(token);
         };
 
         Ok(Parser {

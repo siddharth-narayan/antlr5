@@ -23,6 +23,7 @@ pub enum ANTLRTokenType {
     Not,
     Question,
     Arrow,
+    RangeDash,
     Colon,
     DoubleColon,
     Star,
@@ -31,6 +32,8 @@ pub enum ANTLRTokenType {
     Range,
     Plus,
     PlusAssign,
+    Comment,
+    CommentBlock,
 
     Fragment,
     Parser,
@@ -50,6 +53,7 @@ pub enum ANTLRTokenType {
     Finally,
     Mode,
     StringLit,
+    Charset
 }
 
 #[derive(Clone, Debug)]
@@ -123,7 +127,6 @@ impl Lexer {
             ')' => Ok(ANTLRTokenType::RParen),
             '{' => Ok(ANTLRTokenType::LBrace),
             '}' => Ok(ANTLRTokenType::RBrace),
-
             '>' => Ok(ANTLRTokenType::GT),
             '<' => Ok(ANTLRTokenType::LT),
             '=' => Ok(ANTLRTokenType::Assign),
@@ -179,14 +182,15 @@ impl Lexer {
                 Some('>') => {
                     self.consume(1);
                     Ok(ANTLRTokenType::Arrow)
-                }
+                },
 
                 Some(n) => {
                     Err(UnexpectedCharacter {
                         expected: '>',
                         got: Some(n),
                     })
-                }
+                },
+                
                 None => Err(LexerErr::EOF),
             },
 
@@ -290,55 +294,104 @@ impl Lexer {
                 }
             }
 
+            '/' => {
+                match self.peek(1) {
+                    Some('/') => {
+                        loop {
+                            if let Some('\n') = self.next() {
+                                break Ok(ANTLRTokenType::Comment)
+                            }
+                        } 
+                    },
+
+                    Some('*') => {
+                        loop {
+                            if let Some('*') = self.next() {
+                                if let Some('/') = self.peek(1) {
+                                    self.consume(1);
+                                    break Ok(ANTLRTokenType::CommentBlock)
+                                }
+                            }
+                        }
+                    }
+
+                    n => {
+                        Err(LexerErr::UnexpectedCharacter { expected: '/', got: n })
+                    }
+                    
+                }
+            },
+
             '\'' => {
                 let mut esc = false;
                 loop {
                     match self.next() {
                         None => {
                             break Err(LexerErr::EOF);
-                        }
+                        },
 
-                        Some('\\') => esc = true,
+                        Some('\\') => {
+                            if esc {
+                                current_text.push('\\');
+                                esc = false;
+                            } else {
+                                esc = true
+                            }
+                        },
 
                         Some('\'') => {
                             if esc {
-                                current_text.push('\'')
+                                current_text.push('\'');
+                                esc = false;
                             } else {
                                 break Ok(ANTLRTokenType::StringLit);
                             }
-                        }
+                        },
 
                         Some('n') => {
                             if esc {
-                                current_text.push('\n')
+                                current_text.push('\n');
+                                esc = false;
                             } else {
                                 current_text.push('n')
                             }
-                        }
+                        },
 
                         Some('t') => {
                             if esc {
-                                current_text.push('\t')
+                                current_text.push('\t');
+                                esc = false;
                             } else {
                                 current_text.push('t')
                             }
-                        }
+                        },
 
                         Some('r') => {
                             if esc {
-                                current_text.push('\r')
+                                current_text.push('\r');
+                                esc = false;
                             } else {
                                 current_text.push('r')
                             }
-                        }
-
+                        },
+                        
+                        Some('f') => {
+                            if esc {
+                                // current_text.push('');
+                                esc = false;
+                            } else {
+                                current_text.push('f')
+                            }
+                        },
+                        
                         Some('u') => {
                             if esc {
-                                todo!()
+                                todo!();
+                                esc = false;
                             } else {
                                 current_text.push('u')
                             }
-                        }
+                        },
 
                         Some(n) => {
                             current_text.push(n);
@@ -346,7 +399,109 @@ impl Lexer {
                     }
                 }
             }
+            // The exact same as a string literal but the text of the token is meant as a Vec of all the characters
+            '[' => {
+                let mut esc = false;
+                loop {
+                    match self.next() {
+                        None => {
+                            break Err(LexerErr::EOF);
+                        },
 
+                        Some('\\') => {
+                            if esc {
+                                current_text.push('\\');
+                                esc = false;
+                            } else {
+                                esc = true
+                            }
+                        },
+
+                        Some(']') => {
+                            if esc {
+                                current_text.push(']');
+                                esc = false;
+                            } else {
+                                break Ok(ANTLRTokenType::Charset);
+                            }
+                        },
+
+                        Some('-') => {
+                            if esc {
+                                current_text.push('-');
+                                esc = false;
+                            } else {
+                                println!("The character \"-\" is only available with a preceding and following character, as part of a range, or you might want to escape it");
+                                break Err(LexerErr::UnkownCharacter('-'))
+                            }
+                        },
+
+                        Some('n') => {
+                            if esc {
+                                current_text.push('\n');
+                                esc = false;
+                            } else {
+                                current_text.push('n')
+                            }
+                        },
+
+                        Some('t') => {
+                            if esc {
+                                current_text.push('\t');
+                                esc = false;
+                            } else {
+                                current_text.push('t')
+                            }
+                        },
+
+                        Some('r') => {
+                            if esc {
+                                current_text.push('\r');
+                                esc = false;
+                            } else {
+                                current_text.push('r')
+                            }
+                        },
+                        
+                        Some('f') => {
+                            if esc {
+                                // current_text.push('');
+                                esc = false;
+                            } else {
+                                current_text.push('f')
+                            }
+                        },
+                        
+                        Some('u') => {
+                            if esc {
+                                todo!();
+                                esc = false;
+                            } else {
+                                current_text.push('u')
+                            }
+                        },
+
+                        Some(n) => {
+                            current_text.push(n);
+                        }
+                    }
+
+
+                    if let Some('-') = self.peek(1) && !esc {
+                        let until = match self.peek(2) {
+                            None => break Err(LexerErr::EOF),
+                            Some('\\') => todo!("I haven't done implemented escaped ranges yet"),
+                            Some(n) => n
+                        };
+
+                        self.consume(2);
+                        let from = current_text.pop().unwrap();
+                        for c in from..=until {
+                            current_text.push(c);
+                        }
+                    }
+                }
+            }
             n => Err(UnkownCharacter(n)),
         };
 
@@ -355,7 +510,7 @@ impl Lexer {
             Ok(t) => Ok( ANTLRToken { token_type: t, text: current_text.iter().collect() }),
             Err(e) => {
                 match character {
-                    'A'..'Z' | 'a'..'z' => {
+                    'A'..='Z' | 'a'..='z' => {
                         current_text.push(character);
                     },
 

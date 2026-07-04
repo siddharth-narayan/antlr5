@@ -1,9 +1,10 @@
 use std::{env, fs::read_to_string};
 
-use crate::antlr::{Lexer, Parser};
+use crate::{antlr::{Lexer, Parser}, langs::{codegen, jinja_env}};
 
 mod antlr;
-
+mod langs;
+// mod analysis;
 
 fn main() -> Result<(), ()> {
     let path = "test.g4";
@@ -15,7 +16,9 @@ fn main() -> Result<(), ()> {
     let mut parser = Parser::new(lexer).unwrap();
 
     let result = parser.grammar_spec().unwrap();
-    println!("{:#?}", result);
+    // println!("{:#?}", result);
 
+    let env = jinja_env();
+    codegen(env, result);
     Ok(())
 }

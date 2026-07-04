@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::antlr::{ANTLRToken, ANTLRTokenType::{self, ID}, Lexer, LexerErr::{self, EOF}, parse::rules::Rule};
 
-mod rules;
-mod ebnf;
-mod r#impl;
-mod alternative;
+pub mod rules;
+pub mod ebnf;
+pub mod r#impl;
+pub mod alternative;
 
 #[derive(Debug)]
 pub enum ParserErr {
@@ -21,7 +23,7 @@ pub enum ParserErr {
     UnexpectedEOF
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ANTLRAst {
     rules: Vec<Rule>
 }
@@ -52,7 +54,7 @@ impl Parser {
                 continue;
             }
 
-            println!("{:#?}", token);
+            // println!("{:#?}", token);
             tokens.push(token);
         };
 

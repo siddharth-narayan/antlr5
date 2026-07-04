@@ -1,8 +1,10 @@
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use crate::antlr::parse::rules::Element;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Alt {
     label: Option<String>,
     options: PhantomData<()>,
@@ -19,7 +21,7 @@ impl Alt {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AltList {
     optional: bool,
     alts: Vec<Alt>

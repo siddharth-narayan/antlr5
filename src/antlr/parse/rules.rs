@@ -1,12 +1,14 @@
 use std::marker::PhantomData;
 
+use serde::{Deserialize, Serialize};
+
 use crate::antlr::{ANTLRTokenType, Parser, ParserErr, parse::{alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::EBNFSuffix::{Star, StarOptional}}};
 
 pub struct GrammarSpec {
     rule: Vec<Rule>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Rule {
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
@@ -30,7 +32,7 @@ impl Rule {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Element {
     Atom {
         atom: Atom,
@@ -43,10 +45,10 @@ pub enum Element {
     // EBNF(EBNF)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Block(pub AltList);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Atom {
     StringLit(String),
     ID(String)

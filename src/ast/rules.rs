@@ -1,8 +1,6 @@
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
 
-use crate::antlr::{ANTLRTokenType, Parser, ParserErr, parse::{alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::EBNFSuffix::{Star, StarOptional}}};
+use crate::ast::{alternative::{Alt, AltList}, ebnf::EBNFSuffix};
 
 pub struct GrammarSpec {
     rule: Vec<Rule>
@@ -19,15 +17,23 @@ pub struct Rule {
     // prequel: PhantomData<()>,
 
     name: String,
-    alts: AltList
+    alt_list: AltList
 }
 
 impl Rule {
-    pub fn new(name: String, alts: AltList) -> Rule {
+    pub fn new(name: String, alt_list: AltList) -> Rule {
         Rule {
             name,
-            alts
+            alt_list
         }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    } 
+
+    pub fn alts(&self) -> &Vec<Alt> {
+        &self.alt_list.alts()
     }
 }
 

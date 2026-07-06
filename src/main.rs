@@ -2,9 +2,10 @@ use std::{env, fs::read_to_string};
 
 use crate::{antlr::{Lexer, Parser}, langs::{codegen, jinja_env}};
 
+mod ast;
 mod antlr;
 mod langs;
-// mod analysis;
+mod codegen;
 
 fn main() -> Result<(), ()> {
     let path = "test.g4";

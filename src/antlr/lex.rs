@@ -5,10 +5,11 @@ use crate::antlr::{
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ANTLRTokenType {
+    EOF,
+    
     Comma,
     Semi,
     WS,
-    ID,
     LParen,
     RParen,
     LBrace,
@@ -34,6 +35,9 @@ pub enum ANTLRTokenType {
     PlusAssign,
     Comment,
     CommentBlock,
+
+    RuleID,
+    TokenID,
 
     Fragment,
     Parser,
@@ -117,7 +121,15 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<ANTLRToken, LexerErr> {
         let mut current_text = Vec::new();
 
-        let character = self.next().ok_or(LexerErr::EOF)?;
+        let character = match self.next() {
+            Some(c) => c,
+            None => {
+                return Ok(ANTLRToken {
+                    token_type: ANTLRTokenType::EOF,
+                    text: current_text.iter().collect()
+                })
+            }
+        };
 
         let token = match character  {
             ',' => Ok(ANTLRTokenType::Comma),
@@ -509,8 +521,15 @@ impl Lexer {
         match token {
             Ok(t) => Ok( ANTLRToken { token_type: t, text: current_text.iter().collect() }),
             Err(e) => {
+                let mut is_token = false;
+
                 match character {
-                    'A'..='Z' | 'a'..='z' => {
+                    'a'..='z' => {
+                        current_text.push(character);
+                    },
+
+                    'A'..='Z' => {
+                        is_token = true;
                         current_text.push(character);
                     },
 
@@ -536,7 +555,7 @@ impl Lexer {
                 }
 
                 Ok(ANTLRToken {
-                    token_type: ANTLRTokenType::ID,
+                    token_type: if is_token { ANTLRTokenType::RuleID} else { ANTLRTokenType::TokenID },
                     text: current_text.iter().collect()
                 })
             }

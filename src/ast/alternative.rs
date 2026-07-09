@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ast::rules::Element, codegen::{ATNFragment, AnalysisErr}};
+use crate::{analysis::{AnalysisErr, SymbolTable}, ast::rules::Element, codegen::{ATNFragment, StateRef}};
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -28,6 +28,23 @@ impl Alt {
     pub fn elements(&self) -> &Vec<Element> {
         &self.elements
     }
+
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
+        let mut fragment = ATNFragment::new(); // TODO this is wrong
+        for element in &self.elements {
+            fragment.append_fragment(StateRef(0), element.codegen(table)?);
+        }
+
+        Ok(fragment)
+    }
+
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        for element in &self.elements {
+            element.symbols(table)?
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -48,7 +65,15 @@ impl AltList {
         &self.alts
     }
 
-    pub fn codegen(&self) -> Result<ATNFragment, AnalysisErr> {
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        for alt in &self.alts {
+            alt.symbols(table)?
+        }
+
+        Ok(())
+    }
+
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
         let mut ands = true;
         let mut ors = false;
 
@@ -61,6 +86,12 @@ impl AltList {
             return Err(AnalysisErr::AltLabels)
         };
 
-        todo!()
+        let mut fragment = ATNFragment::new();
+
+        for alt in &self.alts {
+            fragment.append_fragment(StateRef(0), alt.codegen(table)?);
+        }
+
+        Ok(fragment)
     }
 }

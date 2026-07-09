@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{alternative::{Alt, AltList}, ebnf::EBNFSuffix};
+use crate::{analysis::{AnalysisErr, SymbolTable}, ast::{alternative::{Alt, AltList}, ebnf::EBNFSuffix}, codegen::{ATNFragment, State, StateRef, Transition}};
 
 pub struct GrammarSpec {
     rule: Vec<Rule>
@@ -35,6 +35,18 @@ impl Rule {
     pub fn alts(&self) -> &Vec<Alt> {
         &self.alt_list.alts()
     }
+
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
+        self.alt_list.codegen(table)
+    }
+
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        table.insert_rule(self.name.clone())?;
+
+        self.alt_list.symbols(table);
+
+        Ok(())
+    }
 }
 
 
@@ -51,8 +63,46 @@ pub enum Element {
     // EBNF(EBNF)
 }
 
+impl Element {
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
+        match self {
+            Self::Atom { atom, .. } => {
+                atom.codegen(table)
+            },
+
+            Self::Block { block, .. } => {
+                block.codegen(table)
+            }
+        }
+    }
+
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        match self {
+            Self::Atom { atom, .. } => {
+                atom.symbols(table)
+            },
+
+            Self::Block { block, .. } => {
+                block.symbols(table)
+            }
+        }
+    }
+}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Block(pub AltList);
+
+impl Block {
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        self.0.symbols(table)?;
+
+        Ok(())
+    }
+
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
+        self.0.codegen(table)
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Atom {
@@ -60,3 +110,33 @@ pub enum Atom {
     ID(String)
 }
 
+impl Atom {
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        match self {
+            Atom::StringLit(s) => table.insert_token(s.clone()),
+            Atom::ID(_) => () // IDs will be checked at codegen time for validity
+        }
+
+        Ok(())
+    }
+
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
+        let mut fragment = ATNFragment::new();
+
+        match self {
+            Atom::StringLit(s) => {
+                let id = table.get_token_id(s.clone()).ok_or(AnalysisErr::Undefined { name: s.clone() })?;
+
+                // States literally don't hold useful info
+                let state = State::new();
+                fragment.push_state(state);
+                fragment.push_transition(Transition::Atom { source: StateRef(0), target: StateRef(1), input: id });
+            },
+            Atom::ID(s) => {
+                // let rule_id = table.get_rule_id(name).ok_or(AnalysisErr::Undefined { name: s.clone() })?;
+            }
+        }
+
+        Ok(fragment)
+    }
+}

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, ID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule}}};
+use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, RuleID, TokenID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule}}};
 
 
 
@@ -30,18 +30,20 @@ impl Parser {
         let mut tokens = Vec::new();
 
         loop {
-            let token = match lexer.next_token() {
-                Ok(t) => t,
-                Err(EOF) => break,
-                Err(e) => return Err(e)
-            };
+            let token = lexer.next_token()?;
 
             if token.token_type() == ANTLRTokenType::WS || token.token_type() == ANTLRTokenType::Comment || token.token_type() == ANTLRTokenType::CommentBlock{
                 continue;
             }
 
-            // println!("{:#?}", token);
+            if token.token_type() == ANTLRTokenType::EOF {
+                break;
+            }
+            
+            println!("{:#?}", token);
             tokens.push(token);
+
+
         };
 
         Ok(Parser {
@@ -112,15 +114,33 @@ impl Parser {
     pub fn grammar_spec(&mut self) -> Result<ANTLRAst, ParserErr> {
         let mut rules = Vec::new();
 
-        while let Ok(rule) = self.rule_spec() {
-            rules.push(rule)
+        loop {
+            if let Some(t) = self.peek(1) {
+                match t.token_type() {
+                    ANTLRTokenType::TokenID => {
+                        rules.push(self.token_rule_spec()?)
+                    },
+
+                    ANTLRTokenType::RuleID => {
+                        rules.push(self.rule_spec()?)
+                    },
+
+                    ANTLRTokenType::EOF => {
+                        break;
+                    }
+
+                    _ => {
+                        return Err(ParserErr::NoTokenMatched { expected: vec![TokenID, RuleID, ANTLRTokenType::EOF], got: t.token_type() })
+                    }
+                }
+            }
         }
         
         Ok(ANTLRAst::new(rules))
     }
 
     pub fn rule_spec(&mut self) -> Result<Rule, ParserErr> {
-        let rule_name = self.match_token(ANTLRTokenType::ID)?.text().clone();
+        let rule_name = self.match_token(ANTLRTokenType::RuleID)?.text().clone();
         
         self.match_token(ANTLRTokenType::Colon)?;
 
@@ -129,6 +149,10 @@ impl Parser {
         self.match_token(ANTLRTokenType::Semi)?;
 
         Ok(Rule::new(rule_name, alts))
+    }
+
+    pub fn token_rule_spec(&mut self) -> Result<TokenRule, ParserErr> {
+        
     }
 
     pub fn block(&mut self) -> Result<Block, ParserErr> {
@@ -148,7 +172,7 @@ impl Parser {
                 Ok(Element::Atom { atom, suffix })
             },
 
-            ID => {
+            TokenID | RuleID => {
                 let atom = self.atom()?;
                 let suffix = self.ebnf_suffix().ok();
                 Ok(Element::Atom { atom, suffix })
@@ -162,7 +186,7 @@ impl Parser {
             }
 
             t => {
-                Err(ParserErr::NoTokenMatched { expected: vec![ANTLRTokenType::StringLit, ANTLRTokenType::ID, ANTLRTokenType::LParen], got: t })
+                Err(ParserErr::NoTokenMatched { expected: vec![ANTLRTokenType::StringLit, ANTLRTokenType::TokenID, ANTLRTokenType::RuleID, ANTLRTokenType::LParen], got: t })
             }
         }
     }
@@ -179,7 +203,7 @@ impl Parser {
             return Ok(None);
         } else {
             let label = if self.match_token(ANTLRTokenType::Pound).is_ok() {
-                Some(self.match_token(ID)?.text())
+                Some(self.match_any_token(vec![ANTLRTokenType::RuleID, ANTLRTokenType::TokenID])?.text())
             } else {
                 None
             };
@@ -210,11 +234,11 @@ impl Parser {
     }
 
     pub fn atom(&mut self) -> Result<Atom, ParserErr> {
-        let token = self.match_any_token(vec![ANTLRTokenType::StringLit, ANTLRTokenType::ID])?;
+        let token = self.match_any_token(vec![ANTLRTokenType::StringLit, ANTLRTokenType::RuleID, ANTLRTokenType::TokenID])?;
 
         match token.token_type() {
             ANTLRTokenType::StringLit => Ok(Atom::StringLit(token.text().clone())),
-            ANTLRTokenType::ID => Ok(Atom::ID(token.text().clone())),
+            ANTLRTokenType::TokenID | ANTLRTokenType::RuleID => Ok(Atom::ID(token.text().clone())),
             _ => unreachable!()
         }
     }

@@ -2,32 +2,41 @@ use std::{collections::HashSet, slice::SliceIndex};
 
 use serde::{Deserialize, Serialize};
 
-pub enum AnalysisErr {
-    Redefinition {
-        of: String
-    },
 
-    AltLabels
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateRef(pub usize);
+impl StateRef {
+    pub fn offset(&mut self, by: usize) {
+        self.0 += by;
+    }
 }
 
-#[derive(Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StateRef(usize);
-
-#[derive(Copy, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransitionRef(usize);
+impl TransitionRef {
+    pub fn offset(&mut self, by: usize) {
+        self.0 += by;
+    }
+}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct State {
     transitions: HashSet<TransitionRef>
 }
 
 impl State {
+    pub fn new() -> State {
+        State {
+            transitions: HashSet::new()
+        }
+    }
+    
     pub fn transitions(&self) -> &HashSet<TransitionRef> {
         &self.transitions
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Transition {
     Epsilon {
         source: StateRef,
@@ -57,6 +66,19 @@ pub enum Transition {
 }
 
 impl Transition {
+    pub fn offset(&mut self, by: usize) {
+        let (source, target) = match self {
+            Self::Atom { source, target, .. }
+            | Self::Epsilon { source, target, .. }
+            | Self::Range { source, target, .. }
+            | Self::Set { source, target, .. }
+            | Self::NotSet { source, target, .. } => (source, target)
+        };
+
+        source.offset(by);
+        target.offset(by);
+    }
+
     pub fn is_epsilon(&self) -> bool {
         matches!(
             self,
@@ -90,7 +112,7 @@ impl Transition {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ATNFragment {
     start_state: StateRef,
     states: Vec<State>,
@@ -98,8 +120,51 @@ pub struct ATNFragment {
 }
 
 impl ATNFragment {
-    pub fn append_fragment(&mut self, from: StateRef, to: ATNFragment) {
+    pub fn new() -> ATNFragment {
+        let mut states = Vec::new();
+        states.push(State::new());
+
+        ATNFragment { start_state: StateRef(0), states, transitions: Vec::new() }
+    }
+
+    pub fn offset(&mut self, states_len: usize, transitions_len: usize) {
+        self.start_state.offset(states_len);
         
+        for state in &mut self.states {
+            state.transitions = state.transitions.clone().into_iter().map(|mut t| {
+                t.offset(transitions_len);
+                t
+            }).collect()
+        }
+
+        for transition in &mut self.transitions {
+            transition.offset(states_len); // Because the transitions hold StateRefs not TransitionRefs
+        }
+    }
+
+    pub fn push_state(&mut self, s: State) {
+        self.states.push(s);
+    }
+
+    pub fn push_transition(&mut self, t: Transition) {
+        self.transitions.push(t);
+    }
+
+    pub fn append_fragment(&mut self, from: StateRef, mut to: ATNFragment) {
+        let states_len = self.states.len();
+        let transition_len = self.transitions.len();
+
+        to.offset(states_len, transition_len);
+        
+        for state in to.states {
+            self.states.push(state);
+        }
+
+        for transition in to.transitions {
+            self.transitions.push(transition)
+        }
+
+        self.transitions.push(Transition::Epsilon { source: from, target: to.start_state })
     }
 
     pub fn closure(&self, current: StateRef, input: usize) -> HashSet<StateRef> {

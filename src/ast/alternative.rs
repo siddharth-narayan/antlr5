@@ -10,14 +10,16 @@ pub struct Alt {
     label: Option<String>,
     options: PhantomData<()>,
     elements: Vec<Element>,
+    channel: Option<String>
 }
 
 impl Alt {
-    pub fn new(label: Option<String>, elements: Vec<Element>) -> Alt {
+    pub fn new(label: Option<String>, elements: Vec<Element>, channel: Option<String>) -> Alt {
         Alt {
             label,
             elements,
-            options: PhantomData
+            options: PhantomData,
+            channel,
         }
     }
 

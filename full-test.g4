@@ -3869,10 +3869,6 @@ EGI
     : E G I
     ;
 
-Awepgjoawopeigj: ABCDEFG
-
-ABCDEFG: [0-9]*
-
 ELSE
     : E L S E
     ;
@@ -5524,23 +5520,23 @@ NEWLINE
     ;
 
 EXECCICSLINE
-    : EXECCICSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}')
+    : EXECCICSTAG WS ~[\n\r}]* [\n\r}]
     ;
 
 EXECSQLIMSLINE
-    : EXECSQLIMSTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}')
+    : EXECSQLIMSTAG WS ~[\n\r}]* [\n\r}]
     ;
 
 EXECSQLLINE
-    : EXECSQLTAG WS ~('\n' | '\r' | '}')* ('\n' | '\r' | '}')
+    : EXECSQLTAG WS ~[\n\r}]* [\n\r}]
     ;
 
 COMMENTENTRYLINE
-    : COMMENTENTRYTAG WS ~('\n' | '\r')*
+    : COMMENTENTRYTAG WS ~[\n\r]*
     ;
 
 COMMENTLINE
-    : COMMENTTAG WS ~('\n' | '\r')* -> channel(HIDDEN)
+    : COMMENTTAG WS ~[\n\r]* -> channel(HIDDEN)
     ;
 
 WS

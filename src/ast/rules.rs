@@ -37,9 +37,9 @@ impl TokenRule {
     }
 
     pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
-        table.insert_rule(self.name.clone())?;
+        table.insert_token_rule(self.name.clone())?;
 
-        self.alt_list.symbols(table);
+        self.alt_list.symbols(table)?;
 
         Ok(())
     }
@@ -82,7 +82,7 @@ impl Rule {
     pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
         table.insert_rule(self.name.clone())?;
 
-        self.alt_list.symbols(table);
+        self.alt_list.symbols(table)?;
 
         Ok(())
     }

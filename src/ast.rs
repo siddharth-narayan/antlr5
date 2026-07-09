@@ -32,6 +32,10 @@ impl ANTLRAst {
             rule.symbols(table)?
         }
 
+        for rule in &self.token_rules {
+            rule.symbols(table)?
+        }
+
         Ok(())
     }
 }

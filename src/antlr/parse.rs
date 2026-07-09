@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, Charset, Not, RuleID, TokenID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule, TokenRule}}};
+use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, Charset, LParen, Not, RParen, RuleID, TokenID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule, TokenRule}}};
 
 
 
@@ -119,11 +119,23 @@ impl Parser {
         loop {
             match self.peek(1).token_type() {
                 ANTLRTokenType::TokenID |  ANTLRTokenType::Fragment => {
-                    token_rules.push(self.token_rule_spec()?)
+                    match self.token_rule_spec() {
+                        Ok(r) => token_rules.push(r),
+                        Err(e) => {
+                            println!("{:#?}", self.peek_n(0, 6));
+                            println!("Failed to parse token rule {}: {:#?}", self.peek(1).text(), e);
+                        }
+                    }
                 },
 
                 ANTLRTokenType::RuleID => {
-                    rules.push(self.rule_spec()?)
+                    match self.rule_spec() {
+                        Ok(r) => rules.push(r),
+                        Err(e) => {
+                            println!("{:#?}", self.peek_n(0, 3));
+                            println!("Failed to parse token rule {}: {:#?}", self.peek(1).text(), e);
+                        }
+                    }
                 },
 
                 ANTLRTokenType::EOF => {
@@ -237,7 +249,19 @@ impl Parser {
                 None
             };
             
-            return Ok(Some(Alt::new(label, elements)))
+            let channel = if self.match_token(ANTLRTokenType::Arrow).is_ok() {
+                // Match only channel right now, I'll do the rest later
+                self.match_token(RuleID)?;
+                self.match_token(LParen)?;
+                let id = self.match_any_token(vec![RuleID, TokenID])?.text();
+                self.match_token(RParen)?;
+
+                Some(id)
+            } else {
+                None
+            };
+
+            return Ok(Some(Alt::new(label, elements, channel)))
         }
     }
        

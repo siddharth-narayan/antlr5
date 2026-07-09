@@ -1,9 +1,48 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{analysis::{AnalysisErr, SymbolTable}, ast::{alternative::{Alt, AltList}, ebnf::EBNFSuffix}, codegen::{ATNFragment, State, StateRef, Transition}};
 
 pub struct GrammarSpec {
     rule: Vec<Rule>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenRule {
+    is_fragment: bool,
+    name: String,
+    alt_list: AltList
+}
+
+impl TokenRule {
+    pub fn new(is_fragment: bool, name: String, alt_list: AltList) -> TokenRule {
+        TokenRule {
+            is_fragment,
+            name,
+            alt_list
+        }
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    } 
+
+    pub fn alts(&self) -> &Vec<Alt> {
+        &self.alt_list.alts()
+    }
+
+    pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
+        self.alt_list.codegen(table)
+    }
+
+    pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {
+        table.insert_rule(self.name.clone())?;
+
+        self.alt_list.symbols(table);
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,6 +98,11 @@ pub enum Element {
     Block {
         block: Block,
         suffix: Option<EBNFSuffix>
+    },
+    Set {
+        inverted: bool,
+        set: HashSet<usize>,
+        suffix: Option<EBNFSuffix>
     }
     // EBNF(EBNF)
 }
@@ -72,6 +116,10 @@ impl Element {
 
             Self::Block { block, .. } => {
                 block.codegen(table)
+            },
+
+            Self::Set { inverted, set, suffix } => {
+                todo!()
             }
         }
     }
@@ -84,7 +132,9 @@ impl Element {
 
             Self::Block { block, .. } => {
                 block.symbols(table)
-            }
+            },
+            
+            _ => Ok(())
         }
     }
 }

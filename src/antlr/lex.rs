@@ -67,6 +67,10 @@ pub struct ANTLRToken {
 }
 
 impl ANTLRToken {
+    pub fn new(token_type: ANTLRTokenType, text: String) -> ANTLRToken {
+        ANTLRToken { token_type, text }
+    }
+
     pub fn token_type(&self) -> ANTLRTokenType {
         self.token_type
     }
@@ -240,6 +244,8 @@ impl Lexer {
             'f' =>  {
                 if self.match_keyword("inally").is_ok() {
                     Ok(ANTLRTokenType::Finally)
+                } else if self.match_keyword("ragment").is_ok() {
+                    Ok(ANTLRTokenType::Fragment)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -555,7 +561,7 @@ impl Lexer {
                 }
 
                 Ok(ANTLRToken {
-                    token_type: if is_token { ANTLRTokenType::RuleID} else { ANTLRTokenType::TokenID },
+                    token_type: if is_token { ANTLRTokenType::TokenID } else { ANTLRTokenType::RuleID },
                     text: current_text.iter().collect()
                 })
             }

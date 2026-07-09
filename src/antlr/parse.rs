@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, RuleID, TokenID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule}}};
+use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, Charset, Not, RuleID, TokenID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule, TokenRule}}};
 
 
 
@@ -52,23 +54,23 @@ impl Parser {
         })
     }
 
-    pub fn next(&mut self) -> Option<ANTLRToken> {
-        let res = self.tokens.get(self.head);
+    pub fn next(&mut self) -> ANTLRToken {
+        let res = self.tokens.get(self.head).cloned().unwrap_or(ANTLRToken::new(ANTLRTokenType::EOF, String::new()));
         self.head += 1;
 
-        res.cloned()
+        res
     }
 
     pub fn consume(&mut self, amount: usize) {
         self.head += amount
     }
 
-    pub fn peek(&self, by: usize) -> Option<ANTLRToken> {
-        self.tokens.get(self.head + by - 1).cloned()
+    pub fn peek(&self, by: usize) -> ANTLRToken {
+        self.tokens.get(self.head + by - 1).cloned().unwrap_or(ANTLRToken::new(ANTLRTokenType::EOF, String::new()))
     }
 
-    pub fn peek_type(&self, by: usize) -> Option<ANTLRTokenType> {
-        self.tokens.get(self.head + by - 1).map(|t| t.token_type())
+    pub fn peek_type(&self, by: usize) -> ANTLRTokenType {
+        self.tokens.get(self.head + by - 1).map(|t| t.token_type()).unwrap_or(ANTLRTokenType::EOF)
     }
 
     pub fn peek_n(&self, by: usize, count: usize) -> Option<&[ANTLRToken]> {
@@ -77,7 +79,7 @@ impl Parser {
     }
 
     pub fn match_token(&mut self, token_type: ANTLRTokenType) -> Result<ANTLRToken, ParserErr> {
-        let peek = self.peek(1).ok_or(ParserErr::UnexpectedEOF)?;
+        let peek = self.peek(1);
         if peek.token_type() != token_type {
             return Err(ParserErr::UnexpectedToken {
                 expected: token_type,
@@ -91,7 +93,7 @@ impl Parser {
     }
 
     pub fn match_any_token(&mut self, token_types: Vec<ANTLRTokenType>) -> Result<ANTLRToken, ParserErr> {
-        let peek = self.peek(1).ok_or(ParserErr::UnexpectedEOF)?;
+        let peek = self.peek(1);
 
         for token_type in &token_types {
             if &peek.token_type() == token_type {
@@ -113,30 +115,28 @@ impl Parser {
 impl Parser {
     pub fn grammar_spec(&mut self) -> Result<ANTLRAst, ParserErr> {
         let mut rules = Vec::new();
-
+        let mut token_rules = Vec::new();
         loop {
-            if let Some(t) = self.peek(1) {
-                match t.token_type() {
-                    ANTLRTokenType::TokenID => {
-                        rules.push(self.token_rule_spec()?)
-                    },
+            match self.peek(1).token_type() {
+                ANTLRTokenType::TokenID |  ANTLRTokenType::Fragment => {
+                    token_rules.push(self.token_rule_spec()?)
+                },
 
-                    ANTLRTokenType::RuleID => {
-                        rules.push(self.rule_spec()?)
-                    },
+                ANTLRTokenType::RuleID => {
+                    rules.push(self.rule_spec()?)
+                },
 
-                    ANTLRTokenType::EOF => {
-                        break;
-                    }
+                ANTLRTokenType::EOF => {
+                    break;
+                }
 
-                    _ => {
-                        return Err(ParserErr::NoTokenMatched { expected: vec![TokenID, RuleID, ANTLRTokenType::EOF], got: t.token_type() })
-                    }
+                t => {
+                    return Err(ParserErr::NoTokenMatched { expected: vec![TokenID, RuleID, ANTLRTokenType::EOF], got: t })
                 }
             }
         }
         
-        Ok(ANTLRAst::new(rules))
+        Ok(ANTLRAst::new(rules, token_rules))
     }
 
     pub fn rule_spec(&mut self) -> Result<Rule, ParserErr> {
@@ -152,7 +152,20 @@ impl Parser {
     }
 
     pub fn token_rule_spec(&mut self) -> Result<TokenRule, ParserErr> {
+        let is_fragment = self.peek_type(1) == ANTLRTokenType::Fragment;
+        if is_fragment {
+            self.consume(1);
+        }
+
+        let rule_name = self.match_token(ANTLRTokenType::TokenID)?.text().clone();
         
+        self.match_token(ANTLRTokenType::Colon)?;
+
+        let alts = self.alt_list()?;
+
+        self.match_token(ANTLRTokenType::Semi)?;
+
+        Ok(TokenRule::new(is_fragment, rule_name, alts))
     }
 
     pub fn block(&mut self) -> Result<Block, ParserErr> {
@@ -165,18 +178,34 @@ impl Parser {
 
     pub fn element(&mut self) -> Result<Element, ParserErr> {
         // Elements are atom or block  and then a suffix?
-        match self.peek_type(1).ok_or(ParserErr::UnexpectedEOF)? {
+        match self.peek_type(1) {
             ANTLRTokenType::StringLit => {
                 let atom = self.atom()?;
                 let suffix = self.ebnf_suffix().ok();
                 Ok(Element::Atom { atom, suffix })
             },
-
+ 
             TokenID | RuleID => {
                 let atom = self.atom()?;
                 let suffix = self.ebnf_suffix().ok();
                 Ok(Element::Atom { atom, suffix })
             },
+
+            ANTLRTokenType::Not | Charset => {
+                let token = self.peek(1);
+                Ok(if token.token_type() == Not {
+                    self.consume(1);
+                    let token = self.match_token(Charset)?;
+
+                    let suffix = self.ebnf_suffix().ok();
+                    Element::Set { inverted: true, set: HashSet::from_iter(token.text().chars().map(|c| c as usize)), suffix }
+                } else {
+                    self.consume(1);
+
+                    let suffix = self.ebnf_suffix().ok();
+                    Element::Set { inverted: false, set: HashSet::from_iter(token.text().chars().map(|c| c as usize)), suffix}
+                })
+            }
 
             ANTLRTokenType::LParen => {
                 let block = self.block()?;

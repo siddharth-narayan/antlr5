@@ -9,7 +9,7 @@ mod analysis;
 mod langs;
 
 fn main() -> Result<(), ()> {
-    let path = "full-test.g4";
+    let path = std::env::args().nth(1).unwrap();
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // println!("{}", content);

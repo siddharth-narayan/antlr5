@@ -1,3 +1,5 @@
+This grammar
+```antlr
 // The main entry point for parsing a v4 grammar.
 grammarSpec
     : grammarDecl prequelConstruct* rules modeSpec* EOF
@@ -11,8 +13,10 @@ grammarType
     : LEXER GRAMMAR
     | PARSER GRAMMAR
     | GRAMMAR
+```
 
-
+Produces the following tokens
+```
 ANTLRToken {
     token_type: RuleID,
     text: "grammarSpec",
@@ -117,6 +121,9 @@ ANTLRToken {
     token_type: Semi,
     text: "",
 }
+```
+And the following parse tree
+```
 ANTLRAst {
     rules: [
         Rule {
@@ -272,3 +279,4 @@ SymbolTable {
     token_rules: {},
     tokens: {},
 }
+```

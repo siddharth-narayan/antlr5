@@ -18,18 +18,22 @@ fn main() -> Result<(), ()> {
     let lexer = Lexer::new(content);
     let mut parser = Parser::new(lexer).unwrap();
 
-    let result = parser.grammar_spec().unwrap();
-    println!("{:#?}", result);
+    let ast = parser.grammar_spec().unwrap();
+    println!("{:#?}", ast);
 
     // Analysis
     let mut symbols = SymbolTable::new();
-    result.symbols(&mut symbols).unwrap();
+    ast.symbols(&mut symbols).unwrap();
     println!("{:#?}", symbols);
 
     // Codegen
-    let atn = result.codegen(&mut symbols);
+    let atn = ast.codegen(&mut symbols);
 
     let env = jinja_env();
-    // println!("{:#?}", atn);
+    
+    std::fs::write("parser.gen", env.get_template("rust-parse").unwrap().render(ast).unwrap())
+    ;
+    println!("{:#?}", atn);
+    
     Ok(())
 }

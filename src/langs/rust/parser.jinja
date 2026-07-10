@@ -1,3 +1,30 @@
+pub struct Parser {
+
+}
+
+impl Parser {
+    {% for rule in rules %}
+        pub fn {{ rule.name }}(&mut self) -> {{ rule.name | capitalize }} {
+            self.set_state(rule | startstate );
+        }
+    {% endfor %}
+}
+
 {%- for rule in rules %}
-<li>{{ rule.name }}</li>
-{%- endfor %}
+    {%- if rule.alt_list.alts | length > 1 %}
+    pub enum {{ rule.name }} {
+        {%- for alt in rule.alt_list.alts %}
+            {{alt.label}} {
+                {% include 'rust-parse-alt' %}
+            },
+        {% endfor %}
+    }
+    {% else %}
+    pub struct {{ rule.name }} {
+        impl {{ rule.name | capitalize }} {
+            pub fn new() -> {{ rule.name | capitalize }} {
+
+            }
+        }
+    {% endif %}
+{% endfor %}

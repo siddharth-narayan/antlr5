@@ -218,6 +218,13 @@ impl Parser {
                     let suffix = self.ebnf_suffix().ok();
                     Element::Set { inverted: false, set: HashSet::from_iter(token.text().chars().map(|c| c as usize)), suffix}
                 })
+            },
+
+            Dot => {
+                self.consume(1);
+                let suffix = self.ebnf_suffix().ok();
+
+                Ok(Element::Set { inverted: true, set: HashSet::new(), suffix })
             }
 
             LParen => {

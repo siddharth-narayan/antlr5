@@ -14,6 +14,8 @@ endProgramStatement
     : END PROGRAM programName DOT_FS
     ;
 
+TEST:
+    .* ;
 // --- identification division --------------------------------------------------------------------
 
 identificationDivision

@@ -1,6 +1,6 @@
 use crate::antlr::{
-    LexerErr::{UnkownCharacter, UnmatchedKeyword},
-    lex::LexerErr::UnexpectedCharacter,
+    lex::ANTLRTokenType::*,
+    lex::LexerErr::*,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -40,8 +40,8 @@ pub enum ANTLRTokenType {
     TokenID,
 
     Fragment,
-    Parser,
-    Lexer,
+    ParserToken,
+    LexerToken,
     Grammar,
     Options,
     Tokens,
@@ -136,68 +136,68 @@ impl Lexer {
         };
 
         let token = match character  {
-            ',' => Ok(ANTLRTokenType::Comma),
-            ';' => Ok(ANTLRTokenType::Semi),
+            ',' => Ok(Comma),
+            ';' => Ok(Semi),
 
-            '(' => Ok(ANTLRTokenType::LParen),
-            ')' => Ok(ANTLRTokenType::RParen),
-            '{' => Ok(ANTLRTokenType::LBrace),
-            '}' => Ok(ANTLRTokenType::RBrace),
-            '>' => Ok(ANTLRTokenType::GT),
-            '<' => Ok(ANTLRTokenType::LT),
-            '=' => Ok(ANTLRTokenType::Assign),
-            '|' => Ok(ANTLRTokenType::OR),
-            '$' => Ok(ANTLRTokenType::Dollar),
-            '?' => Ok(ANTLRTokenType::Question),
-            '*' => Ok(ANTLRTokenType::Star),
-            '@' => Ok(ANTLRTokenType::At),
-            '#' => Ok(ANTLRTokenType::Pound),
-            '~' => Ok(ANTLRTokenType::Not),
+            '(' => Ok(LParen),
+            ')' => Ok(RParen),
+            '{' => Ok(LBrace),
+            '}' => Ok(RBrace),
+            '>' => Ok(GT),
+            '<' => Ok(LT),
+            '=' => Ok(Assign),
+            '|' => Ok(OR),
+            '$' => Ok(Dollar),
+            '?' => Ok(Question),
+            '*' => Ok(Star),
+            '@' => Ok(At),
+            '#' => Ok(Pound),
+            '~' => Ok(Not),
 
-            '0' => Ok(ANTLRTokenType::Int),
+            '0' => Ok(Int),
             '1'..='9' => loop {
                 match self.peek(1) {
                     Some(n) => {
                         if !('0'..'9').contains(&n) {
-                            break Ok(ANTLRTokenType::Int);
+                            break Ok(Int);
                         } else {
                             self.consume(1);
                             current_text.push(n);
                         }
                     }
 
-                    None => break Ok(ANTLRTokenType::Int),
+                    None => break Ok(Int),
                 }
             },
 
             ':' => match self.peek(1) {
                 Some(':') => {
                     self.consume(1);
-                    Ok(ANTLRTokenType::DoubleColon)
+                    Ok(DoubleColon)
                 }
-                _ => Ok(ANTLRTokenType::Colon),
+                _ => Ok(Colon),
             },
 
             '+' => match self.peek(1) {
                 Some('=') => {
                     self.consume(1);
-                    Ok(ANTLRTokenType::PlusAssign)
+                    Ok(PlusAssign)
                 }
-                _ => Ok(ANTLRTokenType::Plus),
+                _ => Ok(Plus),
             },
 
             '.' => match self.peek(1) {
                 Some('.') => {
                     self.consume(1);
-                    Ok(ANTLRTokenType::Range)
+                    Ok(Range)
                 }
-                _ => Ok(ANTLRTokenType::Dot),
+                _ => Ok(Dot),
             },
 
             '-' => match self.peek(1) {
                 Some('>') => {
                     self.consume(1);
-                    Ok(ANTLRTokenType::Arrow)
+                    Ok(Arrow)
                 },
 
                 Some(n) => {
@@ -215,19 +215,19 @@ impl Lexer {
                     Some(' ') | Some('\t') | Some('\r') | Some('\n') => {
                         self.consume(1);
                     }
-                    _ => break Ok(ANTLRTokenType::WS),
+                    _ => break Ok(WS),
                 }
             },
 
             'p' => {
                 if self.match_keyword("arser").is_ok() {
-                    Ok(ANTLRTokenType::Parser)
+                    Ok(ParserToken)
                 } else if self.match_keyword("rotected").is_ok() {
-                    Ok(ANTLRTokenType::Protected)
+                    Ok(Protected)
                 } else if self.match_keyword("ublic").is_ok() {
-                    Ok(ANTLRTokenType::Public)
+                    Ok(Public)
                 } else if self.match_keyword("rivate").is_ok() {
-                    Ok(ANTLRTokenType::Private)
+                    Ok(Private)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -235,7 +235,7 @@ impl Lexer {
 
             'o' => {
                 if self.match_keyword("ptions").is_ok() {
-                    Ok(ANTLRTokenType::Options)
+                    Ok(Options)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -243,9 +243,9 @@ impl Lexer {
 
             'f' =>  {
                 if self.match_keyword("inally").is_ok() {
-                    Ok(ANTLRTokenType::Finally)
+                    Ok(Finally)
                 } else if self.match_keyword("ragment").is_ok() {
-                    Ok(ANTLRTokenType::Fragment)
+                    Ok(Fragment)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -253,7 +253,7 @@ impl Lexer {
 
             't' => {
                 if self.match_keyword("hrows").is_ok() {
-                    Ok(ANTLRTokenType::Throws)
+                    Ok(Throws)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -262,9 +262,9 @@ impl Lexer {
             // Also catch
             'c' => {
                 if self.match_keyword("atch").is_ok() {
-                    Ok(ANTLRTokenType::Catch)
+                    Ok(Catch)
                 } else if self.match_keyword("hannels").is_ok() {
-                    Ok(ANTLRTokenType::Channels)
+                    Ok(Channels)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -272,7 +272,7 @@ impl Lexer {
 
             'r' => {
                 if self.match_keyword("ptions").is_ok() {
-                    Ok(ANTLRTokenType::Options)
+                    Ok(Options)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -280,7 +280,7 @@ impl Lexer {
 
             'g' => {
                 if self.match_keyword("ptions").is_ok() {
-                    Ok(ANTLRTokenType::Options)
+                    Ok(Options)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -288,7 +288,7 @@ impl Lexer {
 
             'i' => {
                 if self.match_keyword("mport").is_ok() {
-                    Ok(ANTLRTokenType::Import)
+                    Ok(Import)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -296,7 +296,7 @@ impl Lexer {
 
             'm' => {
                 if self.match_keyword("ode").is_ok() {
-                    Ok(ANTLRTokenType::Mode)
+                    Ok(Mode)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -304,9 +304,9 @@ impl Lexer {
 
             'l' => {
                 if self.match_keyword("exer").is_ok() {
-                    Ok(ANTLRTokenType::Lexer)
+                    Ok(LexerToken)
                 } else if self.match_keyword("ocals").is_ok() {
-                    Ok(ANTLRTokenType::Locals)
+                    Ok(Locals)
                 } else {
                     Err(UnmatchedKeyword)
                 }
@@ -317,7 +317,7 @@ impl Lexer {
                     Some('/') => {
                         loop {
                             if let Some('\n') = self.next() {
-                                break Ok(ANTLRTokenType::Comment)
+                                break Ok(Comment)
                             }
                         } 
                     },
@@ -327,7 +327,7 @@ impl Lexer {
                             if let Some('*') = self.next() {
                                 if let Some('/') = self.peek(1) {
                                     self.consume(1);
-                                    break Ok(ANTLRTokenType::CommentBlock)
+                                    break Ok(CommentBlock)
                                 }
                             }
                         }
@@ -362,7 +362,7 @@ impl Lexer {
                                 current_text.push('\'');
                                 esc = false;
                             } else {
-                                break Ok(ANTLRTokenType::StringLit);
+                                break Ok(StringLit);
                             }
                         },
 
@@ -440,7 +440,7 @@ impl Lexer {
                                 current_text.push(']');
                                 esc = false;
                             } else {
-                                break Ok(ANTLRTokenType::Charset);
+                                break Ok(Charset);
                             }
                         },
 
@@ -561,7 +561,7 @@ impl Lexer {
                 }
 
                 Ok(ANTLRToken {
-                    token_type: if is_token { ANTLRTokenType::TokenID } else { ANTLRTokenType::RuleID },
+                    token_type: if is_token { TokenID } else { RuleID },
                     text: current_text.iter().collect()
                 })
             }

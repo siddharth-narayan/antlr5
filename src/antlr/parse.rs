@@ -2,7 +2,8 @@ use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::{ANTLRToken, ANTLRTokenType::{self, Charset, LParen, Not, RParen, RuleID, TokenID}, Lexer, LexerErr::{self, EOF}}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule, TokenRule}}};
+use crate::{antlr::lex::{ANTLRToken, ANTLRTokenType::{self, *}, Lexer, LexerErr}, ast::{ANTLRAst, alternative::{Alt, AltList}, ebnf::EBNFSuffix, rules::{Atom, Block, Element, Rule, TokenRule}}};
+
 
 
 
@@ -34,11 +35,11 @@ impl Parser {
         loop {
             let token = lexer.next_token()?;
 
-            if token.token_type() == ANTLRTokenType::WS || token.token_type() == ANTLRTokenType::Comment || token.token_type() == ANTLRTokenType::CommentBlock{
+            if token.token_type() == WS || token.token_type() == Comment || token.token_type() == CommentBlock{
                 continue;
             }
 
-            if token.token_type() == ANTLRTokenType::EOF {
+            if token.token_type() == EOF {
                 break;
             }
             
@@ -55,7 +56,7 @@ impl Parser {
     }
 
     pub fn next(&mut self) -> ANTLRToken {
-        let res = self.tokens.get(self.head).cloned().unwrap_or(ANTLRToken::new(ANTLRTokenType::EOF, String::new()));
+        let res = self.tokens.get(self.head).cloned().unwrap_or(ANTLRToken::new(EOF, String::new()));
         self.head += 1;
 
         res
@@ -66,11 +67,11 @@ impl Parser {
     }
 
     pub fn peek(&self, by: usize) -> ANTLRToken {
-        self.tokens.get(self.head + by - 1).cloned().unwrap_or(ANTLRToken::new(ANTLRTokenType::EOF, String::new()))
+        self.tokens.get(self.head + by - 1).cloned().unwrap_or(ANTLRToken::new(EOF, String::new()))
     }
 
     pub fn peek_type(&self, by: usize) -> ANTLRTokenType {
-        self.tokens.get(self.head + by - 1).map(|t| t.token_type()).unwrap_or(ANTLRTokenType::EOF)
+        self.tokens.get(self.head + by - 1).map(|t| t.token_type()).unwrap_or(EOF)
     }
 
     pub fn peek_n(&self, by: usize, count: usize) -> Option<&[ANTLRToken]> {
@@ -118,7 +119,7 @@ impl Parser {
         let mut token_rules = Vec::new();
         loop {
             match self.peek(1).token_type() {
-                ANTLRTokenType::TokenID |  ANTLRTokenType::Fragment => {
+                TokenID |  Fragment => {
                     match self.token_rule_spec() {
                         Ok(r) => token_rules.push(r),
                         Err(e) => {
@@ -128,7 +129,7 @@ impl Parser {
                     }
                 },
 
-                ANTLRTokenType::RuleID => {
+                RuleID => {
                     match self.rule_spec() {
                         Ok(r) => rules.push(r),
                         Err(e) => {
@@ -138,12 +139,12 @@ impl Parser {
                     }
                 },
 
-                ANTLRTokenType::EOF => {
+                EOF => {
                     break;
                 }
 
                 t => {
-                    return Err(ParserErr::NoTokenMatched { expected: vec![TokenID, RuleID, ANTLRTokenType::EOF], got: t })
+                    return Err(ParserErr::NoTokenMatched { expected: vec![TokenID, RuleID, EOF], got: t })
                 }
             }
         }
@@ -152,38 +153,38 @@ impl Parser {
     }
 
     pub fn rule_spec(&mut self) -> Result<Rule, ParserErr> {
-        let rule_name = self.match_token(ANTLRTokenType::RuleID)?.text().clone();
+        let rule_name = self.match_token(RuleID)?.text().clone();
         
-        self.match_token(ANTLRTokenType::Colon)?;
+        self.match_token(Colon)?;
 
         let alts = self.alt_list()?;
 
-        self.match_token(ANTLRTokenType::Semi)?;
+        self.match_token(Semi)?;
 
         Ok(Rule::new(rule_name, alts))
     }
 
     pub fn token_rule_spec(&mut self) -> Result<TokenRule, ParserErr> {
-        let is_fragment = self.peek_type(1) == ANTLRTokenType::Fragment;
+        let is_fragment = self.peek_type(1) == Fragment;
         if is_fragment {
             self.consume(1);
         }
 
-        let rule_name = self.match_token(ANTLRTokenType::TokenID)?.text().clone();
+        let rule_name = self.match_token(TokenID)?.text().clone();
         
-        self.match_token(ANTLRTokenType::Colon)?;
+        self.match_token(Colon)?;
 
         let alts = self.alt_list()?;
 
-        self.match_token(ANTLRTokenType::Semi)?;
+        self.match_token(Semi)?;
 
         Ok(TokenRule::new(is_fragment, rule_name, alts))
     }
 
     pub fn block(&mut self) -> Result<Block, ParserErr> {
-        self.match_token(ANTLRTokenType::LParen)?;
+        self.match_token(LParen)?;
         let alts = self.alt_list()?;
-        self.match_token(ANTLRTokenType::RParen)?;
+        self.match_token(RParen)?;
 
         Ok(Block(alts))
     }
@@ -191,7 +192,7 @@ impl Parser {
     pub fn element(&mut self) -> Result<Element, ParserErr> {
         // Elements are atom or block  and then a suffix?
         match self.peek_type(1) {
-            ANTLRTokenType::StringLit => {
+            StringLit => {
                 let atom = self.atom()?;
                 let suffix = self.ebnf_suffix().ok();
                 Ok(Element::Atom { atom, suffix })
@@ -203,7 +204,7 @@ impl Parser {
                 Ok(Element::Atom { atom, suffix })
             },
 
-            ANTLRTokenType::Not | Charset => {
+            Not | Charset => {
                 let token = self.peek(1);
                 Ok(if token.token_type() == Not {
                     self.consume(1);
@@ -219,7 +220,7 @@ impl Parser {
                 })
             }
 
-            ANTLRTokenType::LParen => {
+            LParen => {
                 let block = self.block()?;
                 let suffix = self.ebnf_suffix().ok();
 
@@ -227,7 +228,7 @@ impl Parser {
             }
 
             t => {
-                Err(ParserErr::NoTokenMatched { expected: vec![ANTLRTokenType::StringLit, ANTLRTokenType::TokenID, ANTLRTokenType::RuleID, ANTLRTokenType::LParen], got: t })
+                Err(ParserErr::NoTokenMatched { expected: vec![StringLit, TokenID, RuleID, LParen], got: t })
             }
         }
     }
@@ -243,13 +244,13 @@ impl Parser {
         if elements.len() == 0 {
             return Ok(None);
         } else {
-            let label = if self.match_token(ANTLRTokenType::Pound).is_ok() {
-                Some(self.match_any_token(vec![ANTLRTokenType::RuleID, ANTLRTokenType::TokenID])?.text())
+            let label = if self.match_token(Pound).is_ok() {
+                Some(self.match_any_token(vec![RuleID, TokenID])?.text())
             } else {
                 None
             };
             
-            let channel = if self.match_token(ANTLRTokenType::Arrow).is_ok() {
+            let channel = if self.match_token(Arrow).is_ok() {
                 // Match only channel right now, I'll do the rest later
                 self.match_token(RuleID)?;
                 self.match_token(LParen)?;
@@ -276,7 +277,7 @@ impl Parser {
             None => optional = true,
         };
 
-        while let Ok(_) = self.match_token(ANTLRTokenType::OR) {
+        while let Ok(_) = self.match_token(OR) {
             match self.alt()? {
                 Some(a) => alts.push(a),
                 None => optional = true,
@@ -287,29 +288,29 @@ impl Parser {
     }
 
     pub fn atom(&mut self) -> Result<Atom, ParserErr> {
-        let token = self.match_any_token(vec![ANTLRTokenType::StringLit, ANTLRTokenType::RuleID, ANTLRTokenType::TokenID])?;
+        let token = self.match_any_token(vec![StringLit, RuleID, TokenID])?;
 
         match token.token_type() {
-            ANTLRTokenType::StringLit => Ok(Atom::StringLit(token.text().clone())),
-            ANTLRTokenType::TokenID | ANTLRTokenType::RuleID => Ok(Atom::ID(token.text().clone())),
+            StringLit => Ok(Atom::StringLit(token.text().clone())),
+            TokenID | RuleID => Ok(Atom::ID(token.text().clone())),
             _ => unreachable!()
         }
     }
 
     pub fn ebnf_suffix(&mut self) -> Result<EBNFSuffix, ParserErr> {
-        let token =  self.match_any_token(vec![ANTLRTokenType::Question, ANTLRTokenType::Star, ANTLRTokenType::Plus])?;
+        let token =  self.match_any_token(vec![Question, Star, Plus])?;
 
         match token.token_type() {
-            ANTLRTokenType::Question => Ok(EBNFSuffix::Optional),
-            ANTLRTokenType::Star => {
-                if self.match_token(ANTLRTokenType::Question).is_ok() {
+            Question => Ok(EBNFSuffix::Optional),
+            Star => {
+                if self.match_token(Question).is_ok() {
                     Ok(EBNFSuffix::StarOptional)
                 } else {
                     Ok(EBNFSuffix::Star)
                 }
             },
-            ANTLRTokenType::Plus => {
-                if self.match_token(ANTLRTokenType::Question).is_ok() {
+            Plus => {
+                if self.match_token(Question).is_ok() {
                     Ok(EBNFSuffix::PlusOptional)
                 } else {
                     Ok(EBNFSuffix::Plus)

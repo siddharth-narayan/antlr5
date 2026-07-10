@@ -1,6 +1,6 @@
 use std::{env, fs::read_to_string};
 
-use crate::{analysis::SymbolTable, antlr::{Lexer, Parser}, langs::{codegen, jinja_env}};
+use crate::{analysis::SymbolTable, antlr::{lex::Lexer, parse::Parser}, langs::{codegen, jinja_env}};
 
 mod ast;
 mod antlr;

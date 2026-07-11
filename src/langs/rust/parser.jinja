@@ -20,11 +20,15 @@ impl Parser {
         {% endfor %}
     }
     {% else %}
-    pub struct {{ rule.name }} {
-        impl {{ rule.name | capitalize }} {
-            pub fn new() -> {{ rule.name | capitalize }} {
+    pub struct {{ rule.name | capitalize }} {
+        {% set alt = rule.alt_list.alts | first %}
+        {% include 'rust-parse-alt' %}
+    }
 
-            }
+    impl {{ rule.name | capitalize }} {
+        pub fn new() -> {{ rule.name | capitalize }} {
+
         }
+    }
     {% endif %}
 {% endfor %}

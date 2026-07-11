@@ -30,10 +30,8 @@ fn main() -> Result<(), ()> {
     let atn = ast.codegen(&mut symbols);
 
     let env = jinja_env();
-    
-    std::fs::write("parser.gen", env.get_template("rust-parse").unwrap().render(ast).unwrap())
-    ;
-    println!("{:#?}", atn);
+
+    std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
     
     Ok(())
 }

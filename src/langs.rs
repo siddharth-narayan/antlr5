@@ -9,6 +9,10 @@ pub fn codegen(env: Environment, tree: ANTLRAst) {
 pub fn jinja_env() -> Environment<'static> {
     let mut env = Environment::new();
 
+    // Env settings must be set above templates
+    env.set_lstrip_blocks(true);
+    env.set_trim_blocks(true);
+
     env.add_template("rust-parse", include_str!("langs/rust/parser.jinja")).unwrap();
     env.add_template("rust-parse-alt", include_str!("langs/rust/alt.jinja")).unwrap();
 

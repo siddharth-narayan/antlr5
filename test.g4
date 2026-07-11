@@ -23,12 +23,12 @@ identificationDivision
     ;
 
 identificationDivisionBody
-    : authorParagraph
-    | installationParagraph
-    | dateWrittenParagraph
-    | dateCompiledParagraph
-    | securityParagraph
-    | remarksParagraph
+    : authorParagraph # Rule0
+    | installationParagraph # Name2
+    | dateWrittenParagraph # Name3
+    | dateCompiledParagraph # Name4
+    | securityParagraph # Name5
+    | remarksParagraph # Name6
     ;
 
 RPARENCHAR

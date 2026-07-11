@@ -29,7 +29,7 @@ fn main() -> Result<(), ()> {
     // Codegen
     let atn = ast.codegen(&mut symbols);
 
-    let env = jinja_env();
+    let env = jinja_env(symbols);
 
     std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
     

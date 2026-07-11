@@ -1,34 +1,44 @@
+{% macro alt_members(alt) %}
+{% for element in alt.elements %}
+{% if element.Atom.atom.ID %}
+{{ element.Atom.atom.ID }}: {{ element.Atom.atom.ID | capitalize }} 
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
 pub struct Parser {
 
 }
 
 impl Parser {
     {% for rule in rules %}
-        pub fn {{ rule.name }}(&mut self) -> {{ rule.name | capitalize }} {
-            self.set_state(rule | startstate );
-        }
+    pub fn {{ rule.name }}(&mut self) -> {{ rule.name | capitalize }} {
+        self.set_state({{ rule.name | startstate }});
+    }
+
     {% endfor %}
 }
 
-{%- for rule in rules %}
-    {%- if rule.alt_list.alts | length > 1 %}
-    pub enum {{ rule.name }} {
-        {%- for alt in rule.alt_list.alts %}
-            {{alt.label}} {
-                {% include 'rust-parse-alt' %}
-            },
-        {% endfor %}
-    }
-    {% else %}
-    pub struct {{ rule.name | capitalize }} {
-        {% set alt = rule.alt_list.alts | first %}
-        {% include 'rust-parse-alt' %}
-    }
+{% for rule in rules %}
+{% if rule.alt_list.alts | length > 1 %}
+pub enum {{ rule.name }} {
+    {% for alt in rule.alt_list.alts %}
+    {{alt.label}} {
+        {{ alt_members(alt) }}
+    },
+    {% endfor %}
+}
 
-    impl {{ rule.name | capitalize }} {
-        pub fn new() -> {{ rule.name | capitalize }} {
+{% else %}
+pub struct {{ rule.name | capitalize }} {
 
-        }
+}
+
+impl {{ rule.name | capitalize }} {
+    pub fn new() -> {{ rule.name | capitalize }} {
+
     }
-    {% endif %}
+}
+
+{% endif %}
 {% endfor %}

@@ -108,6 +108,14 @@ pub enum Element {
 }
 
 impl Element {
+    pub fn suffix(&self) -> Option<EBNFSuffix> {
+        match self {
+            Element::Atom { suffix, .. } |
+            Element::Block { suffix, .. } |
+            Element::Set { suffix, .. } => *suffix
+        }
+    }
+
     pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
         match self {
             Self::Atom { atom, .. } => {

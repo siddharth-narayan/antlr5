@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum EBNFSuffix {
     Optional,
     Star,
-    StarOptional,
+    // StarOptional, just star
     Plus,
-    PlusOptional,
+    // PlusOptional, just star
 }

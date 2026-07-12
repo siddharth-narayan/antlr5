@@ -311,14 +311,14 @@ impl Parser {
             Question => Ok(EBNFSuffix::Optional),
             Star => {
                 if self.match_token(Question).is_ok() {
-                    Ok(EBNFSuffix::StarOptional)
+                    Ok(EBNFSuffix::Star)
                 } else {
                     Ok(EBNFSuffix::Star)
                 }
             },
             Plus => {
                 if self.match_token(Question).is_ok() {
-                    Ok(EBNFSuffix::PlusOptional)
+                    Ok(EBNFSuffix::Star)
                 } else {
                     Ok(EBNFSuffix::Plus)
                 }

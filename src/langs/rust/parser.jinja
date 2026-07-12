@@ -1,7 +1,7 @@
 {% macro alt_members(alt) %}
 {% for element in alt.elements %}
 {% if element.Atom.atom.ID %}
-{{ element.Atom.atom.ID }}: {{ element.Atom.atom.ID | capitalize }} 
+{{ element.Atom.atom.ID }}: {{ element | etype_prefix }}{{ element.Atom.atom.ID | capitalize }}{{ element | etype_suffix }},
 {% endif %}
 {% endfor %}
 {% endmacro %}
@@ -21,7 +21,7 @@ impl Parser {
 
 {% for rule in rules %}
 {% if rule.alt_list.alts | length > 1 %}
-pub enum {{ rule.name }} {
+pub enum {{ rule.name | capitalize }} {
     {% for alt in rule.alt_list.alts %}
     {{alt.label}} {
         {{ alt_members(alt) }}
@@ -31,7 +31,9 @@ pub enum {{ rule.name }} {
 
 {% else %}
 pub struct {{ rule.name | capitalize }} {
-
+    {% for alt in rule.alt_list.alts %}
+    {{ alt_members(alt) }}
+    {% endfor %}
 }
 
 impl {{ rule.name | capitalize }} {

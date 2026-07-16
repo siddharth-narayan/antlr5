@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -211,12 +211,12 @@ impl Parser {
                     let token = self.match_token(Charset)?;
 
                     let suffix = self.ebnf_suffix().ok();
-                    Element::Set { inverted: true, set: HashSet::from_iter(token.text().chars().map(|c| c as usize)), suffix }
+                    Element::Set { inverted: true, set: BTreeSet::from_iter(token.text().chars().map(|c| c as usize)), suffix }
                 } else {
                     self.consume(1);
 
                     let suffix = self.ebnf_suffix().ok();
-                    Element::Set { inverted: false, set: HashSet::from_iter(token.text().chars().map(|c| c as usize)), suffix}
+                    Element::Set { inverted: false, set: BTreeSet::from_iter(token.text().chars().map(|c| c as usize)), suffix}
                 })
             },
 
@@ -224,7 +224,7 @@ impl Parser {
                 self.consume(1);
                 let suffix = self.ebnf_suffix().ok();
 
-                Ok(Element::Set { inverted: true, set: HashSet::new(), suffix })
+                Ok(Element::Set { inverted: true, set: BTreeSet::new(), suffix })
             }
 
             LParen => {

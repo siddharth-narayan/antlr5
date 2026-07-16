@@ -7,6 +7,7 @@ mod antlr;
 mod codegen;
 mod analysis;
 mod langs;
+mod intermediate;
 
 fn main() -> Result<(), ()> {
     let path = std::env::args().nth(1).unwrap();
@@ -26,8 +27,7 @@ fn main() -> Result<(), ()> {
     ast.symbols(&mut symbols).unwrap();
     println!("{:#?}", symbols);
 
-    // Codegen
-    let atn = ast.codegen(&mut symbols);
+
 
     let env = jinja_env(symbols);
 

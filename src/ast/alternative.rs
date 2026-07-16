@@ -1,11 +1,11 @@
-use std::marker::PhantomData;
+use std::{collections::HashSet, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{analysis::{AnalysisErr, SymbolTable}, ast::rules::Element, codegen::{ATNFragment, StateRef}};
+use crate::{analysis::{AnalysisErr, SymbolTable}, ast::rules::{Atom, Element}, codegen::{ATNFragment, StateRef}};
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Alt {
     label: Option<String>,
     options: PhantomData<()>,
@@ -31,6 +31,29 @@ impl Alt {
         &self.elements
     }
 
+    pub fn nth(&self, n: usize) -> HashSet<&Element> {
+        let mut set: HashSet<&Element> = HashSet::new();
+        
+        for element in &self.elements {
+            let mut number = 0;
+            match element {
+                Element::Atom { .. } => {
+                    
+                },
+
+                Element::Block { .. } => {
+
+                },
+
+                Element::Set { .. } => {
+
+                }
+            }
+        };
+
+        todo!()
+    }
+
     pub fn codegen(&self, table: &SymbolTable) -> Result<ATNFragment, AnalysisErr> {
         let mut fragment = ATNFragment::new(); // TODO this is wrong
         for element in &self.elements {
@@ -49,7 +72,8 @@ impl Alt {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+// AltList is a necessary struct because it can represent an anonymous alt list inside a block
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AltList {
     optional: bool,
     alts: Vec<Alt>
@@ -65,6 +89,15 @@ impl AltList {
 
     pub fn alts(&self) -> &Vec<Alt> {
         &self.alts
+    }
+
+    pub fn nth(&self, n: usize) -> HashSet<&Element> {
+        let mut set = HashSet::new();
+        for alt in &self.alts {
+            set.extend(alt.nth(n));
+        }
+
+        set
     }
 
     pub fn symbols(&self, table: &mut SymbolTable) -> Result<(), AnalysisErr> {

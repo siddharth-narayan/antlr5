@@ -31,7 +31,8 @@ fn main() -> Result<(), ()> {
 
     let env = jinja_env(symbols);
 
-    std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
+    std::fs::write("out", format!("{:#?}", atn));
+    // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
     
     Ok(())
 }

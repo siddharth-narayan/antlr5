@@ -43,8 +43,6 @@ pub fn jinja_env(symbols: SymbolTable) -> Environment<'static> {
         }
     };
 
-    println!("OIJWEOIWJE: Eleement ub: {:#?}", env.undefined_behavior());
-
     env.add_filter("capitalize", capitalize);
     env.add_filter("startstate", closure);
     env.add_filter("etype_prefix", etype_prefix);

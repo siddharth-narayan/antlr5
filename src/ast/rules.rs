@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -88,8 +88,8 @@ impl Rule {
     }
 }
 
-
-#[derive(Debug, Serialize, Deserialize)]
+// Should Element really have PartialEq/Eq derived?
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum Element {
     Atom {
         atom: Atom,
@@ -101,7 +101,7 @@ pub enum Element {
     },
     Set {
         inverted: bool,
-        set: HashSet<usize>,
+        set: BTreeSet<usize>,
         suffix: Option<EBNFSuffix>
     }
     // EBNF(EBNF)
@@ -146,7 +146,7 @@ impl Element {
         }
     }
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Block(pub AltList);
 
 impl Block {
@@ -162,7 +162,7 @@ impl Block {
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum Atom {
     StringLit(String),
     ID(String)

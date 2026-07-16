@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Eq, PartialEq, Deserialize, Hash)]
 pub enum EBNFSuffix {
     Optional,
     Star,

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum AnalysisErr {
@@ -53,7 +53,7 @@ impl SymbolTable {
         Ok(())
     }
 
-    pub fn insert_token(&mut self, name: String) {
+    pub fn insert_strlit(&mut self, name: String) {
         if self.strlit_map.contains_key(&name) {
             return
         }

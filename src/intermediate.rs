@@ -1,38 +1,34 @@
-use std::{collections::{BTreeSet, HashMap, HashSet}, marker::PhantomData};
+use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{ebnf::EBNFSuffix, rules::{Rule, TokenRule}};
-
-#[derive(Debug, Serialize, Deserialize, Hash)]
-pub struct RuleRef(usize);
+use crate::{analysis::SymbolTable, ast::{ANTLRAst, EBNFSuffix}};
 
 struct AntlrIR {
     rules: Vec<RuleIR>,
     token_rules: Vec<TokenRuleIR>,
 
-    rule_map: HashMap<String, usize>,
-    token_map: HashMap<String, usize>,
-    strlit_map: HashSet<String, usize>
+    symbol_table: SymbolTable
 }
 
 impl AntlrIR {
-    pub fn new(rules: Vec<Rule>, token_rules: Vec<TokenRule>) -> AntlrIR {
-        let mut rule_map = HashMap::new();
-        for (index, rule) in rules.iter().enumerate() {
-            rule_map.insert(rule.name().clone(), index);
+    pub fn new(ast: ANTLRAst) -> AntlrIR {
+        let mut symbol_table = SymbolTable::new();
+        let rules = Vec::new();
+        let token_rules = Vec::new();
+        
+        for rule in ast.rules() {
+            symbol_table.insert_rule(rule.name().clone());
         }
 
-        let mut token_map = HashMap::new();
-        for (index, rule) in rules.iter().enumerate() {
-            rule_map.insert(rule.name().clone(), index);
+        for rule in ast.token_rules() {
+            symbol_table.insert_token_rule(rule.name().clone());
         }
 
         AntlrIR {
             rules,
             token_rules,
-            rule_map,
-            token_map
+            symbol_table
         }
     }
 }
@@ -41,7 +37,8 @@ impl AntlrIR {
 pub struct TokenRuleIR {
     is_fragment: bool,
     name: String,
-    alt_list: AltListIR
+    is_optional: bool,
+    alts: Vec<AltIR>
 }
 
 impl TokenRuleIR {
@@ -49,7 +46,7 @@ impl TokenRuleIR {
         TokenRuleIR {
             is_fragment,
             name,
-            alt_list
+            alts
         }
     }
 
@@ -58,7 +55,7 @@ impl TokenRuleIR {
     } 
 
     pub fn alts(&self) -> &Vec<AltIR> {
-        &self.alt_list.alts()
+        &self.alts
     }
 }
 
@@ -73,14 +70,15 @@ pub struct RuleIR {
     // prequel: PhantomData<()>,
 
     name: String,
-    alt_list: AltListIR
+    is_optional: bool,
+    alts: Vec<AltIR>
 }
 
 impl RuleIR {
-    pub fn new(name: String, alt_list: AltListIR) -> RuleIR {
+    pub fn from(rule: Rule) -> RuleIR {
         RuleIR {
-            name,
-            alt_list
+            name: rule.name().clone(),
+            alt_list: AltListIR::new(rule.alt_list().clone())
         }
     }
 
@@ -123,28 +121,9 @@ impl AltIR {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct AltListIR {
-    optional: bool,
-    alts: Vec<AltIR>
-}
-
-impl AltListIR {
-    pub fn new(optional: bool, alts: Vec<AltIR>) -> AltListIR {
-        AltListIR {
-            optional,
-            alts
-        }
-    }
-
-    pub fn alts(&self) -> &Vec<AltIR> {
-        &self.alts
-    }
-}
-
 // Should Element really have PartialEq/Eq derived?
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub enum Element {
+pub enum ElementIR {
     Atom {
         atom: usize,
         suffix: Option<EBNFSuffix>
@@ -153,29 +132,27 @@ pub enum Element {
         block: BlockIR,
         suffix: Option<EBNFSuffix>
     },
-    Set {
-        inverted: bool,
-        set: BTreeSet<usize>,
-        suffix: Option<EBNFSuffix>
-    }
     // EBNF(EBNF)
 }
 
-impl Element {
+impl ElementIR {
+    pub fn new(e: Element) {
+        e
+    }
+
     pub fn suffix(&self) -> Option<EBNFSuffix> {
         match self {
-            Element::Atom { suffix, .. } |
-            Element::Block { suffix, .. } |
-            Element::Set { suffix, .. } => *suffix
+            ElementIR::Atom { suffix, .. } |
+            ElementIR::Block { suffix, .. } => *suffix
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct BlockIR(pub AltListIR);
+pub struct BlockIR(Vec<AltIR>);
 
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum AtomIR {
-    StringLit(R),
-    ID(RuleRef)
+    TokenID(usize),
+    RuleID(usize)
 }

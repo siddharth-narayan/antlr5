@@ -1,7 +1,7 @@
 use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 use serde::Deserializer;
 
-use crate::{analysis::SymbolTable, ast::{ANTLRAst, ebnf::EBNFSuffix, rules::Element}};
+use crate::{analysis::SymbolTable, ast::{ANTLRAst, EBNFSuffix, Element}};
 
 pub fn codegen(env: Environment, tree: ANTLRAst) {
     println!("{}", env.get_template("rust-parse").unwrap().render(tree).unwrap())

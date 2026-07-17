@@ -4,7 +4,6 @@ use crate::{analysis::SymbolTable, antlr::{lex::Lexer, parse::Parser}, langs::{c
 
 mod ast;
 mod antlr;
-mod codegen;
 mod analysis;
 mod langs;
 mod intermediate;
@@ -22,16 +21,8 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     println!("{:#?}", ast);
 
-    // Analysis
-    let mut symbols = SymbolTable::new();
-    ast.symbols(&mut symbols).unwrap();
-    println!("{:#?}", symbols);
+    // let env = jinja_env(symbols);
 
-
-
-    let env = jinja_env(symbols);
-
-    std::fs::write("out", format!("{:#?}", atn));
     // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
     
     Ok(())

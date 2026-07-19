@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use bimap::BiMap;
+
+use crate::ast::{ANTLRAst, Rule, TokenRule};
+
 #[derive(Debug)]
 pub enum AnalysisErr {
     Undefined {
@@ -15,26 +19,71 @@ pub enum AnalysisErr {
 
 #[derive(Debug)]
 pub struct SymbolTable {
-    rule_map: HashMap<String, usize>,
-    token_map: HashMap<String, usize>,
-    strlit_map: HashMap<String, usize>,
+    ast: ANTLRAst,
+
+    rule_map: BiMap<String, usize>,
+    token_map: BiMap<String, usize>,
+    strlit_map: BiMap<String, usize>,
 }
 
 impl SymbolTable {
-    pub fn new() -> SymbolTable {
-        SymbolTable { rule_map: HashMap::new(), token_map: HashMap::new(), strlit_map: HashMap::new() }
+    pub fn new(ast: ANTLRAst) -> SymbolTable {
+        let mut table = SymbolTable { ast, rule_map: BiMap::new(), token_map: BiMap::new(), strlit_map: BiMap::new() };
+
+        // I don't want to clone everywhere :(
+        for rule in table.ast.rules().clone() {
+            table.insert_rule(rule.name().clone());
+        }
+
+        for rule in table.ast.token_rules().clone() {
+            table.insert_token_rule(rule.name().clone());
+        }
+        
+        table
     }
 
-    pub fn get_rule_id(&self, name: String) -> Option<usize> {
-        self.rule_map.get(&name).cloned()
+    pub fn rules(&self) -> &Vec<Rule> {
+        self.ast.rules()
     }
 
-    pub fn get_token_id(&self, name: String) -> Option<usize> {
-        self.strlit_map.get(&name).cloned()
+    pub fn get_rule(&self, index: usize) -> Option<&Rule> {
+        self.ast.rules().get(index)
+    }
+
+    pub fn get_rule_id(&self, name: &String) -> Option<usize> {
+        self.rule_map.get_by_left(name).cloned()
+    }
+    
+    pub fn get_rule_name(&self, id: usize) -> Option<String> {
+        self.rule_map.get_by_right(&id).cloned()
+    }
+
+    pub fn token_rules(&self) -> &Vec<TokenRule> {
+        self.ast.token_rules()
+    }
+
+    pub fn get_token(&self, index: usize) -> Option<&TokenRule> {
+        self.ast.token_rules().get(index)
+    }
+    
+    pub fn get_token_id(&self, name: &String) -> Option<usize> {
+        self.token_map.get_by_left(name).cloned()
+    }
+    
+    pub fn get_token_name(&self, id: usize) -> Option<String> {
+        self.token_map.get_by_right(&id).cloned()
+    }
+    
+    pub fn get_strlit_id(&self, name: &String) -> Option<usize> {
+        self.strlit_map.get_by_left(name).cloned()
+    }
+
+    pub fn get_strlit_name(&self, id: usize) -> Option<String> {
+        self.strlit_map.get_by_right(&id).cloned()
     }
 
     pub fn insert_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
-        if self.rule_map.contains_key(&name) {
+        if self.rule_map.contains_left(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
@@ -44,7 +93,7 @@ impl SymbolTable {
     }
 
     pub fn insert_token_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
-        if self.token_map.contains_key(&name) {
+        if self.token_map.contains_left(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
@@ -54,7 +103,7 @@ impl SymbolTable {
     }
 
     pub fn insert_strlit(&mut self, name: String) {
-        if self.strlit_map.contains_key(&name) {
+        if self.strlit_map.contains_left(&name) {
             return
         }
         self.strlit_map.insert(name, self.strlit_map.len());

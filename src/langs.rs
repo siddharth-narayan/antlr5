@@ -19,7 +19,7 @@ pub fn jinja_env(symbols: SymbolTable) -> Environment<'static> {
     
     
     let closure = move | name: String | { 
-        symbols.get_rule_id(name)
+        symbols.get_rule_id(&name)
     };
 
     let etype_prefix = | e: ViaDeserialize<Element> | {

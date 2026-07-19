@@ -22,7 +22,7 @@ impl ANTLRAst {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TokenRule {
     is_fragment: bool,
     name: String,
@@ -38,16 +38,24 @@ impl TokenRule {
         }
     }
 
+    pub fn alt_list(&self) -> &AltList {
+        &self.alt_list
+    }
+    
     pub fn name(&self) -> &String {
         &self.name
     } 
+
+    pub fn is_fragment(&self) -> bool {
+        self.is_fragment
+    }
 
     pub fn alts(&self) -> &Vec<Alt> {
         &self.alt_list.alts()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Rule {
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
@@ -144,6 +152,10 @@ impl Alt {
 
     pub fn elements(&self) -> &Vec<Element> {
         &self.elements
+    }
+
+    pub fn channel(&self) -> Option<&String> {
+        self.channel.as_ref()
     }
 }
 

@@ -1,7 +1,11 @@
 t: s x*;
 
-s: z s x | 'b' 'a' | 'a' 'b';
+s: z s x | LETTERB 'b' LETTERA 'a' | LETTERA 'a' LETTERB 'b';
 
-z: 'a' | 'b';
+z: LETTERA 'a' | LETTERB 'b';
 
-x: 'n';
+x: LETTERN 'n';
+
+LETTERA: 'a';
+LETTERB: 'b';
+LETTERN: 'n';

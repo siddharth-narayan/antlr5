@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::lex::{ANTLRToken, ANTLRTokenType::{self, *}, Lexer, LexerErr}, ast::*};
+use crate::{antlr::lex::{ANTLRToken, ANTLRTokenType::{self, *}, Lexer, LexerErr}, antlr::ast::*};
 
 
 

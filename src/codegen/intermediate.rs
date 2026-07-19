@@ -2,13 +2,14 @@ use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{analysis::SymbolTable, ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}};
+use crate::{codegen::symbols::SymbolTable, antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}};
 
-struct AntlrIR {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AntlrIR {
+    symbol_table: SymbolTable,
+
     rules: Vec<RuleIR>,
     token_rules: Vec<TokenRuleIR>,
-
-    symbol_table: SymbolTable
 }
 
 impl AntlrIR {
@@ -161,8 +162,9 @@ impl AltIR {
                             if let Some(id) = table.get_rule_id(&n) {
                                 AtomIR::RuleID(id)
                             } else if let Some(id) = table.get_token_id(&n) {
-                                AtomIR::RuleID(id)
+                                AtomIR::TokenID(id)
                             } else {
+                                println!("The missing rule is {}", n);
                                 return Err("No rule id found");
                             }
                         },
@@ -232,7 +234,7 @@ impl TokenAltIR {
                             } else if let Some(id) = table.get_token_id(&n) {
                                 AtomIR::RuleID(id)
                             } else {
-                                return Err("No rule id found");
+                                return Err("No token rule id found");
                             }
                         },
                         Atom::StringLit(n) => {

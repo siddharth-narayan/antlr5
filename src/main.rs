@@ -1,12 +1,10 @@
 use std::{env, fs::read_to_string};
 
-use crate::{analysis::SymbolTable, antlr::{lex::Lexer, parse::Parser}, langs::{codegen, jinja_env}};
+use crate::{codegen::symbols::SymbolTable, antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{codegen, jinja_env}};
 
-mod ast;
 mod antlr;
-mod analysis;
+mod codegen;
 mod langs;
-mod intermediate;
 
 fn main() -> Result<(), ()> {
     let path = std::env::args().nth(1).unwrap();
@@ -19,8 +17,9 @@ fn main() -> Result<(), ()> {
     let mut parser = Parser::new(lexer).unwrap();
 
     let ast = parser.grammar_spec().unwrap();
-    println!("{:#?}", ast);
+    let ir = AntlrIR::new(ast);
 
+    println!("{:#?}", ir);
     // let env = jinja_env(symbols);
 
     // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();

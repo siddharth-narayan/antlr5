@@ -39,7 +39,7 @@ impl AntlrIR {
 
     for element in alt.elements() {
         match element {
-            ElementIR::Atom { atom, suffix } => {
+            ElementIR::Atom { atom, suffix: _ } => {
                 if n == 0 {
                     set.insert(element);
 
@@ -62,7 +62,7 @@ impl AntlrIR {
                     n -= 1;
                 }
             },
-            ElementIR::Block { block, suffix } => {
+            ElementIR::Block { block, suffix: _ } => {
                 for alt in block {
                     set.extend(self.nth(alt, n))
                 }
@@ -92,7 +92,7 @@ pub struct RuleIR {
 
 impl RuleIR {
     pub fn new(rule: &Rule, table: &SymbolTable) -> Result<RuleIR, &'static str> {
-        let name = rule.name().clone();
+        let _name = rule.name().clone();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
 
@@ -135,7 +135,7 @@ pub struct TokenRuleIR {
 
 impl TokenRuleIR {
     pub fn new(rule: &TokenRule, symbols: &SymbolTable) -> Result<TokenRuleIR, &'static str> {
-        let name = rule.name().clone();
+        let _name = rule.name().clone();
         let is_fragment = rule.is_fragment();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
@@ -201,8 +201,6 @@ impl AltIR {
         let mut elements = Vec::new();
 
         for element in alt.elements() {
-            let suffix = element.suffix();
-            
             let element = match element {
                 Element::Atom { atom, suffix } => {
                     let atom = match atom {
@@ -225,7 +223,7 @@ impl AltIR {
                     ElementIR::Atom { atom, suffix: *suffix }
                 },
                 Element::Block { block, suffix } => {
-                    let optional = block.0.optional();
+                    let _optional = block.0.optional(); // TODO use this for the suffix
                     let mut alts = Vec::new();
                     
                     for alt in block.0.alts() {
@@ -234,7 +232,7 @@ impl AltIR {
 
                     ElementIR::Block { block: alts, suffix: *suffix }
                 },
-                Element::Set { inverted, set, suffix } => {
+                Element::Set { inverted: _, set: _, suffix: _ } => {
                     return Err("Parser rules cannot contain lexer sets")
                 }
 
@@ -270,8 +268,6 @@ impl TokenAltIR {
         let mut elements = Vec::new();
 
         for element in alt.elements() {
-            let suffix = element.suffix();
-            
             let element = match element {
                 Element::Atom { atom, suffix } => {
                     let atom = match atom {
@@ -292,7 +288,7 @@ impl TokenAltIR {
                     TokenElementIR::Atom { atom, suffix: *suffix }
                 },
                 Element::Block { block, suffix } => {
-                    let optional = block.0.optional();
+                    let _optional = block.0.optional();
                     let mut alts = Vec::new();
                     
                     for alt in block.0.alts() {

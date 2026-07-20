@@ -1,5 +1,4 @@
-use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
-use serde::Deserializer;
+use minijinja::{Environment, UndefinedBehavior, value::ViaDeserialize};
 
 use crate::{codegen::symbols::SymbolTable, antlr::ast::{ANTLRAst, EBNFSuffix, Element}};
 
@@ -36,7 +35,7 @@ pub fn jinja_env(symbols: SymbolTable) -> Environment<'static> {
 
     let etype_suffix = | e: ViaDeserialize<Element> | {
         // let e: Element = e.deserialize_any();
-        if let Some(suffix) = e.suffix() {
+        if let Some(_suffix) = e.suffix() {
             ">".into()
         } else {
             String::new()

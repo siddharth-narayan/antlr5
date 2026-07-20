@@ -1,4 +1,4 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::{collections::{BTreeSet, HashSet}, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
@@ -212,7 +212,6 @@ impl AltIR {
                             } else if let Some(id) = table.get_token_id(&n) {
                                 AtomIR::TokenID(id)
                             } else {
-                                println!("The missing rule is {}", n);
                                 return Err("No rule id found");
                             }
                         },
@@ -260,7 +259,7 @@ impl AltIR {
 pub struct TokenAltIR {
     label: Option<String>,
     options: PhantomData<()>,
-    elements: Vec<ElementIR>,
+    elements: Vec<TokenElementIR>,
     channel: Option<String>
 }
 
@@ -277,36 +276,33 @@ impl TokenAltIR {
                 Element::Atom { atom, suffix } => {
                     let atom = match atom {
                         Atom::ID(n) => {
-                            if let Some(id) = table.get_rule_id(&n) {
-                                AtomIR::RuleID(id)
-                            } else if let Some(id) = table.get_token_id(&n) {
-                                AtomIR::RuleID(id)
+                            if let Some(id) = table.get_token_id(&n) {
+                                id
                             } else {
                                 return Err("No token rule id found");
                             }
                         },
                         Atom::StringLit(n) => {
-                            println!("strlittemp: {:#?}{}", table, n);
-                            AtomIR::TokenID(table.get_strlit_id(&n).expect("Strlit's should all be processed, mabye they weren't processed because blocks aren't being processed?"))
+                            table.get_strlit_id(&n).expect("Strlit's should all be processed, mabye they weren't processed because blocks aren't being processed?")
                         }
                     };
 
                     // Move optional rules into their suffix to make generation easier
                     // table.get
-                    ElementIR::Atom { atom, suffix: *suffix }
+                    TokenElementIR::Atom { atom, suffix: *suffix }
                 },
                 Element::Block { block, suffix } => {
                     let optional = block.0.optional();
                     let mut alts = Vec::new();
                     
                     for alt in block.0.alts() {
-                        alts.push(AltIR::new(alt, table)?);
+                        alts.push(TokenAltIR::new(alt, table)?);
                     };
 
-                    ElementIR::Block { block: alts, suffix: *suffix }
+                    TokenElementIR::Block { block: alts, suffix: *suffix }
                 },
                 Element::Set { inverted, set, suffix } => {
-                    return Err("Parser rules cannot contain lexer sets")
+                    TokenElementIR::Set { inverted: inverted.clone(), set: set.clone(), suffix: suffix.clone() }
                 }
 
             };
@@ -321,7 +317,7 @@ impl TokenAltIR {
         self.label.as_ref()
     }
 
-    pub fn elements(&self) -> &Vec<ElementIR> {
+    pub fn elements(&self) -> &Vec<TokenElementIR> {
         &self.elements
     }
 }
@@ -363,6 +359,11 @@ pub enum TokenElementIR {
         atom: usize,
         suffix: Option<EBNFSuffix>
     },
+    Set {
+        inverted: bool,
+        set: BTreeSet<usize>,
+        suffix: Option<EBNFSuffix>
+    },
     Block {
         block: Vec<TokenAltIR>,
         suffix: Option<EBNFSuffix>
@@ -374,7 +375,8 @@ impl TokenElementIR {
     pub fn suffix(&self) -> Option<EBNFSuffix> {
         match self {
             TokenElementIR::Atom { suffix, .. } |
-            TokenElementIR::Block { suffix, .. } => *suffix
+            TokenElementIR::Block { suffix, .. } |
+            TokenElementIR::Set { suffix, .. } => *suffix
         }
     }
 }

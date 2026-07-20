@@ -395,7 +395,7 @@ impl Lexer {
                         
                         Some('f') => {
                             if esc {
-                                // current_text.push('');
+                                current_text.push('\u{000C}');
                                 esc = false;
                             } else {
                                 current_text.push('f')
@@ -483,7 +483,7 @@ impl Lexer {
                         
                         Some('f') => {
                             if esc {
-                                // current_text.push('');
+                                current_text.push('\u{000C}');
                                 esc = false;
                             } else {
                                 current_text.push('f')

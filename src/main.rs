@@ -1,4 +1,4 @@
-use std::{env, fs::read_to_string};
+use std::{env, fs::read_to_string, hint::black_box};
 
 use crate::{codegen::symbols::SymbolTable, antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{codegen, jinja_env}};
 
@@ -22,14 +22,18 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = AntlrIR::new(ast);
 
-    println!("{:#?}", ir);
-    // let env = jinja_env(symbols);
-
     let first = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 0);
-    println!("FIRST set of first alt of first rule: {:#?}", first);
-
     let second = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 1);
-    println!("SECOND set of first alt of first rule: {:#?}", second);
+
+    black_box(first);
+    black_box(second);
+    black_box(ir);
+
+    // println!("{:#?}", ir);
+    // println!("FIRST set of first alt of first rule: {:#?}", first);
+    // println!("SECOND set of first alt of first rule: {:#?}", second);
+    
+    // let env = jinja_env(symbols);
     // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
     
     Ok(())

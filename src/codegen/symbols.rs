@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use bimap::BiMap;
 use serde::{Deserialize, Serialize};
 
-use crate::antlr::ast::{ANTLRAst, Atom, Element, Rule, TokenRule};
+use crate::antlr::ast::{ANTLRAst, Alt, Atom, Element, Rule, TokenRule};
 
 #[derive(Debug)]
 pub enum AnalysisErr {
@@ -27,6 +27,25 @@ pub struct SymbolTable {
     strlit_map: BiMap<String, usize>,
 }
 
+pub fn get_strlits(alt: &Alt) -> Vec<String> {
+    let mut out  = Vec::new();
+    for element in alt.elements() {
+        match element {
+            Element::Atom{ atom: Atom::StringLit(s), .. } => {
+                out.push(s.clone()); // TODO: This does not catch strlits in blocks
+            },
+            Element::Block { block, .. } => {
+                for alt in block.0.alts() {
+                    out.extend(get_strlits(alt));
+                }
+            },
+            _ => ()
+        }
+    }
+
+    out
+}
+
 impl SymbolTable {
     pub fn new(ast: ANTLRAst) -> SymbolTable {
         let mut table = SymbolTable { ast, rule_map: BiMap::new(), token_map: BiMap::new(), strlit_map: BiMap::new() };
@@ -36,10 +55,8 @@ impl SymbolTable {
             table.insert_rule(rule.name().clone());
 
             for alt in rule.alts() {
-                for element in alt.elements() {
-                    if let Element::Atom { atom: Atom::StringLit(s), ..} = element {
-                        table.insert_strlit(s.clone()); // TODO: This does not catch strlits in blocks
-                    }
+                for strlit in get_strlits(alt) {
+                    table.insert_strlit(strlit);
                 }
             }
         }
@@ -47,10 +64,8 @@ impl SymbolTable {
         for rule in table.ast.token_rules().clone() {
             table.insert_token_rule(rule.name().clone());
             for alt in rule.alts() {
-                for element in alt.elements() {
-                    if let Element::Atom { atom: Atom::StringLit(s), ..} = element {
-                        table.insert_strlit(s.clone()); // TODO: This does not catch strlits in blocks
-                    }
+                for strlit in get_strlits(alt) {
+                    table.insert_strlit(strlit);
                 }
             }
         }

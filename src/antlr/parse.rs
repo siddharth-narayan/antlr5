@@ -34,7 +34,7 @@ impl Parser {
         loop {
             let token = lexer.next_token()?;
 
-            if token.token_type() == WS || token.token_type() == Comment || token.token_type() == CommentBlock{
+            if token.token_type() == WS || token.token_type() == Comment || token.token_type() == CommentBlock {
                 continue;
             }
 
@@ -42,9 +42,7 @@ impl Parser {
                 break;
             }
             
-            println!("{:#?}", token);
             tokens.push(token);
-
 
         };
 

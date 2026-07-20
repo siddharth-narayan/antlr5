@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{collections::HashSet, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,10 +6,10 @@ use crate::{codegen::symbols::SymbolTable, antlr::ast::{ANTLRAst, Alt, Atom, EBN
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AntlrIR {
-    symbol_table: SymbolTable,
-
     rules: Vec<RuleIR>,
     token_rules: Vec<TokenRuleIR>,
+
+    symbol_table: SymbolTable,
 }
 
 impl AntlrIR {
@@ -25,6 +25,53 @@ impl AntlrIR {
             symbol_table
         }
     }
+
+    pub fn rules(&self) -> &Vec<RuleIR> {
+        &self.rules
+    }
+    
+    pub fn token_rules(&self) -> &Vec<TokenRuleIR> {
+        &self.token_rules
+    }
+
+    pub fn nth<'a>(&'a self, alt: &'a AltIR, mut n: usize) -> HashSet<&'a ElementIR> {
+    let mut set = HashSet::new();
+
+    for element in alt.elements() {
+        match element {
+            ElementIR::Atom { atom, suffix } => {
+                if n == 0 {
+                    set.insert(element);
+
+                    if let AtomIR::RuleID(id) = atom {
+                        let rule = self.rules.get(*id).unwrap();
+                        for alt in rule.alts() {
+                            set.extend(self.nth(alt, n))
+                        }
+                    }
+
+                    return set;
+                } else {
+                    if let AtomIR::RuleID(id) = atom {
+                        let rule = self.rules.get(*id).unwrap();
+                        for alt in rule.alts() {
+                            set.extend(self.nth(alt, n))
+                        }
+                    }
+
+                    n -= 1;
+                }
+            },
+            ElementIR::Block { block, suffix } => {
+                for alt in block {
+                    set.extend(self.nth(alt, n))
+                }
+            }
+        }
+    }
+
+    set
+}
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -185,7 +232,7 @@ impl AltIR {
                         alts.push(AltIR::new(alt, table)?);
                     };
 
-                    ElementIR::Block { block: BlockIR(alts), suffix: *suffix }
+                    ElementIR::Block { block: alts, suffix: *suffix }
                 },
                 Element::Set { inverted, set, suffix } => {
                     return Err("Parser rules cannot contain lexer sets")
@@ -254,7 +301,7 @@ impl TokenAltIR {
                         alts.push(AltIR::new(alt, table)?);
                     };
 
-                    ElementIR::Block { block: BlockIR(alts), suffix: *suffix }
+                    ElementIR::Block { block: alts, suffix: *suffix }
                 },
                 Element::Set { inverted, set, suffix } => {
                     return Err("Parser rules cannot contain lexer sets")
@@ -287,7 +334,7 @@ pub enum ElementIR {
         suffix: Option<EBNFSuffix>
     },
     Block {
-        block: BlockIR,
+        block: Vec<AltIR>,
         suffix: Option<EBNFSuffix>
     },
     // EBNF(EBNF)
@@ -315,7 +362,7 @@ pub enum TokenElementIR {
         suffix: Option<EBNFSuffix>
     },
     Block {
-        block: BlockIR,
+        block: Vec<TokenAltIR>,
         suffix: Option<EBNFSuffix>
     },
     // EBNF(EBNF)
@@ -329,12 +376,4 @@ impl TokenElementIR {
         }
     }
 }
-
-
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct BlockIR(pub Vec<AltIR>);
-
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct TokenBlockIR(Vec<TokenAltIR>);
-
 

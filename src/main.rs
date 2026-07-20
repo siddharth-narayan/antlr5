@@ -22,6 +22,11 @@ fn main() -> Result<(), ()> {
     println!("{:#?}", ir);
     // let env = jinja_env(symbols);
 
+    let first = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 0);
+    println!("FIRST set of first alt of first rule: {:#?}", first);
+
+    let second = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 1);
+    println!("SECOND set of first alt of first rule: {:#?}", second);
     // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
     
     Ok(())

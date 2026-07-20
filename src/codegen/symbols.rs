@@ -118,7 +118,7 @@ impl SymbolTable {
             return Err(AnalysisErr::Redefinition { of: "EOF".to_string() })
         }
 
-        self.token_map.insert(name, self.token_map.len());
+        self.token_map.insert(name, self.token_map.len() + self.strlit_map.len());
 
         Ok(())
     }
@@ -127,6 +127,6 @@ impl SymbolTable {
         if self.strlit_map.contains_left(&name) {
             return
         }
-        self.strlit_map.insert(name, self.strlit_map.len());
+        self.strlit_map.insert(name, self.token_map.len() + self.strlit_map.len());
     }
 }

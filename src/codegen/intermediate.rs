@@ -66,6 +66,7 @@ impl AntlrIR {
                 for alt in block {
                     set.extend(self.nth(alt, n))
                 }
+                // Nth needs to continue here, reading anything that follows
             }
         }
     }
@@ -285,7 +286,8 @@ impl TokenAltIR {
                             }
                         },
                         Atom::StringLit(n) => {
-                            AtomIR::TokenID(table.get_strlit_id(&n).expect("Strlit's should all be processed"))
+                            println!("strlittemp: {:#?}{}", table, n);
+                            AtomIR::TokenID(table.get_strlit_id(&n).expect("Strlit's should all be processed, mabye they weren't processed because blocks aren't being processed?"))
                         }
                     };
 

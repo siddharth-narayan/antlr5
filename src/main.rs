@@ -7,7 +7,7 @@ mod codegen;
 mod langs;
 
 fn main() -> Result<(), ()> {
-    let path = std::env::args().nth(1).unwrap();
+    let path = std::env::args().nth(1).unwrap_or("tests/parrt-test.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // println!("{}", content);

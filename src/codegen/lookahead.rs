@@ -27,3 +27,10 @@ impl LookAheadNode {
 
     }
 }
+
+enum LookAheadMatch {
+    F
+}
+pub fn matches(e: ElementIR, with: ElementIR) {
+    
+}

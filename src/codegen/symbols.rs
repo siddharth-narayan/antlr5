@@ -46,6 +46,13 @@ impl SymbolTable {
 
         for rule in table.ast.token_rules().clone() {
             table.insert_token_rule(rule.name().clone());
+            for alt in rule.alts() {
+                for element in alt.elements() {
+                    if let Element::Atom { atom: Atom::StringLit(s), ..} = element {
+                        table.insert_strlit(s.clone()); // TODO: This does not catch strlits in blocks
+                    }
+                }
+            }
         }
         
         table

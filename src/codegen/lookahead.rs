@@ -2,8 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use crate::codegen::{intermediate::{AltIR, AntlrIR, AtomIR, ElementIR, RuleIR}, symbols::SymbolTable};
 
-pub struct First(HashSet<ElementIR>);
-
 pub struct LookAhead {
     tree: HashMap<ElementIR, LookAheadNode>
 }

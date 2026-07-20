@@ -2,6 +2,9 @@ use std::{env, fs::read_to_string};
 
 use crate::{codegen::symbols::SymbolTable, antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{codegen, jinja_env}};
 
+#[cfg(test)]
+mod tests;
+
 mod antlr;
 mod codegen;
 mod langs;

@@ -1,13 +1,5 @@
-{% macro alt_members(alt) %}
-{% for element in alt.elements %}
-{% if element.Atom.atom.ID %}
-{{ element.Atom.atom.ID }}: {{ element | etype_prefix }}{{ element.Atom.atom.ID | capitalize }}{{ element | etype_suffix }},
-{% endif %}
-{% endfor %}
-{% endmacro %}
-
 pub struct Parser {
-
+    rule_stack: VecDeque<usize>
 }
 
 impl Parser {
@@ -20,19 +12,37 @@ impl Parser {
 }
 
 {% for rule in rules %}
-{% if rule.alt_list.alts | length > 1 %}
+{% if rule.alts | length > 1 %}
 pub enum {{ rule.name | capitalize }} {
-    {% for alt in rule.alt_list.alts %}
-    {{alt.label}} {
-        {{ alt_members(alt) }}
+    {% for alt in rule.alts %}
+    {{ alt.label | default("Alt" ~ loop.index, true) }} {
+        {% for element in alt.elements %}
+            {% if element.Atom.atom.RuleID is defined %}
+            {{ (element.Atom.atom.RuleID | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.Atom.atom.RuleID | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
+            {% endif %}
+
+
+            {% if element.Atom.atom.TokenID is defined %}
+            token_{{ loop.index }}: {{ element | etype_prefix }}Token_{{ loop.index }}{{ element | etype_suffix }},
+            {% endif %}
+        {% endfor %}
     },
     {% endfor %}
 }
 
 {% else %}
 pub struct {{ rule.name | capitalize }} {
-    {% for alt in rule.alt_list.alts %}
-    {{ alt_members(alt) }}
+    {% for alt in rule.alts %}
+        {% for element in alt.elements %}
+            {% if element.Atom.atom.RuleID is defined %}
+            {{ (element.Atom.atom.RuleID | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.Atom.atom.RuleID | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
+            {% endif %}
+
+
+            {% if element.Atom.atom.TokenID is defined %}
+            token_{{ loop.index }}: {{ element | etype_prefix }}Token_{{ loop.index }}{{ element | etype_suffix }},
+            {% endif %}
+        {% endfor %}
     {% endfor %}
 }
 

@@ -1443,55 +1443,55 @@ sentence
     ;
 
 statement
-    : acceptStatement
-    | addStatement
-    | alterStatement
-    | callStatement
-    | cancelStatement
-    | closeStatement
-    | computeStatement
-    | continueStatement
-    | deleteStatement
-    | disableStatement
-    | displayStatement
-    | divideStatement
-    | enableStatement
-    | entryStatement
-    | evaluateStatement
-    | exhibitStatement
-    | execCicsStatement
-    | execSqlStatement
-    | execSqlImsStatement
-    | exitStatement
-    | generateStatement
-    | gobackStatement
-    | goToStatement
-    | ifStatement
-    | initializeStatement
-    | initiateStatement
-    | inspectStatement
-    | mergeStatement
-    | moveStatement
-    | multiplyStatement
-    | openStatement
-    | performStatement
-    | purgeStatement
-    | readStatement
-    | receiveStatement
-    | releaseStatement
-    | returnStatement
-    | rewriteStatement
-    | searchStatement
-    | sendStatement
-    | setStatement
-    | sortStatement
-    | startStatement
-    | stopStatement
-    | stringStatement
-    | subtractStatement
-    | terminateStatement
-    | unstringStatement
-    | writeStatement
+    : acceptStatement  # acceptStatement 
+    | addStatement # addStatement
+    | alterStatement # alterStatement
+    | callStatement # callStatement
+    | cancelStatement # cancelStatement
+    | closeStatement # closeStatement
+    | computeStatement # computeStatement
+    | continueStatement # continueStatement
+    | deleteStatement # deleteStatement
+    | disableStatement # disableStatement
+    | displayStatement # displayStatement
+    | divideStatement # divideStatement
+    | enableStatement # enableStatement
+    | entryStatement # entryStatement
+    | evaluateStatement # evaluateStatement
+    | exhibitStatement # exhibitStatement
+    | execCicsStatement # execCicsStatement
+    | execSqlStatement # execSqlStatement
+    | execSqlImsStatement # execSqlImsStatement
+    | exitStatement # exitStatement
+    | generateStatement # generateStatement
+    | gobackStatement # gobackStatement
+    | goToStatement # goToStatement
+    | ifStatement # ifStatement
+    | initializeStatement # initializeStatement
+    | initiateStatement # initiateStatement
+    | inspectStatement # inspectStatement
+    | mergeStatement # mergeStatement
+    | moveStatement # moveStatement
+    | multiplyStatement # multiplyStatement
+    | openStatement # openStatement
+    | performStatement # performStatement
+    | purgeStatement # purgeStatement
+    | readStatement # readStatement
+    | receiveStatement # receiveStatement
+    | releaseStatement # releaseStatement
+    | returnStatement # returnStatement
+    | rewriteStatement # rewriteStatement
+    | searchStatement # searchStatement
+    | sendStatement # sendStatement
+    | setStatement # setStatement
+    | sortStatement # sortStatement
+    | startStatement # startStatement
+    | stopStatement # stopStatement
+    | stringStatement # stringStatement
+    | subtractStatement # subtractStatement
+    | terminateStatement # terminateStatement
+    | unstringStatement # unstringStatement
+    | writeStatement # writeStatement
     ;
 
 // accept statement

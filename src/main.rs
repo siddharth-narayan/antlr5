@@ -1,6 +1,6 @@
-use std::{fs::read_to_string, hint::black_box};
+use std::{fs::read_to_string, hint::black_box, sync::Arc};
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::jinja_env};
 
 #[cfg(test)]
 mod tests;
@@ -20,21 +20,20 @@ fn main() -> Result<(), ()> {
     let mut parser = Parser::new(lexer).unwrap();
 
     let ast = parser.grammar_spec().unwrap();
-    let ir = AntlrIR::new(ast);
+    let ir = Arc::new(AntlrIR::new(ast));
 
     let first = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 0);
     let second = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 1);
 
+    // println!("{:#?}", ir);
+    println!("FIRST set of first alt of first rule: {:#?}", first);
+    println!("SECOND set of first alt of first rule: {:#?}", second);
+    
+    // let env = jinja_env(ir.clone());
+    // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ir.clone()).unwrap()).unwrap();
+    
     black_box(first);
     black_box(second);
-    black_box(ir);
-
-    // println!("{:#?}", ir);
-    // println!("FIRST set of first alt of first rule: {:#?}", first);
-    // println!("SECOND set of first alt of first rule: {:#?}", second);
-    
-    // let env = jinja_env(symbols);
-    // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ast).unwrap()).unwrap();
-    
+    black_box(ir.clone());
     Ok(())
 }

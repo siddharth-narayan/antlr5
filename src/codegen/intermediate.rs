@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{codegen::symbols::SymbolTable, antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntlrIR {
     rules: Vec<RuleIR>,
     token_rules: Vec<TokenRuleIR>,
@@ -32,6 +32,10 @@ impl AntlrIR {
     
     pub fn token_rules(&self) -> &Vec<TokenRuleIR> {
         &self.token_rules
+    }
+
+    pub fn symbols(&self) -> &SymbolTable {
+        &self.symbol_table
     }
 
     pub fn nth<'a>(&'a self, alt: &'a AltIR, mut n: usize) -> HashSet<&'a ElementIR> {
@@ -75,7 +79,7 @@ impl AntlrIR {
 }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleIR {
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
@@ -125,7 +129,7 @@ impl RuleIR {
 
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenRuleIR {
     is_fragment: bool,
     name: String,
@@ -185,7 +189,7 @@ impl TokenRuleIR {
 
 
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AltIR {
     label: Option<String>,
     options: PhantomData<()>,
@@ -253,7 +257,7 @@ impl AltIR {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct TokenAltIR {
     label: Option<String>,
     options: PhantomData<()>,
@@ -321,7 +325,7 @@ impl TokenAltIR {
 
 
 // Should Element really have PartialEq/Eq derived?
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum ElementIR {
     Atom {
         atom: AtomIR,
@@ -334,7 +338,7 @@ pub enum ElementIR {
     // EBNF(EBNF)
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum AtomIR {
     TokenID(usize),
     RuleID(usize)
@@ -349,7 +353,7 @@ impl ElementIR {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum TokenElementIR {
     Atom {
         atom: usize,

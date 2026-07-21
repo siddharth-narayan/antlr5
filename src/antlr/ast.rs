@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ANTLRAst {
     rules: Vec<Rule>,
     token_rules: Vec<TokenRule>

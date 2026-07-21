@@ -17,7 +17,7 @@ pub enum AnalysisErr {
     AltLabels
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SymbolTable {
     ast: ANTLRAst,
 

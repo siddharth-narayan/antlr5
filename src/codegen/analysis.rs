@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet};
+use bimap::BiMap;
+
 use crate::codegen::intermediate::{AltIR, AntlrIR, AtomIR, ElementIR};
 
 pub struct LookAhead<'a> {
@@ -20,28 +22,33 @@ pub enum LookAheadNode<'a> {
 }
 
 impl AntlrIR {
-    pub fn nth<'a>(&'a self, alt: &'a AltIR, mut n: usize) -> HashSet<&'a AtomIR> {
-        let mut set = HashSet::new();
+    pub fn nth<'a>(&'a self, alt: &'a AltIR, n: usize) -> BiMap<&'a AtomIR, usize> {
+        self.internal_nth(alt, n, 0)
+    }
+
+    fn internal_nth<'a>(&'a self, alt: &'a AltIR, mut n: usize, depth: usize) -> BiMap<&'a AtomIR, usize> {
+        let mut set = BiMap::new();
 
         for element in alt.elements() {
             match element {
                 ElementIR::Atom { atom, suffix: _ } => {
                     if n == 0 {
-                        set.insert(atom);
+                        set.insert_no_overwrite(atom, depth);
 
                         if let AtomIR::RuleID(id) = atom {
                             let rule = self.rules.get(*id).unwrap();
                             for alt in rule.alts() {
-                                set.extend(self.nth(alt, n))
+                                set.extend(self.internal_nth(alt, n, depth + 1))
                             }
                         }
 
                         return set;
                     } else {
+                        // Need to handle optional rules here
                         if let AtomIR::RuleID(id) = atom {
                             let rule = self.rules.get(*id).unwrap();
                             for alt in rule.alts() {
-                                set.extend(self.nth(alt, n))
+                                set.extend(self.internal_nth(alt, n, depth + 1))
                             }
                         }
 
@@ -72,16 +79,16 @@ impl AntlrIR {
         }
 
         let mut first: HashMap<&AtomIR, HashSet<usize>> = HashMap::new();
-        for (index, alt) in alts {
+        for (index, alt) in &alts {
             let set = self.nth(alt, 0);
-            for atom in set {
+            for (atom, depth) in set {
                 match first.get_mut(atom) {
                     Some(vec) => {
-                        vec.insert(index);
+                        vec.insert(*index);
                     },
                     None => {
                         let mut s = HashSet::new();
-                        s.insert(index);
+                        s.insert(*index);
                         first.insert(atom, s);
                     }
                 }
@@ -91,11 +98,8 @@ impl AntlrIR {
         let mut out = HashMap::new();
 
         for (atom, available_alts) in first {
-            if available_alts.len() < 2 {
-                out.insert(atom, LookAheadNode::Terminal { alt: *available_alts.iter().nth(0).unwrap(), continue_from: 0 });
-            } else {
-
-            }
+            let alts = available_alts.iter().map(|index| alts.get(*index).unwrap().clone()).collect();
+            out.insert(atom, self.lookahead_alts(alts));
         }
 
         LookAheadNode::Continues(LookAhead { tree: out })

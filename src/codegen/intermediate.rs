@@ -1,8 +1,8 @@
-use std::{collections::{BTreeSet, HashMap, HashSet}, marker::PhantomData};
+use std::{collections::BTreeSet, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}, codegen::{analysis::{LookAhead, LookAheadNode}, symbols::SymbolTable}};
+use crate::{antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}, codegen::symbols::SymbolTable};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntlrIR {

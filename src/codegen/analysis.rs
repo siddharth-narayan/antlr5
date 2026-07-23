@@ -1,6 +1,5 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
-use smallvec::SmallVec;
-use crate::codegen::{intermediate::{AltIR, AntlrIR, AtomIR, ElementIR, RuleIR}, symbols::SymbolTable};
+use std::collections::{HashMap, HashSet};
+use crate::codegen::intermediate::{AltIR, AntlrIR, AtomIR, ElementIR};
 
 pub struct LookAhead<'a> {
     pub tree: HashMap<&'a AtomIR, LookAheadNode<'a>>
@@ -67,7 +66,7 @@ impl AntlrIR {
         
     }
 
-    pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>) -> LookAheadNode<'_> {
+    pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>) -> LookAheadNode<'a> {
         if alts.len() < 2 {
             return LookAheadNode::Terminal { alt: 0, continue_from: 0 }
         }

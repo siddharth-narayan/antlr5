@@ -1,6 +1,6 @@
 use std::{fs::read_to_string, hint::black_box, sync::Arc};
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{intermediate::AntlrIR, lookahead::LookAheadNode}, langs::jinja_env};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{intermediate::AntlrIR, analysis::LookAheadNode}, langs::jinja_env};
 
 #[cfg(test)]
 mod tests;

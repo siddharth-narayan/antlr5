@@ -1,0 +1,104 @@
+use std::{collections::{HashMap, HashSet}, sync::Arc};
+use smallvec::SmallVec;
+use crate::codegen::{intermediate::{AltIR, AntlrIR, AtomIR, ElementIR, RuleIR}, symbols::SymbolTable};
+
+pub struct LookAhead<'a> {
+    pub tree: HashMap<&'a AtomIR, LookAheadNode<'a>>
+}
+
+impl<'a> LookAhead<'a> {
+    pub fn new(tree: HashMap<&'a AtomIR, LookAheadNode<'a>>) -> LookAhead<'a> {
+        LookAhead { tree }
+    }
+}
+
+pub enum LookAheadNode<'a> {
+    Continues(LookAhead<'a>),
+    Terminal {
+        alt: usize, // The alt to pick
+        continue_from: usize // The element that needs to next be matched
+    }
+}
+
+impl AntlrIR {
+    pub fn nth<'a>(&'a self, alt: &'a AltIR, mut n: usize) -> HashSet<&'a AtomIR> {
+        let mut set = HashSet::new();
+
+        for element in alt.elements() {
+            match element {
+                ElementIR::Atom { atom, suffix: _ } => {
+                    if n == 0 {
+                        set.insert(atom);
+
+                        if let AtomIR::RuleID(id) = atom {
+                            let rule = self.rules.get(*id).unwrap();
+                            for alt in rule.alts() {
+                                set.extend(self.nth(alt, n))
+                            }
+                        }
+
+                        return set;
+                    } else {
+                        if let AtomIR::RuleID(id) = atom {
+                            let rule = self.rules.get(*id).unwrap();
+                            for alt in rule.alts() {
+                                set.extend(self.nth(alt, n))
+                            }
+                        }
+
+                        n -= 1;
+                    }
+                },
+                ElementIR::Block { block, suffix: _ } => {
+                    for alt in block {
+                        set.extend(self.nth(alt, n))
+                    }
+                    // Nth needs to continue here, reading anything that follows
+                }
+            }
+        }
+
+        set
+    }
+
+    pub fn lookahead(&self, rule: usize) -> LookAheadNode<'_> {
+        let alts: Vec<(usize, &AltIR)> = self.rules().get(rule).unwrap().alts().iter().enumerate().collect();
+        self.lookahead_alts(alts)
+        
+    }
+
+    pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>) -> LookAheadNode<'_> {
+        if alts.len() < 2 {
+            return LookAheadNode::Terminal { alt: 0, continue_from: 0 }
+        }
+
+        let mut first: HashMap<&AtomIR, HashSet<usize>> = HashMap::new();
+        for (index, alt) in alts {
+            let set = self.nth(alt, 0);
+            for atom in set {
+                match first.get_mut(atom) {
+                    Some(vec) => {
+                        vec.insert(index);
+                    },
+                    None => {
+                        let mut s = HashSet::new();
+                        s.insert(index);
+                        first.insert(atom, s);
+                    }
+                }
+            }
+        };
+
+        let mut out = HashMap::new();
+
+        for (atom, available_alts) in first {
+            if available_alts.len() < 2 {
+                out.insert(atom, LookAheadNode::Terminal { alt: *available_alts.iter().nth(0).unwrap(), continue_from: 0 });
+            } else {
+
+            }
+        }
+
+        LookAheadNode::Continues(LookAhead { tree: out })
+    }
+}

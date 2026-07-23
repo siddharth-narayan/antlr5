@@ -1,12 +1,12 @@
-use std::{collections::{BTreeSet, HashSet}, marker::PhantomData};
+use std::{collections::{BTreeSet, HashMap, HashSet}, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{codegen::symbols::SymbolTable, antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}};
+use crate::{antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}, codegen::{analysis::{LookAhead, LookAheadNode}, symbols::SymbolTable}};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntlrIR {
-    rules: Vec<RuleIR>,
+    pub(super) rules: Vec<RuleIR>,
     token_rules: Vec<TokenRuleIR>,
 
     symbol_table: SymbolTable,
@@ -38,45 +38,7 @@ impl AntlrIR {
         &self.symbol_table
     }
 
-    pub fn nth<'a>(&'a self, alt: &'a AltIR, mut n: usize) -> HashSet<&'a ElementIR> {
-    let mut set = HashSet::new();
-
-    for element in alt.elements() {
-        match element {
-            ElementIR::Atom { atom, suffix: _ } => {
-                if n == 0 {
-                    set.insert(element);
-
-                    if let AtomIR::RuleID(id) = atom {
-                        let rule = self.rules.get(*id).unwrap();
-                        for alt in rule.alts() {
-                            set.extend(self.nth(alt, n))
-                        }
-                    }
-
-                    return set;
-                } else {
-                    if let AtomIR::RuleID(id) = atom {
-                        let rule = self.rules.get(*id).unwrap();
-                        for alt in rule.alts() {
-                            set.extend(self.nth(alt, n))
-                        }
-                    }
-
-                    n -= 1;
-                }
-            },
-            ElementIR::Block { block, suffix: _ } => {
-                for alt in block {
-                    set.extend(self.nth(alt, n))
-                }
-                // Nth needs to continue here, reading anything that follows
-            }
-        }
-    }
-
-    set
-}
+   
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

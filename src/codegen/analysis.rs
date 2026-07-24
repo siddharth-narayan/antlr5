@@ -3,6 +3,7 @@ use bimap::BiMap;
 
 use crate::codegen::intermediate::{AltIR, AntlrIR, AtomIR, ElementIR};
 
+#[derive(Debug)]
 pub struct LookAhead<'a> {
     pub tree: HashMap<&'a AtomIR, LookAheadNode<'a>>
 }
@@ -13,6 +14,7 @@ impl<'a> LookAhead<'a> {
     }
 }
 
+#[derive(Debug)]
 pub enum LookAheadNode<'a> {
     Continues(LookAhead<'a>),
     Terminal {
@@ -69,8 +71,7 @@ impl AntlrIR {
 
     pub fn lookahead(&self, rule: usize) -> LookAheadNode<'_> {
         let alts: Vec<(usize, &AltIR)> = self.rules().get(rule).unwrap().alts().iter().enumerate().collect();
-        self.lookahead_alts(alts)
-        
+        self.lookahead_alts(alts)   
     }
 
     pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>) -> LookAheadNode<'a> {
@@ -98,7 +99,8 @@ impl AntlrIR {
         let mut out = HashMap::new();
 
         for (atom, available_alts) in first {
-            let alts = available_alts.iter().map(|index| alts.get(*index).unwrap().clone()).collect();
+            let alts: Vec<(usize, &AltIR)> = available_alts.iter().map(|index| alts.get(*index).unwrap().clone()).collect();
+            alts.iter().for_each(|a| { println!("looakeahd avaioable alts {:#?}\n----------------------", a)});
             out.insert(atom, self.lookahead_alts(alts));
         }
 

@@ -10,7 +10,7 @@ mod codegen;
 mod langs;
 
 fn main() -> Result<(), ()> {
-    let path = std::env::args().nth(1).unwrap_or("tests/parrt-test.g4".into());
+    let path = std::env::args().nth(1).unwrap_or("src/tests/parrt-test.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // println!("{}", content);
@@ -25,6 +25,9 @@ fn main() -> Result<(), ()> {
     let first = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 0);
     let second = ir.nth(ir.rules().get(1).unwrap().alts().get(0).unwrap(), 0);
     
+    let la = ir.lookahead(0);
+    println!("Lookahead for rule 0 is {:#?}", la);
+
     // let env = jinja_env(ir.clone());
     // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ir.clone()).unwrap()).unwrap();
     

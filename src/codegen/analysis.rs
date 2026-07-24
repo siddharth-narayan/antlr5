@@ -71,17 +71,17 @@ impl AntlrIR {
 
     pub fn lookahead(&self, rule: usize) -> LookAheadNode<'_> {
         let alts: Vec<(usize, &AltIR)> = self.rules().get(rule).unwrap().alts().iter().enumerate().collect();
-        self.lookahead_alts(alts)   
+        self.lookahead_alts(alts, 0)   
     }
 
-    pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>) -> LookAheadNode<'a> {
+    pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>, lookahead: usize) -> LookAheadNode<'a> {
         if alts.len() < 2 {
             return LookAheadNode::Terminal { alt: 0, continue_from: 0 }
         }
 
         let mut first: HashMap<&AtomIR, HashSet<usize>> = HashMap::new();
         for (index, alt) in &alts {
-            let set = self.nth(alt, 0);
+            let set = self.nth(alt, lookahead);
             for (atom, depth) in set {
                 match first.get_mut(atom) {
                     Some(vec) => {
@@ -101,7 +101,7 @@ impl AntlrIR {
         for (atom, available_alts) in first {
             let alts: Vec<(usize, &AltIR)> = available_alts.iter().map(|index| alts.get(*index).unwrap().clone()).collect();
             alts.iter().for_each(|a| { println!("looakeahd avaioable alts {:#?}\n----------------------", a)});
-            out.insert(atom, self.lookahead_alts(alts));
+            out.insert(atom, self.lookahead_alts(alts, lookahead + 1));
         }
 
         LookAheadNode::Continues(LookAhead { tree: out })

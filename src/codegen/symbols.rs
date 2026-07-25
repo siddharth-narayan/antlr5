@@ -51,7 +51,7 @@ impl SymbolTable {
 
         // I don't want to clone everywhere :(
         for rule in table.ast.rules().clone() {
-            table.insert_rule(rule.name().clone());
+            let _ = table.insert_rule(rule.name().clone());
 
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
@@ -61,7 +61,7 @@ impl SymbolTable {
         }
 
         for rule in table.ast.token_rules().clone() {
-            table.insert_token_rule(rule.name().clone());
+            let _ = table.insert_token_rule(rule.name().clone());
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
                     table.insert_strlit(strlit);

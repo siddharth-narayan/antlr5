@@ -58,7 +58,7 @@ pub struct RuleIR {
 
 impl RuleIR {
     pub fn new(rule: &Rule, table: &SymbolTable) -> Result<RuleIR, &'static str> {
-        let _name = rule.name().clone();
+        let name = rule.name().clone();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
 
@@ -67,13 +67,16 @@ impl RuleIR {
         };
         
 
+        let id = table.get_rule_id(&name).expect("No ruleid");
+
         for alt in rule.alts() {
-            alts.push(AltIR::new(alt, table)?);
-           
+            alts.push(AltIR::new(id, alt, table)?);
         }
 
+
+
         return Ok(RuleIR {
-            name: rule.name().clone(),
+            name: name,
             optional,
             alts
         })
@@ -156,22 +159,27 @@ pub struct AltIR {
     label: Option<String>,
     options: PhantomData<()>,
     elements: Vec<ElementIR>,
-    channel: Option<String>
+    channel: Option<String>,
+    recursive_locations: Vec<usize>
 }
 
 // So bad it might as well be AI generated
 impl AltIR {
-    pub fn new(alt: &Alt, table: &SymbolTable) -> Result<AltIR, &'static str> {
+    pub fn new(parent_rule_id: usize, alt: &Alt, table: &SymbolTable) -> Result<AltIR, &'static str> {
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
         let mut elements = Vec::new();
+        let mut recursive_locations: Vec<usize> = Vec::new();
 
-        for element in alt.elements() {
+        for (element_index, element) in alt.elements().iter().enumerate() {
             let element = match element {
                 Element::Atom { atom, suffix } => {
                     let atom = match atom {
                         Atom::ID(n) => {
                             if let Some(id) = table.get_rule_id(&n) {
+                                if id == parent_rule_id {
+                                    recursive_locations.push(element_index)
+                                }
                                 AtomIR::RuleID(id)
                             } else if let Some(id) = table.get_token_id(&n) {
                                 AtomIR::TokenID(id)
@@ -193,7 +201,7 @@ impl AltIR {
                     let mut alts = Vec::new();
                     
                     for alt in block.0.alts() {
-                        alts.push(AltIR::new(alt, table)?);
+                        alts.push(AltIR::new(parent_rule_id, alt, table)?);
                     };
 
                     ElementIR::Block { block: alts, suffix: *suffix }
@@ -207,7 +215,7 @@ impl AltIR {
             elements.push(element);
         };
 
-        Ok(AltIR { label, options: PhantomData, elements, channel })
+        Ok(AltIR { label, options: PhantomData, elements, channel, recursive_locations })
     }
 
     pub fn label(&self) -> Option<&String> {
@@ -216,6 +224,14 @@ impl AltIR {
 
     pub fn elements(&self) -> &Vec<ElementIR> {
         &self.elements
+    }
+
+    pub fn is_recursive(&self) -> bool {
+        self.recursive_locations.len() > 0
+    }
+    
+    pub fn recursive_locations(&self) -> &Vec<usize> {
+        &self.recursive_locations
     }
 }
 

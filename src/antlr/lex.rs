@@ -279,8 +279,8 @@ impl Lexer {
             },
 
             'g' => {
-                if self.match_keyword("ptions").is_ok() {
-                    Ok(Options)
+                if self.match_keyword("rammar").is_ok() {
+                    Ok(Grammar)
                 } else {
                     Err(UnmatchedKeyword)
                 }

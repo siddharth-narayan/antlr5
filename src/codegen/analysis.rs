@@ -29,28 +29,32 @@ impl AntlrIR {
     }
 
     fn internal_nth<'a>(&'a self, alt: &'a AltIR, mut n: usize, depth: usize) -> BiMap<&'a AtomIR, usize> {
-        let mut set = BiMap::new();
+        if depth > 1000 {
+            panic!("Recursion limit 1000, recursive error for {} lookahead on alt {:#?}", n, alt);    
+        }
+
+        let mut nth_atoms = BiMap::new();
 
         for element in alt.elements() {
             match element {
                 ElementIR::Atom { atom, suffix: _ } => {
                     if n == 0 {
-                        set.insert_no_overwrite(atom, depth);
+                        let _ = nth_atoms.insert_no_overwrite(atom, depth);
 
                         if let AtomIR::RuleID(id) = atom {
                             let rule = self.rules.get(*id).unwrap();
                             for alt in rule.alts() {
-                                set.extend(self.internal_nth(alt, n, depth + 1))
+                                nth_atoms.extend(self.internal_nth(alt, n, depth + 1))
                             }
                         }
 
-                        return set;
+                        return nth_atoms;
                     } else {
                         // Need to handle optional rules here
                         if let AtomIR::RuleID(id) = atom {
                             let rule = self.rules.get(*id).unwrap();
                             for alt in rule.alts() {
-                                set.extend(self.internal_nth(alt, n, depth + 1))
+                                nth_atoms.extend(self.internal_nth(alt, n, depth + 1))
                             }
                         }
 
@@ -59,24 +63,32 @@ impl AntlrIR {
                 },
                 ElementIR::Block { block, suffix: _ } => {
                     for alt in block {
-                        set.extend(self.nth(alt, n))
+                        nth_atoms.extend(self.nth(alt, n))
                     }
                     // Nth needs to continue here, reading anything that follows
                 }
             }
         }
 
-        set
+        nth_atoms
     }
 
     pub fn lookahead(&self, rule: usize) -> LookAheadNode<'_> {
         let alts: Vec<(usize, &AltIR)> = self.rules().get(rule).unwrap().alts().iter().enumerate().collect();
+        // println!("Lookahead for rule {}", rule);
         self.lookahead_alts(alts, 0)   
     }
 
+    // This function takes a set of alts, and their alt number, then calculates the approprate lookahead for deciding between alts
     pub fn lookahead_alts<'a>(&'a self, alts: Vec<(usize, &'a AltIR)>, lookahead: usize) -> LookAheadNode<'a> {
-        if alts.len() < 2 {
-            return LookAheadNode::Terminal { alt: 0, continue_from: 0 }
+        // println!("Lookahead for alts {:#?} with {} lookahead", alts.iter().map(|a| a.0).collect::<Vec<usize>>(), lookahead);
+
+        if alts.len() == 0 {
+
+        }
+        
+        if alts.len() == 1 {
+            return LookAheadNode::Terminal { alt: alts.first().unwrap().0, continue_from: lookahead }
         }
 
         let mut first: HashMap<&AtomIR, HashSet<usize>> = HashMap::new();
@@ -100,7 +112,6 @@ impl AntlrIR {
 
         for (atom, available_alts) in first {
             let alts: Vec<(usize, &AltIR)> = available_alts.iter().map(|index| alts.get(*index).unwrap().clone()).collect();
-            alts.iter().for_each(|a| { println!("looakeahd avaioable alts {:#?}\n----------------------", a)});
             out.insert(atom, self.lookahead_alts(alts, lookahead + 1));
         }
 

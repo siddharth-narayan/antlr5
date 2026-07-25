@@ -113,6 +113,12 @@ impl Parser {
     pub fn grammar_spec(&mut self) -> Result<ANTLRAst, ParserErr> {
         let mut rules = Vec::new();
         let mut token_rules = Vec::new();
+
+        let _ = self.match_any_token(vec![ParserToken, LexerToken]);
+        self.match_token(Grammar)?;
+        self.match_any_token(vec![RuleID, TokenID])?;
+        self.match_token(Semi)?;
+
         loop {
             match self.peek(1).token_type() {
                 TokenID |  Fragment => {

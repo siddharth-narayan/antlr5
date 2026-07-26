@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, ElementIR, TokenElementIR}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, element::{ElementIR, TokenElementIR}}};
 
 pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     let ir = ir.clone();

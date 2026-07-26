@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use bimap::BiMap;
 
-use crate::codegen::intermediate::{AntlrIR, alt::AltIR, element::{AtomIR, ElementIR}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{AtomIR, ElementIR}}};
 
 #[derive(Debug)]
 pub struct LookAhead<'a> {
@@ -24,32 +24,59 @@ pub enum LookAheadNode<'a> {
 }
 
 impl AntlrIR {
-    pub fn always_contains<'a>(&'a self, rule: usize) {
+    pub fn rule_always_contains(&self, rule: usize, should_contain: usize) -> bool {
         let mut visited = HashSet::new();
-        self.internal_always_contains(rule, &mut visited);
+        self.internal_rule_always_contains(rule, should_contain, &mut visited)
     }
 
-    fn internal_always_contains<'a>(&'a self, rule_index: usize, visited: &mut HashSet<usize>) -> bool {
-        let rule = self.rules.get(rule_index).expect("expexted rule");
-        let mut always_contains = true;
+    fn internal_rule_always_contains(&self, rule: usize, should_contain: usize, visited: &mut HashSet<usize>) -> bool {
+        if !visited.insert(rule) {
+            return true;
+        }
 
-        visited.insert(rule_index);
+        let rule = self.rules.get(rule).expect("expexted rule");
 
         for alt in rule.alts() {
-            always_contains = always_contains && self.internal_alt_always_contains(&alt, visited)
+            if !self.internal_alt_always_contains(&alt, should_contain, visited) {
+                return false;
+            }
         };
 
-        always_contains
+        true
     }
 
-    fn internal_alt_always_contains<'a>(&'a self, alt: &'a AltIR, visited: &mut HashSet<usize>) -> bool {
-        let mut always_contains = true;
-
+    fn internal_alt_always_contains(&self, alt: &AltIR, should_contain: usize, visited: &mut HashSet<usize>) -> bool {
         for element in alt.elements() {
+            match element {
+                ElementIR::Atom { atom, suffix } => {
+                    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = *suffix {
+                        continue;
+                    }
 
+                    if let AtomIR::RuleID(id) = atom {
+                        if *id == should_contain {
+                            return true;
+                        }
+
+                        if !visited.contains(id) && self.internal_rule_always_contains(*id, should_contain, visited) {
+                            return true
+                        }
+                    }
+                },
+
+                ElementIR::Block { block, suffix } => {
+                    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = *suffix {
+                        continue;
+                    }
+
+                    if block.iter().all(|alt| self.internal_alt_always_contains(alt, should_contain, visited)) {
+                        return true
+                    }
+                }
+            }
         };
 
-        always_contains
+        false
     }
 
     pub fn nth<'a>(&'a self, alt: &'a AltIR, n: usize) -> BiMap<&'a AtomIR, usize> {
@@ -122,7 +149,7 @@ impl AntlrIR {
         let mut first: HashMap<&AtomIR, HashSet<usize>> = HashMap::new();
         for (index, alt) in &alts {
             let set = self.nth(alt, lookahead);
-            for (atom, depth) in set {
+            for (atom, _depth) in set {
                 match first.get_mut(atom) {
                     Some(vec) => {
                         vec.insert(*index);

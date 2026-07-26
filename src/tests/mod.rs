@@ -32,6 +32,26 @@ pub fn lookahead() {
 
 #[test]
 pub fn parrt_test() {
-    let ir = parse(include_str!("parrt-test.g4"));
+    let ir = parse(include_str!("parrt_test.g4"));
     codegen(ir);
+}
+
+#[test]
+pub fn always_contains() {
+    let ir = parse(include_str!("recursion.g4"));
+
+    let x = ir.symbols().get_rule_id(&"x".to_string()).unwrap();
+    let y = ir.symbols().get_rule_id(&"y".to_string()).unwrap();
+
+    assert!(ir.rule_always_contains(y, x))
+}
+
+#[test]
+pub fn not_always_contains() {
+    let ir = parse(include_str!("recursion.g4"));
+
+    let x = ir.symbols().get_rule_id(&"x".to_string()).unwrap();
+    let z = ir.symbols().get_rule_id(&"z".to_string()).unwrap();
+
+    assert!(!ir.rule_always_contains(z, x))
 }

@@ -4,9 +4,13 @@ x : A x B // Simple recursion
   | C y
   ;
 
-y : A y B y C
+y : A x B x C
   | D x
   ;
+
+n: 'a' ;
+
+z: n ;
 
 A: 'a';
 B: 'b';

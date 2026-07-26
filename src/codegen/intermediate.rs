@@ -1,8 +1,7 @@
-use std::{collections::BTreeSet, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::{ANTLRAst, Alt, Atom, EBNFSuffix, Element, Rule, TokenRule}, codegen::{intermediate::rule::{RuleIR, TokenRuleIR}, symbols::SymbolTable}};
+use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::rule::{RuleIR, TokenRuleIR}, symbols::SymbolTable}};
 
 pub mod rule;
 pub mod element;

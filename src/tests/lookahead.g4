@@ -1,3 +1,5 @@
+grammar lookahead;
+
 t: s x*;
 
 s: z s x | LETTERB 'b' LETTERA 'a' | LETTERA 'a' LETTERB 'b';

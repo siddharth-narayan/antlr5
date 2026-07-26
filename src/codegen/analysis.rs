@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use bimap::BiMap;
 
-use crate::codegen::intermediate::{AltIR, AntlrIR, AtomIR, ElementIR};
+use crate::codegen::intermediate::{AntlrIR, alt::AltIR, element::{AtomIR, ElementIR}};
 
 #[derive(Debug)]
 pub struct LookAhead<'a> {
@@ -24,6 +24,34 @@ pub enum LookAheadNode<'a> {
 }
 
 impl AntlrIR {
+    pub fn always_contains<'a>(&'a self, rule: usize) {
+        let mut visited = HashSet::new();
+        self.internal_always_contains(rule, &mut visited);
+    }
+
+    fn internal_always_contains<'a>(&'a self, rule_index: usize, visited: &mut HashSet<usize>) -> bool {
+        let rule = self.rules.get(rule_index).expect("expexted rule");
+        let mut always_contains = true;
+
+        visited.insert(rule_index);
+
+        for alt in rule.alts() {
+            always_contains = always_contains && self.internal_alt_always_contains(&alt, visited)
+        };
+
+        always_contains
+    }
+
+    fn internal_alt_always_contains<'a>(&'a self, alt: &'a AltIR, visited: &mut HashSet<usize>) -> bool {
+        let mut always_contains = true;
+
+        for element in alt.elements() {
+
+        };
+
+        always_contains
+    }
+
     pub fn nth<'a>(&'a self, alt: &'a AltIR, n: usize) -> BiMap<&'a AtomIR, usize> {
         self.internal_nth(alt, n, 0)
     }

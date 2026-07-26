@@ -341,231 +341,52 @@ impl Lexer {
             },
 
             '\'' => {
-                let mut esc = false;
                 loop {
-                    match self.next() {
+                    match self.peek(1) {
                         None => {
-                            break Err(LexerErr::EOF);
+                            return Err(LexerErr::EOF)
                         },
-
-                        Some('\\') => {
-                            if esc {
-                                current_text.push('\\');
-                                esc = false;
-                            } else {
-                                esc = true
-                            }
-                        },
-
                         Some('\'') => {
-                            if esc {
-                                current_text.push('\'');
-                                esc = false;
-                            } else {
-                                break Ok(StringLit);
-                            }
+                            self.consume(1);
+                            break
                         },
-
-                        Some('n') => {
-                            if esc {
-                                current_text.push('\n');
-                                esc = false;
-                            } else {
-                                current_text.push('n')
-                            }
-                        },
-
-                        Some('t') => {
-                            if esc {
-                                current_text.push('\t');
-                                esc = false;
-                            } else {
-                                current_text.push('t')
-                            }
-                        },
-
-                        Some('r') => {
-                            if esc {
-                                current_text.push('\r');
-                                esc = false;
-                            } else {
-                                current_text.push('r')
-                            }
-                        },
-                        
-                        Some('f') => {
-                            if esc {
-                                current_text.push('\u{000C}');
-                                esc = false;
-                            } else {
-                                current_text.push('f')
-                            }
-                        },
-                        
-                        Some('u') => {
-                            if esc {
-                                if let Some('{') = self.peek(1) {
-                                    match self.peek_n(2, 6) {
-                                        Some(a) => {
-                                            let num: String = a.iter().collect();
-                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
-                                            current_text.push(char::from_u32(codepoint).unwrap());
-                                        },
-                                        None => {
-                                            return Err(LexerErr::EOF)    
-                                        }
-                                    }
-                                } else {
-                                    match self.peek_n(1, 4) {
-                                        Some(a) => {
-                                            println!("HERE: {:#?}", a);
-                                            let num: String = a.iter().collect();
-                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
-                                            current_text.push(char::from_u32(codepoint).unwrap());
-                                        },
-                                        None => {
-                                            return Err(LexerErr::EOF)
-                                        }
-                                    }
-                                }
-
-                                esc = false;
-                            } else {
-                                current_text.push('u')
-                            }
-                        },
-
-                        Some(n) => {
-                            current_text.push(n);
+                        _ => {
+                            current_text.push(self.next_escaped_char(vec!['\'']).ok_or(LexerErr::EOF)?);
                         }
                     }
-                }
+                };
+
+                Ok(StringLit)
             }
             // The exact same as a string literal but the text of the token is meant as a Vec of all the characters
             '[' => {
-                let mut esc = false;
                 loop {
-                    match self.next() {
+                    match self.peek(1) {
                         None => {
-                            break Err(LexerErr::EOF);
-                        },
-
-                        Some('\\') => {
-                            if esc {
-                                current_text.push('\\');
-                                esc = false;
-                            } else {
-                                esc = true
-                            }
-                        },
-
+                            return Err(LexerErr::EOF);
+                        }
                         Some(']') => {
-                            if esc {
-                                current_text.push(']');
-                                esc = false;
-                            } else {
-                                break Ok(Charset);
-                            }
-                        },
-
+                            self.consume(1);
+                            break
+                        }
                         Some('-') => {
-                            if esc {
-                                current_text.push('-');
-                                esc = false;
-                            } else {
-                                println!("The character \"-\" is only available with a preceding and following character, as part of a range, or you might want to escape it");
-                                break Err(LexerErr::UnkownCharacter('-'))
+                            self.consume(1);
+
+                            let from = current_text.pop().unwrap();
+                            let until = self.next_escaped_char(vec![']', '-']).ok_or(LexerErr::EOF)?;
+
+                            for c in from..=until {
+                                current_text.push(c);
                             }
                         },
 
-                        Some('n') => {
-                            if esc {
-                                current_text.push('\n');
-                                esc = false;
-                            } else {
-                                current_text.push('n')
-                            }
-                        },
-
-                        Some('t') => {
-                            if esc {
-                                current_text.push('\t');
-                                esc = false;
-                            } else {
-                                current_text.push('t')
-                            }
-                        },
-
-                        Some('r') => {
-                            if esc {
-                                current_text.push('\r');
-                                esc = false;
-                            } else {
-                                current_text.push('r')
-                            }
-                        },
-                        
-                        Some('f') => {
-                            if esc {
-                                current_text.push('\u{000C}');
-                                esc = false;
-                            } else {
-                                current_text.push('f')
-                            }
-                        },
-                        
-                        Some('u') => {
-                            if esc {
-                                if let Some('{') = self.peek(1) {
-                                    match self.peek_n(2, 6) {
-                                        Some(a) => {
-                                            let num: String = a.iter().collect();
-                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
-                                            current_text.push(char::from_u32(codepoint).unwrap());
-                                        },
-                                        None => {
-                                            return Err(LexerErr::EOF)    
-                                        }
-                                    }
-                                } else {
-                                    match self.peek_n(2, 4) {
-                                        Some(a) => {
-                                            let num: String = a.iter().collect();
-                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
-                                            current_text.push(char::from_u32(codepoint).unwrap());
-                                        },
-                                        None => {
-                                            return Err(LexerErr::EOF)
-                                        }
-                                    }
-                                }
-
-                                esc = false;
-                            } else {
-                                current_text.push('u')
-                            }
-                        },
-                        
-                        Some(n) => {
-                            current_text.push(n);
+                        _ => {
+                            current_text.push(self.next_escaped_char(vec![']', '-']).ok_or(LexerErr::EOF)?);
                         }
                     }
+                };
 
-
-                    if let Some('-') = self.peek(1) && !esc {
-                        let until = match self.peek(2) {
-                            None => break Err(LexerErr::EOF),
-                            Some('\\') => todo!("I haven't done implemented escaped ranges yet"),
-                            Some(n) => n
-                        };
-
-                        self.consume(2);
-                        let from = current_text.pop().unwrap();
-                        for c in from..=until {
-                            current_text.push(c);
-                        }
-                    }
-                }
+                Ok(Charset)
             }
             n => Err(UnkownCharacter(n)),
         };
@@ -615,6 +436,53 @@ impl Lexer {
         }
     }
 
+    pub fn next_escaped_char(&mut self, extra_escapes: Vec<char>) -> Option<char> {
+        if let Some('\\') = self.peek(1) {
+            self.consume(1);
+            let char = match self.next()? {
+                // extra_escape => {
+                //     extra_escape
+                // },
+
+                '\\' => '\\',
+
+                'n' => '\n',
+
+                't' => '\t',
+
+                'r' => '\r',
+                
+                'f' => '\u{00C}',
+                
+                'u' => {
+                    if let '{' = self.peek(1)? {
+                        let num: String = self.peek_n(2, 6)?.iter().collect();
+                        let codepoint = u32::from_str_radix(&num, 16).unwrap();
+                        char::from_u32(codepoint).unwrap()
+                    } else {
+                        let num: String = self.peek_n(1, 4)?.iter().collect();
+                        let codepoint = u32::from_str_radix(&num, 16).unwrap();
+                        char::from_u32(codepoint).unwrap()
+                    }
+                },
+
+
+                catchall => {
+                    if extra_escapes.contains(&catchall) {
+                        return Some(catchall)
+                    }
+
+                    println!("Invalid escape, skipping");
+                    return None
+                }
+            };
+
+            Some(char)
+        } else {
+            return self.next()
+        }
+    }
+
     pub fn match_keyword(&mut self, string: &str) -> Result<(), Option<usize>> {
         let chars = string.chars();
 
@@ -632,4 +500,5 @@ impl Lexer {
             _ => Ok(())
         }
     }
+    
 }

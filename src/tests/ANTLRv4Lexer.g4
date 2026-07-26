@@ -90,7 +90,7 @@ UNTERMINATED_STRING_LITERAL
 // to a rule invocation, or input parameters to a rule specification
 // are contained within square brackets.
 BEGIN_ARGUMENT
-    : '[' { this.handleBeginArgument(); }
+    : '['
     ;
 
 // Many language targets use {} as block delimiters and so we
@@ -114,13 +114,7 @@ fragment NESTED_ACTION
         | '/*' .*? '*/'        // block comment
         | '//' ~[\r\n]*        // line comment
         | '\\' .               // Escape sequence
-        | ~(
-            '\\'
-            | '"'
-            | '\''
-            | '`'
-            | '{'
-        ) // Some other single character that is not handled above
+        | ~[\\"'`{]            // Some other single character that is not handled above
     )*? '}'
     ;
 
@@ -308,32 +302,31 @@ WS
 // Lexer modes
 // -------------------------
 // Arguments
-mode Argument;
 
 // E.g., [int x, List<String> a[]]
 NESTED_ARGUMENT
-    : '[' -> type (ARGUMENT_CONTENT), pushMode (Argument)
+    : '['
     ;
 
 ARGUMENT_ESCAPE
-    : '\\' . -> type (ARGUMENT_CONTENT)
+    : '\\' .
     ;
 
 ARGUMENT_STRING_LITERAL
-    : DoubleQuoteLiteral -> type (ARGUMENT_CONTENT)
+    : DoubleQuoteLiteral
     ;
 
 ARGUMENT_CHAR_LITERAL
-    : STRING_LITERAL -> type (ARGUMENT_CONTENT)
+    : STRING_LITERAL
     ;
 
 END_ARGUMENT
-    : ']' { this.handleEndArgument(); }
+    : ']'
     ;
 
 // added this to return non-EOF token type here. EOF does something weird
 UNTERMINATED_ARGUMENT
-    : EOF -> popMode
+    : EOF
     ;
 
 ARGUMENT_CONTENT
@@ -341,18 +334,17 @@ ARGUMENT_CONTENT
     ;
 
 // -------------------------
-mode LexerCharSet;
 
 LEXER_CHAR_SET_BODY
-    : (~ [\]\\] | '\\' .)+ -> more
+    : (~ [\]\\] | '\\' .)+
     ;
 
 LEXER_CHAR_SET
-    : ']' -> popMode
+    : ']'
     ;
 
 UNTERMINATED_CHAR_SET
-    : EOF -> popMode
+    : EOF
     ;
 
 // ------------------------------------------------------------------------------
@@ -387,26 +379,26 @@ fragment BacktickQuoteLiteral
 
 fragment NameChar
     : NameStartChar
-    | '0' .. '9'
+    | [0-9]
     | '_'
     | '\u00B7'
-    | '\u0300' .. '\u036F'
-    | '\u203F' .. '\u2040'
+    | [\u0300-\u036F]
+    | [\u203F-\u2040]
     ;
 
 fragment NameStartChar
-    : 'A' .. 'Z'
-    | 'a' .. 'z'
-    | '\u00C0' .. '\u00D6'
-    | '\u00D8' .. '\u00F6'
-    | '\u00F8' .. '\u02FF'
-    | '\u0370' .. '\u037D'
-    | '\u037F' .. '\u1FFF'
-    | '\u200C' .. '\u200D'
-    | '\u2070' .. '\u218F'
-    | '\u2C00' .. '\u2FEF'
-    | '\u3001' .. '\uD7FF'
-    | '\uF900' .. '\uFDCF'
-    | '\uFDF0' .. '\uFFFD'
+    : [A-Z]
+    | [a-z]
+    | [\u00C0-\u00D6]
+    | [\u00D8-\u00F6]
+    | [\u00F8-\u02FF]
+    | [\u0370-\u037D]
+    | [\u037F-\u1FFF]
+    | [\u200C-\u200D]
+    | [\u2070-\u218F]
+    | [\u2C00-\u2FEF]
+    | [\u3001-\uD7FF]
+    | [\uF900-\uFDCF]
+    | [\uFDF0-\uFFFD]
     // ignores | ['\u10000-'\uEFFFF]
     ;

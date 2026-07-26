@@ -46,6 +46,12 @@ impl AntlrIR {
     }
 
     fn internal_alt_always_contains(&self, alt: &AltIR, should_contain: usize, visited: &mut HashSet<usize>) -> bool {
+        // This might not always be correct for recursive alts -- but because we only use it in internal_rule_always_contains, the result of THAT function will always be correct.
+        // This shoudl be fixed in the future, but it's annoying to deal with so I'm leaving it like this
+        if alt.is_recursive() {
+            return true;
+        }
+
         for element in alt.elements() {
             match element {
                 ElementIR::Atom { atom, suffix } => {

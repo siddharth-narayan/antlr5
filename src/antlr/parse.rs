@@ -32,6 +32,7 @@ impl Parser {
 
         loop {
             let token = lexer.next_token()?;
+            // println!("{:#?}", token);
 
             if token.token_type() == WS || token.token_type() == Comment || token.token_type() == CommentBlock {
                 continue;
@@ -136,7 +137,7 @@ impl Parser {
                         Ok(r) => rules.push(r),
                         Err(e) => {
                             println!("{:#?}", self.peek_n(0, 3));
-                            println!("Failed to parse token rule {}: {:#?}", self.peek(1).text(), e);
+                            println!("Failed to parse rule {}: {:#?}", self.peek(1).text(), e);
                         }
                     }
                 },
@@ -206,6 +207,7 @@ impl Parser {
                 Ok(Element::Atom { atom, suffix })
             },
 
+            // We don't allow ~(<AltList>) syntax, instead it's ~[<charset>]
             Not | Charset => {
                 let token = self.peek(1);
                 Ok(if token.token_type() == Not {

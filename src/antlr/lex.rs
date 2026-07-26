@@ -404,7 +404,31 @@ impl Lexer {
                         
                         Some('u') => {
                             if esc {
-                                todo!();
+                                if let Some('{') = self.peek(1) {
+                                    match self.peek_n(2, 6) {
+                                        Some(a) => {
+                                            let num: String = a.iter().collect();
+                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
+                                            current_text.push(char::from_u32(codepoint).unwrap());
+                                        },
+                                        None => {
+                                            return Err(LexerErr::EOF)    
+                                        }
+                                    }
+                                } else {
+                                    match self.peek_n(1, 4) {
+                                        Some(a) => {
+                                            println!("HERE: {:#?}", a);
+                                            let num: String = a.iter().collect();
+                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
+                                            current_text.push(char::from_u32(codepoint).unwrap());
+                                        },
+                                        None => {
+                                            return Err(LexerErr::EOF)
+                                        }
+                                    }
+                                }
+
                                 esc = false;
                             } else {
                                 current_text.push('u')
@@ -492,13 +516,36 @@ impl Lexer {
                         
                         Some('u') => {
                             if esc {
-                                todo!();
+                                if let Some('{') = self.peek(1) {
+                                    match self.peek_n(2, 6) {
+                                        Some(a) => {
+                                            let num: String = a.iter().collect();
+                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
+                                            current_text.push(char::from_u32(codepoint).unwrap());
+                                        },
+                                        None => {
+                                            return Err(LexerErr::EOF)    
+                                        }
+                                    }
+                                } else {
+                                    match self.peek_n(2, 4) {
+                                        Some(a) => {
+                                            let num: String = a.iter().collect();
+                                            let codepoint = u32::from_str_radix(&num, 16).unwrap();
+                                            current_text.push(char::from_u32(codepoint).unwrap());
+                                        },
+                                        None => {
+                                            return Err(LexerErr::EOF)
+                                        }
+                                    }
+                                }
+
                                 esc = false;
                             } else {
                                 current_text.push('u')
                             }
                         },
-
+                        
                         Some(n) => {
                             current_text.push(n);
                         }

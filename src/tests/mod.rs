@@ -19,6 +19,16 @@ pub fn codegen(ir: AntlrIR) {
 }
 
 #[test]
+pub fn antlr() {
+    let lexer_ir = parse(include_str!("ANTLRv4Lexer.g4"));
+    let parser_ir = parse(include_str!("ANTLRv4Parser.g4"));
+
+    codegen(lexer_ir);
+    codegen(parser_ir);
+}
+
+
+#[test]
 pub fn cobol() {
     let ir = parse(include_str!("cobol.g4"));
     codegen(ir);

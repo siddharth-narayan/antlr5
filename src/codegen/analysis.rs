@@ -85,6 +85,7 @@ impl AntlrIR {
         false
     }
 
+    // Lookahead and nth functions do not save their state for any alt, so likely could be a lot of performance gain saving the NTH set for each alt
     pub fn nth<'a>(&'a self, alt: &'a AltIR, n: usize) -> BiMap<&'a AtomIR, usize> {
         let mut visited = HashSet::new();
         self.internal_nth(alt, n, 0, &mut visited)

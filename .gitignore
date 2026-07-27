@@ -2,3 +2,4 @@
 .vscode
 **/.antlr/*
 out
+profile.json.gz

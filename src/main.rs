@@ -26,11 +26,11 @@ fn main() -> Result<(), ()> {
     // let second = ir.nth(ir.rules().get(1).unwrap().alts().get(0).unwrap(), 0);
     
     // println!("{:#?}", ir);
-    println!("{:#?}", ir.symbols());
+    // println!("{:#?}", ir.symbols());
 
     for index in 0..ir.rules().len() {
         let la = stacker::grow(16 * 1024 * 1024 , || ir.lookahead(index));
-        println!("Lookahead for rule {} is {:#?}", index, la);
+        black_box(la);
     }
 
     // let env = jinja_env(ir.clone());

@@ -17,7 +17,7 @@ pub struct AntlrIR {
 
     symbol_table: SymbolTable,
 
-    lookahead_cache: HashMap<Arc<AltIR>, BiMap<AtomIR, usize>>,
+    lookahead_cache: HashMap<(Arc<AltIR>, usize), BiMap<AtomIR, usize>>,
 }
 
 impl AntlrIR {
@@ -55,12 +55,12 @@ impl AntlrIR {
         self.rules.get(rule)?.alts().get(alt).cloned()
     } 
 
-    pub fn cache_nth(&mut self, alt: Arc<AltIR>, nth: BiMap<AtomIR, usize>) {
-        self.lookahead_cache.insert(alt, nth);
+    pub fn cache_nth(&mut self, index: (Arc<AltIR>, usize), nth: BiMap<AtomIR, usize>) {
+        self.lookahead_cache.insert(index, nth);
     }
 
-    pub fn get_cached_nth(&self, index: &Arc<AltIR>) -> Option<BiMap<AtomIR, usize>> {
-        self.lookahead_cache.get(index).cloned()
+    pub fn get_cached_nth(&self, index: (Arc<AltIR>, usize)) -> Option<BiMap<AtomIR, usize>> {
+        self.lookahead_cache.get(&index).cloned()
     }
    
 }

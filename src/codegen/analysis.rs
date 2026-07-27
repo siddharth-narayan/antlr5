@@ -89,11 +89,11 @@ impl AntlrIR {
     // Lookahead and nth functions do not save their state for any alt, so likely could be a lot of performance gain saving the NTH set for each alt
     pub fn nth<'a>(&mut self, alt: Arc<AltIR>, n: usize) -> BiMap<AtomIR, usize> {
         let mut visited = HashSet::new();
-        self.internal_nth(alt, n, 0, &mut visited)
+        self.internal_nth(alt, n, n, 0, &mut visited)
     }
 
-    fn internal_nth<'a>(&mut  self, alt: Arc<AltIR>, mut n: usize, depth: usize, visited: &mut HashSet<usize>) -> BiMap<AtomIR, usize> {
-        if let Some(result) = self.get_cached_nth(&alt) {
+    fn internal_nth<'a>(&mut  self, alt: Arc<AltIR>, mut n: usize, original_n: usize, depth: usize, visited: &mut HashSet<usize>) -> BiMap<AtomIR, usize> {
+        if let Some(result) = self.get_cached_nth((alt.clone(), n)) {
             return result;
         }
 
@@ -110,13 +110,13 @@ impl AntlrIR {
                         visited.insert(*id);
 
                         for alt in self.get_rule(*id).expect("Cant be botherred to error check this tbh").alts().clone() {
-                            nth_atoms.extend(self.internal_nth(alt.clone(), n, depth + 1, visited))
+                            nth_atoms.extend(self.internal_nth(alt.clone(), n, original_n, depth + 1, visited))
                         }
                     }
 
                     if n == 0 {
                         let _ = nth_atoms.insert_no_overwrite(atom.clone(), depth);
-                        self.cache_nth(alt, nth_atoms.clone());
+                        self.cache_nth((alt, original_n), nth_atoms.clone());
                         return nth_atoms;
                     } else {
                         n -= 1;
@@ -124,7 +124,7 @@ impl AntlrIR {
                 },
                 ElementIR::Block { block, suffix: _ } => {
                     for alt in block {
-                        nth_atoms.extend(self.internal_nth(alt.clone(), n, depth + 1, visited))
+                        nth_atoms.extend(self.internal_nth(alt.clone(), n, original_n, depth + 1, visited))
                     }
                     // Nth needs to continue here, reading anything that follows
                 }

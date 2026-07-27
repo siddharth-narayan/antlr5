@@ -11,3 +11,4 @@ debug = true
 bimap = { version = "0.6.3", features = ["serde"] }
 minijinja = "2.21.0"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
+stacker = "0.1.24"

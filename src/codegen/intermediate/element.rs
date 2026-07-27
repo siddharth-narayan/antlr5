@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -12,13 +12,13 @@ pub enum ElementIR {
         suffix: Option<EBNFSuffix>
     },
     Block {
-        block: Vec<AltIR>,
+        block: Vec<Arc<AltIR>>,
         suffix: Option<EBNFSuffix>
     },
     // EBNF(EBNF)
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum AtomIR {
     TokenID(usize),
     RuleID(usize)

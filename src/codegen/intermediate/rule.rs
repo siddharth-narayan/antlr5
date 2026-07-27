@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{antlr::ast::{Rule, TokenRule}, codegen::{intermediate::alt::{AltIR, TokenAltIR}, symbols::SymbolTable}};
@@ -14,7 +16,7 @@ pub struct RuleIR {
 
     name: String,
     optional: bool,
-    alts: Vec<AltIR>
+    alts: Vec<Arc<AltIR>>
 }
 
 impl RuleIR {
@@ -31,7 +33,7 @@ impl RuleIR {
         let id = table.get_rule_id(&name).expect("No ruleid");
 
         for alt in rule.alts() {
-            alts.push(AltIR::new(id, alt, table)?);
+            alts.push(Arc::new(AltIR::new(id, alt, table)?));
         }
 
 
@@ -48,7 +50,7 @@ impl RuleIR {
         &self.name
     } 
 
-    pub fn alts(&self) -> &Vec<AltIR> {
+    pub fn alts(&self) -> &Vec<Arc<AltIR>> {
         &self.alts
     }
 

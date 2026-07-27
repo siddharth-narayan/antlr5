@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -52,7 +52,7 @@ impl AltIR {
                     let mut alts = Vec::new();
                     
                     for alt in block.0.alts() {
-                        alts.push(AltIR::new(parent_rule_id, alt, table)?);
+                        alts.push(Arc::new(AltIR::new(parent_rule_id, alt, table)?));
                     };
 
                     ElementIR::Block { block: alts, suffix: *suffix }

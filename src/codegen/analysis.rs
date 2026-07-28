@@ -121,17 +121,26 @@ impl AntlrIR {
         self.internal_nth(alt, n, 0, &mut visited)
     }
 
+    pub fn rule_nth(&mut self, rule: usize, n: usize) -> BiMap<AtomIR, usize> {
+        let mut result = BiMap::new();
+        for alt in self.rules().get(rule).unwrap().alts().clone() {
+            let alt = alt.clone();
+
+            result.extend(self.nth(alt, n).clone());
+        };
+
+        result
+    }
+
     // This function requires polonius to correctly understand control flow's lifetime situation
     // #[instrument(skip(self, alt))]
     fn internal_nth<'a>(
         &'a mut self,
         alt: Arc<AltIR>,
-        n: usize,
+        mut n: usize,
         depth: usize,
         visited: &mut HashSet<usize>,
     ) -> &'a BiMap<AtomIR, usize> {
-        let mut pos = 0;
-
         // event!(Level::INFO, "internal_nth");
         // println!("original_n: {}, n: {}, depth: {}, visited: {:#?}", original_n, n, depth, visited);
         if let Some(result) = self.get_cached_nth((alt.clone(), n)) {
@@ -141,13 +150,13 @@ impl AntlrIR {
         let mut nth_atoms = BiMap::new();
 
         for element in alt.elements() {
-            if pos > n {
-                self.cache_nth((alt.clone(), n), nth_atoms);
-                return self.get_cached_nth((alt, n)).unwrap()
-            }
-
             match element {
                 ElementIR::Atom { atom, suffix } => {
+                    if n == 0 {
+                        nth_atoms.insert(atom.clone(), depth);
+                        break;
+                    }
+
                     match atom {
                         AtomIR::RuleID(id) => {
                             if visited.contains(id) {
@@ -155,22 +164,15 @@ impl AntlrIR {
                             } else {
                                 visited.insert(*id);
                             }
-                            
-                            if pos == n {
-                                nth_atoms.insert(AtomIR::RuleID(*id), depth);
-                            }
 
                             for alt in self.get_rule(*id).unwrap().alts().clone() {
                                 nth_atoms.extend(
-                                    self.internal_nth(alt, n - pos, depth + 1, visited).clone(),
+                                    self.internal_nth(alt, n - 1, depth + 1, visited).clone(),
                                 )
                             }
                         },
-                        
-                        AtomIR::TokenID(id) => {
-                            if pos == n {
-                                nth_atoms.insert(AtomIR::TokenID(*id), depth);
-                            }
+                        AtomIR::TokenID(_) => {
+                            n -= 1;
                         }
                     }
                 }

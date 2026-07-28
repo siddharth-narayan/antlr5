@@ -1,6 +1,7 @@
 use std::{collections::{HashMap, HashSet}, sync::Arc};
 use bimap::BiMap;
 use serde::{Deserialize, Serialize};
+use tracing::{Level, event, instrument};
 
 use crate::{antlr::ast::EBNFSuffix, codegen::{RuleRef, intermediate::{AntlrIR, alt::AltIR, element::{AtomIR, ElementIR}}}};
 
@@ -93,11 +94,14 @@ impl AntlrIR {
     }
 
     // This function requires polonius to correctly understand control flow's lifetime situation
+    #[instrument]
     fn internal_nth<'a>(&'a mut  self, alt: Arc<AltIR>, mut n: usize, original_n: usize, depth: usize, visited: &mut HashSet<usize>) -> &'a BiMap<AtomIR, usize> {
+        event!(Level::INFO, "inside internal_nth!");
         // println!("original_n: {}, n: {}, depth: {}, visited: {:#?}", original_n, n, depth, visited);
-
         if let Some(result) = self.get_cached_nth((alt.clone(), n)) {
             return result;
+        } else {
+            println!("Cache miss for alt: {:#?}", alt);
         }
 
         let mut nth_atoms = BiMap::new();
@@ -145,6 +149,7 @@ impl AntlrIR {
     }
 
     // This function takes a set of alts, and their alt number, then calculates the approprate lookahead for deciding between alts
+    #[instrument]
     pub fn lookahead_alts<'a>(&mut self, alts: HashMap<usize, Arc<AltIR>>, lookahead: usize) -> LookAheadNode {
         // println!("Lookahead for alts {:#?} with {} lookahead", alts.iter().map(|a| a.0).collect::<Vec<usize>>(), lookahead);
         if alts.len() == 0 {

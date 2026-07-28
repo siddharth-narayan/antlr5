@@ -12,10 +12,8 @@ mod langs;
 fn main() -> Result<(), ()> {
     tracing_subscriber::fmt().with_ansi(false).without_time().init();
     
-    let path = std::env::args().nth(1).unwrap_or("src/tests/lookahead.g4".into());
+    let path = std::env::args().nth(1).unwrap_or("src/tests/cobol.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
-
-    // println!("{}", content);
 
     // Lex + Parse
     let lexer = Lexer::new(content);
@@ -24,7 +22,10 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let mut ir = AntlrIR::new(ast);
 
-    println!("{:#?}", ir.nth(ir.get_alt(0, 0).unwrap(), 0));
+    for index in 0..ir.rules().len() {
+        let la = ir.lookahead(index);
+        println!("Lookahead: {:#?}", la);
+    }
 
     Ok(())
 }

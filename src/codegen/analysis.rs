@@ -1,13 +1,26 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
 use bimap::BiMap;
 use serde::{Deserialize, Serialize};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 use tracing::{Level, event, instrument};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{RuleRef, intermediate::{AntlrIR, alt::AltIR, element::{AtomIR, ElementIR}}}};
+use crate::{
+    antlr::ast::EBNFSuffix,
+    codegen::{
+        RuleRef,
+        intermediate::{
+            AntlrIR,
+            alt::AltIR,
+            element::{AtomIR, ElementIR},
+        },
+    },
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LookAhead {
-    pub tree: HashMap<AtomIR, LookAheadNode>
+    pub tree: HashMap<AtomIR, LookAheadNode>,
 }
 
 impl LookAhead {
@@ -20,9 +33,9 @@ impl LookAhead {
 pub enum LookAheadNode {
     Continues(LookAhead),
     Terminal {
-        alt: usize, // The alt to pick
-        continue_from: usize // The element that needs to next be matched
-    }
+        alt: usize,           // The alt to pick
+        continue_from: usize, // The element that needs to next be matched
+    },
 }
 
 impl AntlrIR {
@@ -31,7 +44,12 @@ impl AntlrIR {
         self.internal_rule_always_contains(rule, should_contain, &mut visited)
     }
 
-    fn internal_rule_always_contains(&self, rule: usize, should_contain: usize, visited: &mut HashSet<usize>) -> bool {
+    fn internal_rule_always_contains(
+        &self,
+        rule: usize,
+        should_contain: usize,
+        visited: &mut HashSet<usize>,
+    ) -> bool {
         if !visited.insert(rule) {
             return true;
         }
@@ -42,12 +60,17 @@ impl AntlrIR {
             if !self.internal_alt_always_contains(&alt, should_contain, visited) {
                 return false;
             }
-        };
+        }
 
         true
     }
 
-    fn internal_alt_always_contains(&self, alt: &AltIR, should_contain: usize, visited: &mut HashSet<usize>) -> bool {
+    fn internal_alt_always_contains(
+        &self,
+        alt: &AltIR,
+        should_contain: usize,
+        visited: &mut HashSet<usize>,
+    ) -> bool {
         // This might not always be correct for recursive alts -- but because we only use it in internal_rule_always_contains, the result of THAT function will always be correct.
         // This shoudl be fixed in the future, but it's annoying to deal with so I'm leaving it like this
         if alt.is_recursive() {
@@ -66,23 +89,28 @@ impl AntlrIR {
                             return true;
                         }
 
-                        if !visited.contains(id) && self.internal_rule_always_contains(*id, should_contain, visited) {
-                            return true
+                        if !visited.contains(id)
+                            && self.internal_rule_always_contains(*id, should_contain, visited)
+                        {
+                            return true;
                         }
                     }
-                },
+                }
 
                 ElementIR::Block { block, suffix } => {
                     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = *suffix {
                         continue;
                     }
 
-                    if block.iter().all(|alt| self.internal_alt_always_contains(alt, should_contain, visited)) {
-                        return true
+                    if block
+                        .iter()
+                        .all(|alt| self.internal_alt_always_contains(alt, should_contain, visited))
+                    {
+                        return true;
                     }
                 }
             }
-        };
+        }
 
         false
     }
@@ -95,7 +123,13 @@ impl AntlrIR {
 
     // This function requires polonius to correctly understand control flow's lifetime situation
     // #[instrument(skip(self, alt))]
-    fn internal_nth<'a>(&'a mut  self, alt: Arc<AltIR>, n: usize, depth: usize, visited: &mut HashSet<usize>) -> &'a BiMap<AtomIR, usize> {
+    fn internal_nth<'a>(
+        &'a mut self,
+        alt: Arc<AltIR>,
+        n: usize,
+        depth: usize,
+        visited: &mut HashSet<usize>,
+    ) -> &'a BiMap<AtomIR, usize> {
         let mut pos = 0;
 
         // event!(Level::INFO, "internal_nth");
@@ -113,46 +147,40 @@ impl AntlrIR {
             }
 
             match element {
-                // ElementIR::Atom { atom, suffix: _ } => {
-                //     if let AtomIR::RuleID(id) = atom {
-                //         if visited.contains(id) {
-                //             continue;
-                //         }
+                ElementIR::Atom { atom, suffix } => {
+                    match atom {
+                        AtomIR::RuleID(id) => {
+                            if visited.contains(id) {
+                                continue;
+                            } else {
+                                visited.insert(*id);
+                            }
+                            
+                            if pos == n {
+                                nth_atoms.insert(AtomIR::RuleID(*id), depth);
+                            }
 
-                //         visited.insert(*id);
-
-                //         for alt in self.get_rule(*id).unwrap().alts().clone() {
-                //             nth_atoms.extend(self.internal_nth(alt.clone(), n, original_n, depth + 1, visited).clone())
-                //         }
-                //     }
-
-                //     if n == 0 {
-                //         let _ = nth_atoms.insert_no_overwrite(atom.clone(), depth);
-                //         self.cache_nth((alt.clone(), original_n), nth_atoms);
-                //         return self.get_cached_nth((alt, original_n)).unwrap();
-                //     } else {
-                //         n -= 1;
-                //     }
-                // },
-                ElementIR::Atom { atom: AtomIR::RuleID(id), suffix } => {
-                    if visited.contains(id) {
-                        continue;
+                            for alt in self.get_rule(*id).unwrap().alts().clone() {
+                                nth_atoms.extend(
+                                    self.internal_nth(alt, n - pos, depth + 1, visited).clone(),
+                                )
+                            }
+                        },
+                        
+                        AtomIR::TokenID(id) => {
+                            if pos == n {
+                                nth_atoms.insert(AtomIR::TokenID(*id), depth);
+                            }
+                        }
                     }
-
-                    visited.insert(*id);
-
-                    for alt in self.get_rule(*id).unwrap().alts().clone() {
-                        nth_atoms.extend(self.internal_nth(alt, n - pos, depth + 1, visited).clone())
-                    }
-                },
-
-                ElementIR::Atom { atom: AtomIR::TokenID(id), suffix } => {
-                    pos += 1;
-                },
+                }
 
                 ElementIR::Block { block, suffix: _ } => {
                     for alt in block {
-                        nth_atoms.extend(self.internal_nth(alt.clone(), n, depth + 1, visited).clone())
+                        nth_atoms.extend(
+                            self.internal_nth(alt.clone(), n, depth + 1, visited)
+                                .clone(),
+                        )
                     }
                     // Nth needs to continue here, reading anything that follows
                 }
@@ -160,25 +188,40 @@ impl AntlrIR {
         }
 
         self.cache_nth((alt.clone(), n), nth_atoms);
-        self.get_cached_nth((alt, n)).unwrap()
+        return self.get_cached_nth((alt, n)).unwrap()    
     }
 
     pub fn lookahead(&mut self, rule: usize) -> LookAheadNode {
-        let alts: HashMap<usize, Arc<AltIR>> = self.rules().get(rule).unwrap().alts().iter().enumerate().map(|(index, alt)| (index, alt.clone())).collect();
+        let alts: HashMap<usize, Arc<AltIR>> = self
+            .rules()
+            .get(rule)
+            .unwrap()
+            .alts()
+            .iter()
+            .enumerate()
+            .map(|(index, alt)| (index, alt.clone()))
+            .collect();
         // println!("Lookahead for rule {}", rule);
-        self.lookahead_alts(alts, 0)   
+        self.lookahead_alts(alts, 0)
     }
 
     // This function takes a set of alts, and their alt number, then calculates the approprate lookahead for deciding between alts
     // #[instrument(skip(self))]
-    pub fn lookahead_alts<'a>(&mut self, alts: HashMap<usize, Arc<AltIR>>, lookahead: usize) -> LookAheadNode {
+    pub fn lookahead_alts<'a>(
+        &mut self,
+        alts: HashMap<usize, Arc<AltIR>>,
+        lookahead: usize,
+    ) -> LookAheadNode {
         // println!("Lookahead for alts {:#?} with {} lookahead", alts.iter().map(|a| a.0).collect::<Vec<usize>>(), lookahead);
         if alts.len() == 0 {
             panic!("altlen0")
         }
-        
+
         if alts.len() == 1 {
-            return LookAheadNode::Terminal { alt: *alts.iter().nth(0).unwrap().0, continue_from: lookahead }
+            return LookAheadNode::Terminal {
+                alt: *alts.iter().nth(0).unwrap().0,
+                continue_from: lookahead,
+            };
         }
 
         let mut first: HashMap<AtomIR, HashSet<usize>> = HashMap::new();
@@ -188,7 +231,7 @@ impl AntlrIR {
                 match first.get_mut(&atom) {
                     Some(vec) => {
                         vec.insert(*index);
-                    },
+                    }
                     None => {
                         let mut s = HashSet::new();
                         s.insert(*index);
@@ -196,7 +239,7 @@ impl AntlrIR {
                     }
                 }
             }
-        };
+        }
 
         let mut out = HashMap::new();
 
@@ -206,7 +249,10 @@ impl AntlrIR {
                 filtered_alts.insert(*alt.0, alt.1.clone());
             }
 
-            out.insert(atom.clone(), self.lookahead_alts(filtered_alts, lookahead + 1));
+            out.insert(
+                atom.clone(),
+                self.lookahead_alts(filtered_alts, lookahead + 1),
+            );
         }
 
         LookAheadNode::Continues(LookAhead { tree: out })

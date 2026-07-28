@@ -1,12 +1,18 @@
+cargo-features = ["profile-rustflags"]
+
 [package]
 name = "antlr5"
 version = "0.1.0"
 edition = "2024"
 
-# Profiling with samply
-[profile.profiling]
-inherits = "release"
-debug = true
+[profile.release]
+rustflags = ["-Zpolonius=next"]
+
+[profile.dev]
+rustflags = ["-Zpolonius=next"]
+
+[profile.bench]
+debug = true # For profiling with samply
 
 [dependencies]
 bimap = { version = "0.6.3", features = ["serde"] }

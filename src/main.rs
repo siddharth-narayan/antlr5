@@ -10,9 +10,9 @@ mod codegen;
 mod langs;
 
 fn main() -> Result<(), ()> {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::fmt().with_ansi(false).without_time().init();
     
-    let path = std::env::args().nth(1).unwrap_or("src/tests/cobol.g4".into());
+    let path = std::env::args().nth(1).unwrap_or("src/tests/lookahead.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // println!("{}", content);
@@ -24,23 +24,7 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let mut ir = AntlrIR::new(ast);
 
-    // let first = ir.nth(ir.rules().first().unwrap().alts().get(0).unwrap(), 0);
-    // let second = ir.nth(ir.rules().get(1).unwrap().alts().get(0).unwrap(), 0);
-    
-    // println!("{:#?}", ir);
-    // println!("{:#?}", ir.symbols());
-
-    for index in 0..ir.rules().len() {
-        let la = stacker::grow(1024 * 1024 * 1024 , || ir.lookahead(index));
-        // println!("Lookahead: {:#?}", la);
-    }
-
-    // let env = jinja_env(ir.clone());
-    // std::fs::write("out", env.get_template("rust-parse").unwrap().render(ir.clone()).unwrap()).unwrap();
-    
-    // black_box(first);
-    // black_box(second);
-    black_box(ir.clone());
+    println!("{:#?}", ir.nth(ir.get_alt(0, 0).unwrap(), 0));
 
     Ok(())
 }

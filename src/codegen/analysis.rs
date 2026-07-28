@@ -90,56 +90,77 @@ impl AntlrIR {
     // Lookahead and nth functions do not save their state for any alt, so likely could be a lot of performance gain saving the NTH set for each alt
     pub fn nth<'a>(&mut self, alt: Arc<AltIR>, n: usize) -> &BiMap<AtomIR, usize> {
         let mut visited = HashSet::new();
-        self.internal_nth(alt, n, n, 0, &mut visited)
+        self.internal_nth(alt, n, 0, &mut visited)
     }
 
     // This function requires polonius to correctly understand control flow's lifetime situation
-    #[instrument]
-    fn internal_nth<'a>(&'a mut  self, alt: Arc<AltIR>, mut n: usize, original_n: usize, depth: usize, visited: &mut HashSet<usize>) -> &'a BiMap<AtomIR, usize> {
-        event!(Level::INFO, "inside internal_nth!");
+    // #[instrument(skip(self, alt))]
+    fn internal_nth<'a>(&'a mut  self, alt: Arc<AltIR>, n: usize, depth: usize, visited: &mut HashSet<usize>) -> &'a BiMap<AtomIR, usize> {
+        let mut pos = 0;
+
+        // event!(Level::INFO, "internal_nth");
         // println!("original_n: {}, n: {}, depth: {}, visited: {:#?}", original_n, n, depth, visited);
         if let Some(result) = self.get_cached_nth((alt.clone(), n)) {
             return result;
-        } else {
-            println!("Cache miss for alt: {:#?}", alt);
         }
 
         let mut nth_atoms = BiMap::new();
 
         for element in alt.elements() {
+            if pos > n {
+                self.cache_nth((alt.clone(), n), nth_atoms);
+                return self.get_cached_nth((alt, n)).unwrap()
+            }
+
             match element {
-                ElementIR::Atom { atom, suffix: _ } => {
-                    if let AtomIR::RuleID(id) = atom {
-                        if visited.contains(id) {
-                            continue;
-                        }
+                // ElementIR::Atom { atom, suffix: _ } => {
+                //     if let AtomIR::RuleID(id) = atom {
+                //         if visited.contains(id) {
+                //             continue;
+                //         }
 
-                        visited.insert(*id);
+                //         visited.insert(*id);
 
-                        for alt in self.get_rule(*id).unwrap().alts().clone() {
-                            nth_atoms.extend(self.internal_nth(alt.clone(), n, original_n, depth + 1, visited).clone())
-                        }
+                //         for alt in self.get_rule(*id).unwrap().alts().clone() {
+                //             nth_atoms.extend(self.internal_nth(alt.clone(), n, original_n, depth + 1, visited).clone())
+                //         }
+                //     }
+
+                //     if n == 0 {
+                //         let _ = nth_atoms.insert_no_overwrite(atom.clone(), depth);
+                //         self.cache_nth((alt.clone(), original_n), nth_atoms);
+                //         return self.get_cached_nth((alt, original_n)).unwrap();
+                //     } else {
+                //         n -= 1;
+                //     }
+                // },
+                ElementIR::Atom { atom: AtomIR::RuleID(id), suffix } => {
+                    if visited.contains(id) {
+                        continue;
                     }
 
-                    if n == 0 {
-                        let _ = nth_atoms.insert_no_overwrite(atom.clone(), depth);
-                        self.cache_nth((alt.clone(), original_n), nth_atoms);
-                        return self.get_cached_nth((alt, original_n)).unwrap();
-                    } else {
-                        n -= 1;
+                    visited.insert(*id);
+
+                    for alt in self.get_rule(*id).unwrap().alts().clone() {
+                        nth_atoms.extend(self.internal_nth(alt, n - pos, depth + 1, visited).clone())
                     }
                 },
+
+                ElementIR::Atom { atom: AtomIR::TokenID(id), suffix } => {
+                    pos += 1;
+                },
+
                 ElementIR::Block { block, suffix: _ } => {
                     for alt in block {
-                        nth_atoms.extend(self.internal_nth(alt.clone(), n, original_n, depth + 1, visited).clone())
+                        nth_atoms.extend(self.internal_nth(alt.clone(), n, depth + 1, visited).clone())
                     }
                     // Nth needs to continue here, reading anything that follows
                 }
             }
         }
 
-        self.cache_nth((alt.clone(), original_n), nth_atoms);
-        self.get_cached_nth((alt, original_n)).unwrap()
+        self.cache_nth((alt.clone(), n), nth_atoms);
+        self.get_cached_nth((alt, n)).unwrap()
     }
 
     pub fn lookahead(&mut self, rule: usize) -> LookAheadNode {
@@ -149,11 +170,11 @@ impl AntlrIR {
     }
 
     // This function takes a set of alts, and their alt number, then calculates the approprate lookahead for deciding between alts
-    #[instrument]
+    // #[instrument(skip(self))]
     pub fn lookahead_alts<'a>(&mut self, alts: HashMap<usize, Arc<AltIR>>, lookahead: usize) -> LookAheadNode {
         // println!("Lookahead for alts {:#?} with {} lookahead", alts.iter().map(|a| a.0).collect::<Vec<usize>>(), lookahead);
         if alts.len() == 0 {
-
+            panic!("altlen0")
         }
         
         if alts.len() == 1 {

@@ -30,7 +30,7 @@ fn main() -> Result<(), ()> {
 
     for index in 0..ir.rules().len() {
         let la = stacker::grow(1024 * 1024 * 1024 , || ir.lookahead(index));
-        black_box(la);
+        // println!("Lookahead: {:#?}", la);
     }
 
     // let env = jinja_env(ir.clone());

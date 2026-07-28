@@ -59,8 +59,8 @@ impl AntlrIR {
         self.lookahead_cache.insert(index, nth);
     }
 
-    pub fn get_cached_nth(&self, index: (Arc<AltIR>, usize)) -> Option<BiMap<AtomIR, usize>> {
-        self.lookahead_cache.get(&index).cloned()
+    pub fn get_cached_nth(&self, index: (Arc<AltIR>, usize)) -> Option<&BiMap<AtomIR, usize>> {
+        self.lookahead_cache.get(&index)
     }
    
 }

@@ -139,6 +139,7 @@ impl AntlrIR {
         alt: Arc<AltIR>,
         mut n: usize,
         depth: usize,
+        // A hashset of rule visited and depth?
         visited: &mut HashSet<usize>,
     ) -> &'a BiMap<AtomIR, usize> {
         // event!(Level::INFO, "internal_nth");
@@ -152,29 +153,26 @@ impl AntlrIR {
         for element in alt.elements() {
             match element {
                 ElementIR::Atom { atom, suffix } => {
+                    if let AtomIR::RuleID(id) = atom {
+                        if visited.contains(id) {
+                            continue;
+                        } else {
+                            visited.insert(*id);
+                        }
+
+                        for alt in self.get_rule(*id).unwrap().alts().clone() {
+                            nth_atoms.extend(
+                                self.internal_nth(alt, n - 1, depth + 1, visited).clone(),
+                            )
+                        }
+                    }
+
                     if n == 0 {
                         nth_atoms.insert(atom.clone(), depth);
                         break;
                     }
 
-                    match atom {
-                        AtomIR::RuleID(id) => {
-                            if visited.contains(id) {
-                                continue;
-                            } else {
-                                visited.insert(*id);
-                            }
-
-                            for alt in self.get_rule(*id).unwrap().alts().clone() {
-                                nth_atoms.extend(
-                                    self.internal_nth(alt, n - 1, depth + 1, visited).clone(),
-                                )
-                            }
-                        },
-                        AtomIR::TokenID(_) => {
-                            n -= 1;
-                        }
-                    }
+                    n -= 1;
                 }
 
                 ElementIR::Block { block, suffix: _ } => {

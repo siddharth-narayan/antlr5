@@ -25,9 +25,12 @@ fn main() -> Result<(), ()> {
 
     for index in 0..ir.rules().len() {
         let la = ir.lookahead(index);
-        println!("FIRST for rule {}: {:#?}", index, ir.rule_nth(index, 0));
+        // println!("FIRST for rule {}: {:#?}", index, ir.rule_nth(index, 0));
         println!("Lookahead: {:#?}", la);
+        black_box(la);
     }
+
+    black_box(ir);
 
     Ok(())
 }

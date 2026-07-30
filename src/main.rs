@@ -1,6 +1,8 @@
+#![feature(titlecase)]
+
 use std::{fs::read_to_string, hint::black_box, sync::Arc};
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::jinja_env};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{Language, jinja_env, output}};
 
 #[cfg(test)]
 mod tests;
@@ -38,7 +40,8 @@ fn main() -> Result<(), ()> {
 
     let ir = Arc::new(ir);
     let jinja_env = jinja_env(ir.clone());
-    std::fs::write("out", jinja_env.get_template("rust-parse").unwrap().render(ir.clone()).unwrap()).unwrap();
+
+    output(ir.clone(), "out", jinja_env, Language::Rust);
     
     black_box(ir);
 

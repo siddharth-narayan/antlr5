@@ -232,6 +232,10 @@ impl AntlrIR {
                 return LookAheadNode::Terminal { alt: usize::MAX, continue_from: usize::MAX }
             }
             for (atom, _depth) in set {
+                if let AtomIR::RuleID(_) = atom {
+                    continue;
+                }
+                
                 match first.get_mut(&atom) {
                     Some(vec) => {
                         vec.insert(*index);

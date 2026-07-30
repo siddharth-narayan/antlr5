@@ -4,8 +4,10 @@ pub struct Parser {
 
 impl Parser {
     {% for rule in rules %}
-    pub fn {{ rule.name }}(&mut self) -> {{ rule.name | capitalize }} {
-        self.set_state({{ rule.name | startstate }});
+    pub fn {{ rule.name }}(&mut self) -> Result<{{ rule.name | capitalize }}, ANTLRError> {
+        self.rule_stack.push({{ rule.name | id_from_rule }});
+
+        self.rule_stack.pop();
     }
 
     {% endfor %}

@@ -1,12 +1,48 @@
-use std::sync::Arc;
+use std::{ffi::OsStr, fs, path::Path, process::Command, sync::Arc};
 
-use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
+use minijinja::{Environment, UndefinedBehavior, Value, filters::capitalize, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}, langs::filters::{etoken_type_prefix, etoken_type_suffix, etype_prefix, etype_suffix, id_from_rule_name_filter, lookeahead_lookup_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
+
+mod filters;
+
+#[derive(Clone, Copy)]
+pub enum Language {
+    Rust,
+    Python
+}
+
+pub fn render(ir: Arc<AntlrIR>, env: Environment, lang: Language) -> String {
+    match lang {
+        Language::Rust => {
+            env.get_template("rust-parse").unwrap().render(ir).unwrap()
+        },
+        
+        Language::Python => {
+            env.get_template("python-parse").unwrap().render(ir).unwrap()
+        }
+    }
+}
+
+pub fn format<P: AsRef<OsStr>>(path: P, lang: Language) {
+    match lang {
+        Language::Rust => {
+            Command::new("rustfmt").arg(path).output();
+        },
+
+        Language::Python => {
+
+        }
+    }
+}
+
+pub fn output<P: AsRef<Path> + AsRef<OsStr>>(ir: Arc<AntlrIR>, path: P, env: Environment, lang: Language) {
+    let content = render(ir, env, lang);
+    fs::write(&path, content);
+    format(&path, lang);
+}
 
 pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
-    let ir = ir.clone();
-
     let mut env = Environment::new();
 
     // Env settings must be set above templates
@@ -17,98 +53,22 @@ pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     env.add_template("rust-parse", include_str!("langs/rust/parser.jinja")).unwrap();
     env.add_template("python-parse", include_str!("langs/python/parser.jinja")).unwrap();
     
-    let ir_clone = ir.clone();
-    let closure = move | name: String | { 
-        ir_clone.symbols().get_rule_id(&name)
-    };
+    add_default_filters(&mut env, ir);
 
-    let etype_prefix = | e: ViaDeserialize<ElementIR> | {
-        // let e: Element = e.deserialize_any();
-        if let Some(suffix) = e.suffix() {
-            match suffix {
-                EBNFSuffix::Optional => "Option<".into(),
-                EBNFSuffix::Plus | EBNFSuffix::Star => "Vec<".into(),
-            }
-        } else {
-            String::new()
-        }
-    };
-
-    let etoken_type_prefix = | e: ViaDeserialize<ElementIR> | {
-        // let e: Element = e.deserialize_any();
-        if let Some(suffix) = e.suffix() {
-            match suffix {
-                EBNFSuffix::Optional => "Option<".into(),
-                EBNFSuffix::Plus | EBNFSuffix::Star => "Vec<".into(),
-            }
-        } else {
-            String::new()
-        }
-    };
-
-    let etype_suffix = | e: ViaDeserialize<ElementIR> | {
-        // let e: Element = e.deserialize_any();
-        if let Some(_suffix) = e.suffix() {
-            ">".into()
-        } else {
-            String::new()
-        }
-    };
-
-    let etoken_type_suffix = | e: ViaDeserialize<TokenElementIR> | {
-        // let e: Element = e.deserialize_any();
-        if let Some(_suffix) = e.suffix() {
-            ">".into()
-        } else {
-            String::new()
-        }
-    };
-
-    let ir_clone = ir.clone();
-    let rule_from_id = move | id: usize | -> Option<Value> {
-        let rule = ir_clone.rules().get(id)?.clone();
-        Some(Value::from_serialize(rule))
-    };
-
-    let ir_clone = ir.clone();
-    
-    let tokenrule_from_id = move | id: usize | -> Option<Value> {
-        if let Some(rule) = ir_clone.token_rules().get(id) {
-            Some(Value::from_serialize(rule.clone()))
-        } else if let Some(token) = ir_clone.token_rules().get(id) {
-            Some(Value::from_serialize(token.clone()))
-        } else {
-            None
-        }
-    };
-
-    // We CLONE the Arc<AntlrIR> here. Any further changes will not affect this specific lookup
-    let ir_clone = ir.clone();
-    let lookeahead_lookup = move | rule_id: usize | -> Option<Value> {
-        let mut ir = Arc::unwrap_or_clone(ir_clone.clone());
-        Some(Value::from_serialize(ir.lookahead(rule_id)))
-    };
-
-    env.add_filter("capitalize", capitalize);
-    env.add_filter("startstate", closure);
- 
-    env.add_filter("etype_prefix", etype_prefix);
-    env.add_filter("etype_prefix", etype_prefix);
-    env.add_filter("etoken_type_prefix", etoken_type_prefix);
-    env.add_filter("etoken_type_suffix", etoken_type_suffix);
-
-
-    env.add_filter("etype_suffix", etype_suffix);
-    env.add_filter("rule_from_id", rule_from_id);
-    env.add_filter("token_from_id", tokenrule_from_id);
-    env.add_filter("lookahead", lookeahead_lookup);
     env
 }
 
-pub fn capitalize(string: String) -> String {
-    let mut c = string.chars();
-    match c.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-    }
+pub fn add_default_filters(env: &mut Environment, ir: Arc<AntlrIR>) {
+    env.add_filter("capitalize", capitalize);
+    env.add_filter("uppercase", uppercase);
+
+    env.add_filter("etype_prefix", etype_prefix);
+    env.add_filter("etype_suffix", etype_suffix);
+    env.add_filter("etoken_type_prefix", etoken_type_prefix);
+    env.add_filter("etoken_type_suffix", etoken_type_suffix);
+
+    env.add_filter("rule_from_id", rule_from_id_filter(ir.clone()));
+    env.add_filter("id_from_rule", id_from_rule_name_filter(ir.clone()));
+    env.add_filter("token_from_id", token_from_id_filter(ir.clone()));
+    env.add_filter("lookahead", lookeahead_lookup_filter(ir.clone()));
 }

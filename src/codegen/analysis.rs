@@ -116,7 +116,7 @@ impl AntlrIR {
     }
 
     // Lookahead and nth functions do not save their state for any alt, so likely could be a lot of performance gain saving the NTH set for each alt
-    pub fn nth<'a>(&mut self, alt: Arc<AltIR>, n: usize) -> &BiMap<AtomIR, usize> {
+    pub fn nth<'a>(&mut self, alt: Arc<AltIR>, n: usize) -> BiMap<AtomIR, usize> {
         let mut visited = HashSet::new();
         self.internal_nth(alt, n, 0, &mut visited)
     }
@@ -133,17 +133,14 @@ impl AntlrIR {
     }
 
     // This function requires polonius to correctly understand control flow's lifetime situation
-    fn internal_nth<'a>(
-        &'a mut self,
+    fn internal_nth(
+        &self,
         alt: Arc<AltIR>,
-        mut n: usize,
+        n: usize,
         depth: usize,
         visited: &mut HashSet<usize>,
-    ) -> &'a BiMap<AtomIR, usize> {
-        if let Some(result) = self.get_cached_nth((alt.clone(), n)) {
-            return result;
-        }
-
+    ) -> BiMap<AtomIR, usize> {
+        let mut pos = 0;
         let mut nth_atoms = BiMap::new();
 
         for element in alt.elements() {
@@ -158,23 +155,23 @@ impl AntlrIR {
 
                         for alt in self.get_rule(*id).unwrap().alts().clone() {
                             nth_atoms.extend(
-                                self.internal_nth(alt, n, depth + 1, visited).clone(),
+                                self.internal_nth(alt, n - pos, depth + 1, visited).clone(),
                             )
                         }
                     }
 
-                    if n == 0 {
+                    if pos >= n {
                         nth_atoms.insert(atom.clone(), depth);
                         break;
                     }
 
-                    n -= 1;
+                    pos += 1;
                 }
 
                 ElementIR::Block { block, suffix: _ } => {
                     for alt in block {
                         nth_atoms.extend(
-                            self.internal_nth(alt.clone(), n, depth + 1, visited)
+                            self.internal_nth(alt.clone(), n - pos, depth + 1, visited)
                                 .clone(),
                         )
                     }
@@ -183,8 +180,7 @@ impl AntlrIR {
             }
         }
 
-        self.cache_nth((alt.clone(), n), nth_atoms);
-        return self.get_cached_nth((alt, n)).unwrap()    
+        nth_atoms
     }
 
     pub fn lookahead(&mut self, rule: usize) -> LookAheadNode {
@@ -215,7 +211,7 @@ impl AntlrIR {
         alts: HashMap<usize, Arc<AltIR>>,
         lookahead: usize,
     ) -> LookAheadNode {
-        Its nth sets being cached with the wrong n
+        // Its nth sets being cached with the wrong n
         println!("{} lookahead", lookahead);
         if alts.len() == 0 {
             panic!("altlen0")

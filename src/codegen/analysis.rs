@@ -133,17 +133,13 @@ impl AntlrIR {
     }
 
     // This function requires polonius to correctly understand control flow's lifetime situation
-    // #[instrument(skip(self, alt))]
     fn internal_nth<'a>(
         &'a mut self,
         alt: Arc<AltIR>,
         mut n: usize,
         depth: usize,
-        // A hashset of rule visited and depth?
         visited: &mut HashSet<usize>,
     ) -> &'a BiMap<AtomIR, usize> {
-        // event!(Level::INFO, "internal_nth");
-        // println!("original_n: {}, n: {}, depth: {}, visited: {:#?}", original_n, n, depth, visited);
         if let Some(result) = self.get_cached_nth((alt.clone(), n)) {
             return result;
         }
@@ -162,7 +158,7 @@ impl AntlrIR {
 
                         for alt in self.get_rule(*id).unwrap().alts().clone() {
                             nth_atoms.extend(
-                                self.internal_nth(alt, n - 1, depth + 1, visited).clone(),
+                                self.internal_nth(alt, n, depth + 1, visited).clone(),
                             )
                         }
                     }
@@ -192,27 +188,35 @@ impl AntlrIR {
     }
 
     pub fn lookahead(&mut self, rule: usize) -> LookAheadNode {
-        let alts: HashMap<usize, Arc<AltIR>> = self
+        let alts = self
             .rules()
             .get(rule)
             .unwrap()
-            .alts()
-            .iter()
+            .alts().clone();
+
+        // println!("Lookahead for rule {}", rule);
+        self.internal_lookahead_alts(&alts)
+    }
+
+    pub fn internal_lookahead_alts(&mut self, alts: &Vec<Arc<AltIR>>) -> LookAheadNode {
+
+        let alts = alts.iter()
             .enumerate()
             .map(|(index, alt)| (index, alt.clone()))
             .collect();
-        // println!("Lookahead for rule {}", rule);
-        self.lookahead_alts(alts, 0)
+        
+        self.internal_lookahead_alts_enumerated(alts, 0)
     }
 
     // This function takes a set of alts, and their alt number, then calculates the approprate lookahead for deciding between alts
     // #[instrument(skip(self))]
-    pub fn lookahead_alts<'a>(
+    pub fn internal_lookahead_alts_enumerated<'a>(
         &mut self,
         alts: HashMap<usize, Arc<AltIR>>,
         lookahead: usize,
     ) -> LookAheadNode {
-        // println!("Lookahead for alts {:#?} with {} lookahead", alts.iter().map(|a| a.0).collect::<Vec<usize>>(), lookahead);
+        Its nth sets being cached with the wrong n
+        println!("{} lookahead", lookahead);
         if alts.len() == 0 {
             panic!("altlen0")
         }
@@ -227,6 +231,10 @@ impl AntlrIR {
         let mut first: HashMap<AtomIR, HashSet<usize>> = HashMap::new();
         for (index, alt) in &alts {
             let set = self.nth(alt.clone(), lookahead);
+            println!("alt {} with {} lookahead has set size {}: {:#?}", index, lookahead, set.len(), set);
+            if set.len() == 0 {
+                return LookAheadNode::Terminal { alt: usize::MAX, continue_from: usize::MAX }
+            }
             for (atom, _depth) in set {
                 match first.get_mut(&atom) {
                     Some(vec) => {
@@ -241,6 +249,7 @@ impl AntlrIR {
             }
         }
 
+        // panic!("{:#?}", first);
         let mut out = HashMap::new();
 
         for (atom, available_alts) in first {
@@ -251,7 +260,7 @@ impl AntlrIR {
 
             out.insert(
                 atom.clone(),
-                self.lookahead_alts(filtered_alts, lookahead + 1),
+                self.internal_lookahead_alts_enumerated(filtered_alts, lookahead + 1),
             );
         }
 

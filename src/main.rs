@@ -1,6 +1,6 @@
 use std::{fs::read_to_string, hint::black_box, sync::Arc};
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::jinja_env};
 
 #[cfg(test)]
 mod tests;
@@ -24,12 +24,22 @@ fn main() -> Result<(), ()> {
     println!("{:#?}", ir.symbols());
 
     for index in 0..ir.rules().len() {
-        let la = ir.lookahead(index);
-        // println!("FIRST for rule {}: {:#?}", index, ir.rule_nth(index, 0));
-        println!("Lookahead: {:#?}", la);
+        // println!("Calculating lookahead for rule {} ({})", ir.symbols().get_rule_name(index).unwrap(), index);
+        let la = stacker::grow(4 * 1024 * 1024 * 1024, || ir.lookahead(index));
+        println!("Lookahead {}: {:#?}", index, la);
         black_box(la);
     }
 
+    // let la = ir.lookahead(327);
+    // let la = ir.nth(ir.get_alt(327, 0).unwrap().clone(), 65);
+    // println!("Output: {:#?}", la);
+    // black_box(la);
+
+
+    let ir = Arc::new(ir);
+    let jinja_env = jinja_env(ir.clone());
+    std::fs::write("out", jinja_env.get_template("rust-parse").unwrap().render(ir.clone()).unwrap()).unwrap();
+    
     black_box(ir);
 
     Ok(())

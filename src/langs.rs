@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, element::{ElementIR, TokenElementIR}}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}};
 
 pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     let ir = ir.clone();
@@ -71,16 +71,22 @@ pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     };
 
     let ir_clone = ir.clone();
+    
     let tokenrule_from_id = move | id: usize | -> Option<Value> {
-        let value = if let Some(rule) = ir_clone.token_rules().get(id) {
+        if let Some(rule) = ir_clone.token_rules().get(id) {
             Some(Value::from_serialize(rule.clone()))
         } else if let Some(token) = ir_clone.token_rules().get(id) {
             Some(Value::from_serialize(token.clone()))
         } else {
             None
-        };
+        }
+    };
 
-        value
+    // We CLONE the Arc<AntlrIR> here. Any further changes will not affect this specific lookup
+    let ir_clone = ir.clone();
+    let lookeahead_lookup = move | rule_id: usize | -> Option<Value> {
+        let mut ir = Arc::unwrap_or_clone(ir_clone.clone());
+        Some(Value::from_serialize(ir.lookahead(rule_id)))
     };
 
     env.add_filter("capitalize", capitalize);
@@ -95,7 +101,7 @@ pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     env.add_filter("etype_suffix", etype_suffix);
     env.add_filter("rule_from_id", rule_from_id);
     env.add_filter("token_from_id", tokenrule_from_id);
-
+    env.add_filter("lookahead", lookeahead_lookup);
     env
 }
 

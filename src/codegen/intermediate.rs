@@ -17,7 +17,8 @@ pub struct AntlrIR {
 
     symbol_table: SymbolTable,
 
-    lookahead_cache: HashMap<(Arc<AltIR>, usize), BiMap<AtomIR, usize>>,
+    lookahead_cache: HashMap<usize, LookAheadNode>,
+    alt_lookahead_cache: HashMap<(Arc<AltIR>, usize), BiMap<AtomIR, usize>>,
 }
 
 impl AntlrIR {
@@ -31,7 +32,8 @@ impl AntlrIR {
             rules,
             token_rules,
             symbol_table,
-            lookahead_cache: HashMap::new()
+            lookahead_cache: HashMap::new(),
+            alt_lookahead_cache: HashMap::new()
         }
     }
 
@@ -56,11 +58,10 @@ impl AntlrIR {
     } 
 
     pub fn cache_nth(&mut self, index: (Arc<AltIR>, usize), nth: BiMap<AtomIR, usize>) {
-        self.lookahead_cache.insert(index, nth);
+        self.alt_lookahead_cache.insert(index, nth);
     }
 
     pub fn get_cached_nth(&self, index: (Arc<AltIR>, usize)) -> Option<&BiMap<AtomIR, usize>> {
-        self.lookahead_cache.get(&index)
+        self.alt_lookahead_cache.get(&index)
     }
-   
 }

@@ -1,0 +1,31 @@
+{% macro match_alts(alts) %}
+{% set la = alts | lookahead_lookup_filter %}
+{{ lookahead(la, alts) }}
+{% endmacro %}
+
+{% macro lookahead(la, alts) %}
+// {{ la }}
+{% if la.Terminal %}
+    {% set alt = alts[la.Terminal.alt] %}
+    {% for element in alt.elements[la.Terminal.continue_from:] %}
+        {% if element.Atom %}
+            {% if element.Atom.atom.RuleID %}
+                self.{{ (element.Atom.atom.RuleID | rule_from_id).name }}()?;
+            {% else %}
+                self.match_token({{ element.Atom.atom.TokenID }})?;
+            {% endif %}
+        {% else %}
+
+        {% endif %}
+    
+    {% endfor %}
+{% else %}
+    match self.next() {
+        {% for key, value in la.Continues.tree | items %}
+        {{ key.TokenID }} => {
+            {{ lookahead(value, alts) }}
+        }
+        {% endfor %}
+    }
+{% endif %}
+{% endmacro %}

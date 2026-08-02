@@ -22,15 +22,15 @@ fn main() -> Result<(), ()> {
     let mut parser = Parser::new(lexer).unwrap();
 
     let ast = parser.grammar_spec().unwrap();
-    let mut ir = AntlrIR::new(ast);
-    println!("{:#?}", ir.symbols());
+    let ir = AntlrIR::new(ast);
+    // println!("{:#?}", ir.symbols());
 
-    for index in 0..ir.rules().len() {
+    // for index in 0..ir.rules().len() {
         // println!("Calculating lookahead for rule {} ({})", ir.symbols().get_rule_name(index).unwrap(), index);
-        let la = stacker::grow(4 * 1024 * 1024 * 1024, || ir.lookahead(index));
-        println!("Lookahead {}: {:#?}", index, la);
-        black_box(la);
-    }
+        // let la = stacker::grow(4 * 1024 * 1024 * 1024, || ir.lookahead(index));
+        // println!("Lookahead {}: {:#?}", index, la);
+        // black_box(la);
+    // }
 
     // let la = ir.lookahead(327);
     // let la = ir.nth(ir.get_alt(327, 0).unwrap().clone(), 65);

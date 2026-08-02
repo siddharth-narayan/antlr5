@@ -69,6 +69,7 @@ impl SymbolTable {
             }
         }
         
+        table.insert_token_rule("EOF".into());
         table
     }
 
@@ -97,18 +98,10 @@ impl SymbolTable {
     }
     
     pub fn get_token_id(&self, name: &String) -> Option<usize> {
-        if name == "EOF" {
-            return Some(usize::MAX)
-        }
-
         self.token_map.get_by_left(name).cloned()
     }
     
     pub fn get_token_name(&self, id: usize) -> Option<String> {
-        if id == usize::MAX {
-            return Some("EOF".to_string())
-        }
-
         self.token_map.get_by_right(&id).cloned()
     }
     
@@ -133,10 +126,6 @@ impl SymbolTable {
     pub fn insert_token_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
         if self.token_map.contains_left(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
-        }
-
-        if name == "EOF" {
-            return Err(AnalysisErr::Redefinition { of: "EOF".to_string() })
         }
 
         self.token_map.insert(name, self.token_map.len() + self.strlit_map.len());

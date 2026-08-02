@@ -1,8 +1,8 @@
 use std::{ffi::OsStr, fs, path::Path, process::Command, sync::Arc};
 
-use minijinja::{Environment, UndefinedBehavior, Value, filters::capitalize, value::ViaDeserialize};
+use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}, langs::filters::{etoken_type_prefix, etoken_type_suffix, etype_prefix, etype_suffix, id_from_rule_name_filter, lookeahead_lookup_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}, langs::filters::{capitalize, etoken_type_prefix, etoken_type_suffix, etype_prefix, etype_suffix, id_from_rule_name_filter, lookahead_lookup_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
 
 mod filters;
 
@@ -51,6 +51,7 @@ pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     env.set_undefined_behavior(UndefinedBehavior::Chainable);
 
     env.add_template("rust-parse", include_str!("langs/rust/parser.jinja")).unwrap();
+    env.add_template("rust-lookahead", include_str!("langs/rust/lookahead.jinja")).unwrap();
     env.add_template("python-parse", include_str!("langs/python/parser.jinja")).unwrap();
     
     add_default_filters(&mut env, ir);
@@ -70,5 +71,5 @@ pub fn add_default_filters(env: &mut Environment, ir: Arc<AntlrIR>) {
     env.add_filter("rule_from_id", rule_from_id_filter(ir.clone()));
     env.add_filter("id_from_rule", id_from_rule_name_filter(ir.clone()));
     env.add_filter("token_from_id", token_from_id_filter(ir.clone()));
-    env.add_filter("lookahead", lookeahead_lookup_filter(ir.clone()));
+    env.add_filter("lookahead_lookup_filter", lookahead_lookup_filter(ir.clone()));
 }

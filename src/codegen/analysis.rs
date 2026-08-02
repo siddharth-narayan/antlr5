@@ -212,9 +212,9 @@ impl AntlrIR {
         lookahead: usize,
     ) -> LookAheadNode {
         // Its nth sets being cached with the wrong n
-        println!("{} lookahead", lookahead);
+        // println!("{} lookahead", lookahead);
         if alts.len() == 0 {
-            panic!("altlen0")
+            // panic!("altlen0")
         }
 
         if alts.len() == 1 {
@@ -227,9 +227,10 @@ impl AntlrIR {
         let mut first: HashMap<AtomIR, HashSet<usize>> = HashMap::new();
         for (index, alt) in &alts {
             let set = self.nth(alt.clone(), lookahead);
-            println!("alt {} with {} lookahead has set size {}: {:#?}", index, lookahead, set.len(), set);
+            // println!("alt {} with {} lookahead has set size {}: {:#?}", index, lookahead, set.len(), set);
             if set.len() == 0 {
-                return LookAheadNode::Terminal { alt: usize::MAX, continue_from: usize::MAX }
+                continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
+                // return LookAheadNode::Terminal { alt: usize::MAX, continue_from: usize::MAX }
             }
             for (atom, _depth) in set {
                 if let AtomIR::RuleID(_) = atom {

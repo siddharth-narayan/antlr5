@@ -4,21 +4,12 @@
 {% endmacro %}
 
 {% macro lookahead(la, alts) %}
-// {{ la }}
 {% if la.Terminal %}
     {% set alt = alts[la.Terminal.alt] %}
-    {% for element in alt.elements[la.Terminal.continue_from:] %}
-        {% if element.Atom %}
-            {% if element.Atom.atom.RuleID %}
-                self.{{ (element.Atom.atom.RuleID | rule_from_id).name }}()?;
-            {% else %}
-                self.match_token({{ element.Atom.atom.TokenID }})?;
-            {% endif %}
-        {% else %}
-
-        {% endif %}
-    
-    {% endfor %}
+    {{ match_alt(alt, la.Terminal.continue_from) }}
+    {{ alt.label | default("Alt" ~ la.Terminal.alt, true) }} {
+        
+    }
 {% else %}
     match self.next() {
         {% for key, value in la.Continues.tree | items %}
@@ -28,4 +19,19 @@
         {% endfor %}
     }
 {% endif %}
+{% endmacro %}
+
+{% macro match_alt(alt, from) %}
+{% for element in alt.elements[from:] %}
+            {% if element.Atom %}
+                {% if element.Atom.atom.RuleID %}
+                    self.{{ (element.Atom.atom.RuleID | rule_from_id).name }}()?;
+                {% else %}
+                    self.match_token({{ element.Atom.atom.TokenID }})?;
+                {% endif %}
+            {% else %}
+
+            {% endif %}
+        
+        {% endfor %}
 {% endmacro %}

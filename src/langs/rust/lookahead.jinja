@@ -23,15 +23,14 @@
 
 {% macro match_alt(alt, from) %}
 {% for element in alt.elements[from:] %}
-            {% if element.Atom %}
-                {% if element.Atom.atom.RuleID %}
-                    self.{{ (element.Atom.atom.RuleID | rule_from_id).name }}()?;
-                {% else %}
-                    self.match_token({{ element.Atom.atom.TokenID }})?;
-                {% endif %}
-            {% else %}
-
-            {% endif %}
-        
-        {% endfor %}
+{% if element.Atom %}
+    {% if element.Atom.atom.RuleID %}
+        let {{ (element.Atom.atom.RuleID | rule_from_id).name }} = self.{{ (element.Atom.atom.RuleID | rule_from_id).name }}()?;
+    {% else %}
+        let token = self.match_token({{ element.Atom.atom.TokenID }})?;
+    {% endif %}
+{% else %}
+    // TODO match block
+{% endif %}
+{% endfor %}
 {% endmacro %}

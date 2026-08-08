@@ -39,103 +39,18 @@ pub enum LookAheadNode {
 }
 
 impl AntlrIR {
-    pub fn rule_always_contains(&self, rule: usize, should_contain: usize) -> bool {
-        let mut visited = HashSet::new();
-        self.internal_rule_always_contains(rule, should_contain, &mut visited)
-    }
-
-    fn internal_rule_always_contains(
-        &self,
-        rule: usize,
-        should_contain: usize,
-        visited: &mut HashSet<usize>,
-    ) -> bool {
-        if !visited.insert(rule) {
-            return true;
-        }
-
-        let rule = self.rules().get(rule).expect("expexted rule");
-
-        for alt in rule.alts() {
-            if !self.internal_alt_always_contains(&alt, should_contain, visited) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn internal_alt_always_contains(
-        &self,
-        alt: &AltIR,
-        should_contain: usize,
-        visited: &mut HashSet<usize>,
-    ) -> bool {
-        // This might not always be correct for recursive alts -- but because we only use it in internal_rule_always_contains, the result of THAT function will always be correct.
-        // This shoudl be fixed in the future, but it's annoying to deal with so I'm leaving it like this
-        if alt.is_recursive() {
-            return true;
-        }
-
-        for element in alt.elements() {
-            match element {
-                ElementIR::Atom { atom, suffix } => {
-                    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = *suffix {
-                        continue;
-                    }
-
-                    if let AtomIR::RuleID(id) = atom {
-                        if *id == should_contain {
-                            return true;
-                        }
-
-                        if !visited.contains(id)
-                            && self.internal_rule_always_contains(*id, should_contain, visited)
-                        {
-                            return true;
-                        }
-                    }
-                }
-
-                ElementIR::Block { block, suffix } => {
-                    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = *suffix {
-                        continue;
-                    }
-
-                    if block
-                        .iter()
-                        .all(|alt| self.internal_alt_always_contains(alt, should_contain, visited))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
-    }
-
     // Lookahead and nth functions do not save their state for any alt, so likely could be a lot of performance gain saving the NTH set for each alt
-    pub fn nth<'a>(&mut self, alt: Arc<AltIR>, n: usize) -> BiMap<AtomIR, usize> {
+    pub fn nth(&mut self, alt: Arc<AltIR>, n: usize) -> BiMap<AtomIR, usize> {
         let mut visited = HashSet::new();
-        self.internal_nth(alt, n, 0, &mut visited)
-    }
-
-    pub fn rule_nth(&mut self, rule: usize, n: usize) -> BiMap<AtomIR, usize> {
-        let mut result = BiMap::new();
-        for alt in self.rules().get(rule).unwrap().alts().clone() {
-            let alt = alt.clone();
-
-            result.extend(self.nth(alt, n).clone());
-        };
-
-        result
+        self.internal_nth(alt, 0, n, 0, &mut visited)
     }
 
     // This function requires polonius to correctly understand control flow's lifetime situation
     fn internal_nth(
         &self,
         alt: Arc<AltIR>,
+        starting_element: usize,
+
         n: usize,
         depth: usize,
         visited: &mut HashSet<usize>,
@@ -143,9 +58,21 @@ impl AntlrIR {
         let mut pos = 0;
         let mut nth_atoms = BiMap::new();
 
-        for element in alt.elements() {
+        let elements = match alt.elements().get(starting_element..) {
+            Some(e) => e,
+            None => return nth_atoms
+        };
+
+        for (element_index, element) in elements.iter().enumerate() {
             match element {
                 ElementIR::Atom { atom, suffix } => {
+                    match suffix {
+                        Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) => {
+                            nth_atoms.extend(self.internal_nth(alt.clone(), element_index + 1, n, depth + 1, visited));
+                        },
+                        _ => ()
+                    };
+
                     if let AtomIR::RuleID(id) = atom {
                         if visited.contains(id) {
                             continue;
@@ -155,7 +82,7 @@ impl AntlrIR {
 
                         for alt in self.get_rule(*id).unwrap().alts().clone() {
                             nth_atoms.extend(
-                                self.internal_nth(alt, n - pos, depth + 1, visited).clone(),
+                                self.internal_nth(alt, 0, n - pos, depth + 1, visited).clone(),
                             )
                         }
                     }
@@ -171,7 +98,7 @@ impl AntlrIR {
                 ElementIR::Block { block, suffix: _ } => {
                     for alt in block {
                         nth_atoms.extend(
-                            self.internal_nth(alt.clone(), n - pos, depth + 1, visited)
+                            self.internal_nth(alt.clone(), 0, n - pos, depth + 1, visited)
                                 .clone(),
                         )
                     }
@@ -183,6 +110,7 @@ impl AntlrIR {
         nth_atoms
     }
 
+    // Instead of lookahead we make match paths for an alt + element index
     pub fn lookahead(&mut self, rule: usize) -> LookAheadNode {
         let alts = self
             .rules()
@@ -201,22 +129,16 @@ impl AntlrIR {
             .map(|(index, alt)| (index, alt.clone()))
             .collect();
         
-        self.internal_lookahead_alts_enumerated(alts, 0)
+        self.internal_match_alts_enumerated(alts, 0)
     }
 
     // This function takes a set of alts, and their alt number, then calculates the approprate lookahead for deciding between alts
     // #[instrument(skip(self))]
-    pub fn internal_lookahead_alts_enumerated<'a>(
+    pub fn internal_match_alts_enumerated(
         &mut self,
         alts: HashMap<usize, Arc<AltIR>>,
         lookahead: usize,
     ) -> LookAheadNode {
-        // Its nth sets being cached with the wrong n
-        // println!("{} lookahead", lookahead);
-        if alts.len() == 0 {
-            // panic!("altlen0")
-        }
-
         if alts.len() == 1 {
             return LookAheadNode::Terminal {
                 alt: *alts.iter().nth(0).unwrap().0,
@@ -225,13 +147,12 @@ impl AntlrIR {
         }
 
         let mut first: HashMap<AtomIR, HashSet<usize>> = HashMap::new();
-        for (index, alt) in &alts {
+        for (alt_index, alt) in &alts {
             let set = self.nth(alt.clone(), lookahead);
-            // println!("alt {} with {} lookahead has set size {}: {:#?}", index, lookahead, set.len(), set);
             if set.len() == 0 {
                 continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
-                // return LookAheadNode::Terminal { alt: usize::MAX, continue_from: usize::MAX }
             }
+
             for (atom, _depth) in set {
                 if let AtomIR::RuleID(_) = atom {
                     continue;
@@ -239,18 +160,17 @@ impl AntlrIR {
                 
                 match first.get_mut(&atom) {
                     Some(vec) => {
-                        vec.insert(*index);
+                        vec.insert(*alt_index);
                     }
                     None => {
                         let mut s = HashSet::new();
-                        s.insert(*index);
+                        s.insert(*alt_index);
                         first.insert(atom.clone(), s);
                     }
                 }
             }
         }
 
-        // panic!("{:#?}", first);
         let mut out = HashMap::new();
 
         for (atom, available_alts) in first {
@@ -261,7 +181,7 @@ impl AntlrIR {
 
             out.insert(
                 atom.clone(),
-                self.internal_lookahead_alts_enumerated(filtered_alts, lookahead + 1),
+                self.internal_match_alts_enumerated(filtered_alts, lookahead + 1),
             );
         }
 

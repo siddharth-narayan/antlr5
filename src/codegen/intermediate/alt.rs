@@ -31,21 +31,21 @@ impl AltIR {
                                 if id == parent_rule_id {
                                     recursive_locations.push(element_index)
                                 }
-                                AtomIR::RuleID(id)
+                                AtomIR::RuleID{ id, suffix: *suffix}
                             } else if let Some(id) = table.get_token_id(&n) {
-                                AtomIR::TokenID(id)
+                                AtomIR::TokenID{ id, suffix: *suffix}
                             } else {
                                 return Err("No rule id found");
                             }
                         },
                         Atom::StringLit(n) => {
-                            AtomIR::TokenID(table.get_strlit_id(&n).expect("Strlit's should all be processed"))
+                            AtomIR::TokenID{ id: table.get_strlit_id(&n).expect("Strlit's should all be processed"), suffix: *suffix }
                         }
                     };
 
                     // Move optional rules into their suffix to make generation easier
                     // table.get
-                    ElementIR::Atom { atom, suffix: *suffix }
+                    ElementIR::Atom(atom)
                 },
                 Element::Block { block, suffix } => {
                     let _optional = block.0.optional(); // TODO use this for the suffix

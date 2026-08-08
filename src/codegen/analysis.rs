@@ -68,7 +68,7 @@ impl AntlrIR {
                 ElementIR::Atom(atom) => {
                     match atom.suffix() {
                         Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) => {
-                            nth_atoms.extend(self.internal_nth(alt.clone(), element_index + 1, n, depth + 1, visited));
+                            nth_atoms.extend(self.internal_nth(alt.clone(), starting_element + element_index + 1, n, depth + 1, visited));
                         },
                         _ => ()
                     };

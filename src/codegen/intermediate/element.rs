@@ -7,10 +7,7 @@ use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::{AltIR, TokenAlt
 // Should Element really have PartialEq/Eq derived?
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum ElementIR {
-    Atom {
-        atom: AtomIR,
-        suffix: Option<EBNFSuffix>
-    },
+    Atom(AtomIR),
     Block {
         block: Vec<Arc<AltIR>>,
         suffix: Option<EBNFSuffix>
@@ -20,14 +17,29 @@ pub enum ElementIR {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum AtomIR {
-    TokenID(usize),
-    RuleID(usize)
+    TokenID {
+        id: usize,
+        suffix: Option<EBNFSuffix>
+    },
+
+    RuleID {
+        id: usize,
+        suffix: Option<EBNFSuffix>
+    }
+}
+
+impl AtomIR {
+    pub fn suffix(&self) -> Option<EBNFSuffix> {
+        match self {
+            AtomIR::RuleID { suffix, .. } | AtomIR::TokenID { suffix, .. } => suffix.clone()
+        }
+    }
 }
 
 impl ElementIR {
     pub fn suffix(&self) -> Option<EBNFSuffix> {
         match self {
-            ElementIR::Atom { suffix, .. } |
+            ElementIR::Atom(a) => a.suffix(),
             ElementIR::Block { suffix, .. } => *suffix
         }
     }

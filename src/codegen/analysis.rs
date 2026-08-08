@@ -65,15 +65,15 @@ impl AntlrIR {
 
         for (element_index, element) in elements.iter().enumerate() {
             match element {
-                ElementIR::Atom { atom, suffix } => {
-                    match suffix {
+                ElementIR::Atom(atom) => {
+                    match atom.suffix() {
                         Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) => {
                             nth_atoms.extend(self.internal_nth(alt.clone(), element_index + 1, n, depth + 1, visited));
                         },
                         _ => ()
                     };
 
-                    if let AtomIR::RuleID(id) = atom {
+                    if let AtomIR::RuleID { id, .. } = atom {
                         if visited.contains(id) {
                             continue;
                         } else {
@@ -154,8 +154,8 @@ impl AntlrIR {
             }
 
             for (atom, _depth) in set {
-                if let AtomIR::RuleID(_) = atom {
-                    continue;
+                if let AtomIR::RuleID{ .. } = atom {
+                    continue; // Placeholder
                 }
                 
                 match first.get_mut(&atom) {

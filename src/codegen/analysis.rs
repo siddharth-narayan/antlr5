@@ -4,7 +4,6 @@ use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
 };
-use tracing::{Level, event, instrument};
 
 use crate::{
     antlr::ast::EBNFSuffix,

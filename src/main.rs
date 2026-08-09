@@ -12,8 +12,6 @@ mod codegen;
 mod langs;
 
 fn main() -> Result<(), ()> {
-    tracing_subscriber::fmt().with_ansi(false).without_time().init();
-    
     let path = std::env::args().nth(1).unwrap_or("src/tests/cobol.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 

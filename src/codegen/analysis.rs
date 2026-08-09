@@ -158,23 +158,20 @@ impl AntlrIR {
                     continue; // Placeholder
                 }
                 
-                match first.get_mut(&atom) {
-                    Some(vec) => {
-                        vec.insert(*alt_index);
-                    }
-                    None => {
-                        let mut s = HashSet::new();
-                        s.insert(*alt_index);
-                        first.insert(atom.clone(), s);
-                    }
+                if first.get(&atom).is_none() {
+                    first.insert(atom.clone(), HashSet::new());
                 }
+
+                let vec = first.get_mut(&atom).unwrap();
+                vec.insert(*alt_index);
             }
         }
 
         let mut out = HashMap::new();
 
-        for (atom, available_alts) in first {
+        for (atom, available_alts) in &first {
             let mut filtered_alts: HashMap<usize, Arc<AltIR>> = HashMap::new();
+            
             for alt in alts.iter().filter(|f| available_alts.contains(f.0)) {
                 filtered_alts.insert(*alt.0, alt.1.clone());
             }

@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, sync::Arc};
+use std::{collections::BTreeSet, mem::discriminant, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -33,6 +33,13 @@ impl AtomIR {
         match self {
             AtomIR::RuleID { suffix, .. } | AtomIR::TokenID { suffix, .. } => suffix.clone()
         }
+    }
+
+    pub fn intersects(&self, other: &AtomIR) -> bool {
+        if discriminant(self) != discriminant(other) || self.id() != other.id(){
+            return false
+        }
+
     }
 }
 

@@ -4,7 +4,7 @@ use std::{collections::HashMap, sync::Arc};
 use bimap::BiMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::{LookAhead, LookAheadNode}, intermediate::{alt::AltIR, element::AtomIR, rule::{RuleIR, TokenRuleIR}}, symbols::SymbolTable}};
+use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::{Choice, MatchNode}, intermediate::{alt::AltIR, element::AtomIR, rule::{RuleIR, TokenRuleIR}}, symbols::SymbolTable}};
 
 pub mod rule;
 pub mod element;

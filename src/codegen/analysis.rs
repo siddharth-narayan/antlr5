@@ -18,22 +18,21 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LookAhead {
-    pub tree: HashMap<AtomIR, LookAheadNode>,
+pub struct Choice {
+    pub tree: HashMap<AtomIR, MatchNode>,
 }
 
-impl LookAhead {
-    pub fn new(tree: HashMap<AtomIR, LookAheadNode>) -> LookAhead {
-        LookAhead { tree }
+impl Choice {
+    pub fn new(tree: HashMap<AtomIR, MatchNode>) -> Choice {
+        Choice { tree }
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum LookAheadNode {
-    Continues(LookAhead),
-    Terminal {
-        alt: usize,           // The alt to pick
-        continue_from: usize, // The element that needs to next be matched
+pub enum MatchNode {
+    Continues(Choice),
+    Atom {
+        next: Option<Box<MatchNode>>
     },
 }
 
@@ -110,7 +109,7 @@ impl AntlrIR {
     }
 
     // Instead of lookahead we make match paths for an alt + element index
-    pub fn lookahead(&mut self, rule: usize) -> LookAheadNode {
+    pub fn lookahead(&mut self, rule: usize) -> MatchNode {
         let alts = self
             .rules()
             .get(rule)
@@ -121,7 +120,7 @@ impl AntlrIR {
         self.internal_lookahead_alts(&alts)
     }
 
-    pub fn internal_lookahead_alts(&mut self, alts: &Vec<Arc<AltIR>>) -> LookAheadNode {
+    pub fn internal_lookahead_alts(&mut self, alts: &Vec<Arc<AltIR>>) -> MatchNode {
 
         let alts = alts.iter()
             .enumerate()
@@ -137,32 +136,30 @@ impl AntlrIR {
         &mut self,
         alts: HashMap<usize, Arc<AltIR>>,
         lookahead: usize,
-    ) -> LookAheadNode {
+    ) -> MatchNode {
         if alts.len() == 1 {
-            return LookAheadNode::Terminal {
+            return MatchNode::Terminal {
                 alt: *alts.iter().nth(0).unwrap().0,
                 continue_from: lookahead,
             };
         }
 
-        let mut first: HashMap<AtomIR, HashSet<usize>> = HashMap::new();
+        // A map of atom's in the nth place to a map of alts and their depths 
+        let mut first: HashMap<AtomIR, HashMap<usize, usize>> = HashMap::new();
+        
         for (alt_index, alt) in &alts {
             let set = self.nth(alt.clone(), lookahead);
             if set.len() == 0 {
                 continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
             }
 
-            for (atom, _depth) in set {
-                if let AtomIR::RuleID{ .. } = atom {
-                    continue; // Placeholder
-                }
-                
+            for (atom, depth) in set {
                 if first.get(&atom).is_none() {
-                    first.insert(atom.clone(), HashSet::new());
+                    first.insert(atom.clone(), HashMap::new());
                 }
 
                 let vec = first.get_mut(&atom).unwrap();
-                vec.insert(*alt_index);
+                vec.insert(*alt_index, depth);
             }
         }
 
@@ -181,6 +178,6 @@ impl AntlrIR {
             );
         }
 
-        LookAheadNode::Continues(LookAhead { tree: out })
+        MatchNode::Continues(Choice { tree: out })
     }
 }

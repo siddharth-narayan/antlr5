@@ -2,7 +2,7 @@ use std::{ffi::OsStr, fs, path::Path, process::Command, sync::Arc};
 
 use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}, langs::filters::{capitalize, etoken_type_prefix, etoken_type_suffix, etype_prefix, etype_suffix, id_from_rule_name_filter, lookahead_lookup_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR}}, langs::filters::{capitalize, element_prefix, element_suffix, id_from_rule_name_filter, lookahead_lookup_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
 
 mod filters;
 
@@ -63,10 +63,10 @@ pub fn add_default_filters(env: &mut Environment, ir: Arc<AntlrIR>) {
     env.add_filter("capitalize", capitalize);
     env.add_filter("uppercase", uppercase);
 
-    env.add_filter("etype_prefix", etype_prefix);
-    env.add_filter("etype_suffix", etype_suffix);
-    env.add_filter("etoken_type_prefix", etoken_type_prefix);
-    env.add_filter("etoken_type_suffix", etoken_type_suffix);
+    env.add_filter("etype_prefix", element_prefix);
+    env.add_filter("etype_suffix", element_suffix);
+    env.add_filter("etoken_type_prefix", element_prefix);
+    env.add_filter("etoken_type_suffix", element_suffix);
 
     env.add_filter("rule_from_id", rule_from_id_filter(ir.clone()));
     env.add_filter("id_from_rule", id_from_rule_name_filter(ir.clone()));

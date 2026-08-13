@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use minijinja::{Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR, TokenElementIR}}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR}}};
 
-pub fn etype_prefix(e: ViaDeserialize<ElementIR>) -> String {
+pub fn element_prefix(e: ViaDeserialize<ElementIR>) -> String {
     if let Some(suffix) = e.suffix() {
         match suffix {
             EBNFSuffix::Optional => "Option<".into(),
@@ -15,26 +15,7 @@ pub fn etype_prefix(e: ViaDeserialize<ElementIR>) -> String {
     }
 }
 
-pub fn etoken_type_prefix(e: ViaDeserialize<TokenElementIR>) -> String {
-    if let Some(suffix) = e.suffix() {
-        match suffix {
-            EBNFSuffix::Optional => "Option<".into(),
-            EBNFSuffix::Plus | EBNFSuffix::Star => "Vec<".into(),
-        }
-    } else {
-        String::new()
-    }
-}
-
-pub fn etype_suffix(e: ViaDeserialize<ElementIR>) -> String {
-    if let Some(_suffix) = e.suffix() {
-        ">".into()
-    } else {
-        String::new()
-    }
-}
-
-pub fn etoken_type_suffix(e: ViaDeserialize<TokenElementIR>) -> String {
+pub fn element_suffix(e: ViaDeserialize<ElementIR>) -> String {
     if let Some(_suffix) = e.suffix() {
         ">".into()
     } else {

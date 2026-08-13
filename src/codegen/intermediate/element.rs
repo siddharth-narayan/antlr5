@@ -1,8 +1,8 @@
-use std::{collections::BTreeSet, mem::discriminant, sync::Arc};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::{AltIR, TokenAltIR}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::{AltIR}};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum ElementIR {
@@ -28,8 +28,9 @@ pub enum ElementIR {
 impl ElementIR {
     pub fn suffix(&self) -> Option<EBNFSuffix> {
         match self {
-            ElementIR::RuleAtom { suffix, .. } => *suffix,
-            ElementIR::TokenAtom  { suffix, .. } => *suffix,
+            ElementIR::RuleAtom { suffix, .. } |
+            ElementIR::TokenAtom  { suffix, .. } |
+            ElementIR::TokenSet { suffix, .. } |
             ElementIR::Block { suffix, .. } => *suffix
         }
     }

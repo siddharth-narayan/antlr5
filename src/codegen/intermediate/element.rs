@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::{BTreeSet, HashSet}, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +15,7 @@ pub enum ElementIR {
         suffix: Option<EBNFSuffix>
     },
     TokenSet {
-        id: usize,
+        set: BTreeSet<usize>,
         suffix: Option<EBNFSuffix>
     },
     Block {

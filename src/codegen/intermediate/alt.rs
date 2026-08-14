@@ -47,8 +47,8 @@ impl AltIR {
 
                     ElementIR::Block { block: alts, suffix: *suffix }
                 },
-                Element::Set { inverted: _, set: _, suffix: _ } => {
-                    return Err("Parser rules cannot contain lexer sets")
+                Element::Set { inverted: _, set, suffix } => {
+                    ElementIR::TokenSet { set: set.clone(), suffix: *suffix }
                 }
 
             };

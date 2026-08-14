@@ -37,9 +37,9 @@ fn main() -> Result<(), ()> {
 
 
     let ir = Arc::new(ir);
-    let jinja_env = jinja_env(ir.clone());
+    // let jinja_env = jinja_env(ir.clone());
 
-    output(ir.clone(), "out", jinja_env, Language::Rust);
+    // output(ir.clone(), "out", jinja_env, Language::Rust);
     
     black_box(ir);
 

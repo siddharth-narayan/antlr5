@@ -12,8 +12,8 @@ pub mod alt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntlrIR {
-    rules: Vec<RuleIR>,
-    token_rules: Vec<RuleIR>,
+    rules: Vec<Arc<RuleIR>>,
+    token_rules: Vec<Arc<RuleIR>>,
 
     symbol_table: SymbolTable,
 }
@@ -24,12 +24,12 @@ impl AntlrIR {
 
         let mut rules = Vec::new();
         for rule in symbol_table.rules() {
-            rules.push(RuleIR::new(rule, &symbol_table).unwrap())
+            rules.push(Arc::new(RuleIR::new(rule, &symbol_table).unwrap()))
         }
 
         let mut token_rules = Vec::new();
         for rule in symbol_table.token_rules() {
-            token_rules.push(RuleIR::new_tokenrule(rule, &symbol_table).unwrap())
+            token_rules.push(Arc::new(RuleIR::new_tokenrule(rule, &symbol_table).unwrap()))
         }
         
         AntlrIR {
@@ -39,15 +39,15 @@ impl AntlrIR {
         }
     }
 
-    pub fn rules(&self) -> &Vec<RuleIR> {
+    pub fn rules(&self) -> &Vec<Arc<RuleIR>> {
         &self.rules
     }
     
-    pub fn get_rule(&self, rule: usize) -> Option<&RuleIR> {
-        self.rules.get(rule)
+    pub fn get_rule(&self, rule: usize) -> Option<Arc<RuleIR>> {
+        self.rules.get(rule).cloned()
     }
 
-    pub fn token_rules(&self) -> &Vec<RuleIR> {
+    pub fn token_rules(&self) -> &Vec<Arc<RuleIR>> {
         &self.token_rules
     }
 

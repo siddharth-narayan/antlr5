@@ -1,4 +1,5 @@
 #![feature(titlecase)]
+#![feature(option_into_flat_iter)]
 
 use std::{fs::read_to_string, hint::black_box, sync::Arc};
 

@@ -15,6 +15,5 @@ rustflags = ["-Zpolonius=next"]
 debug = true # For profiling with samply
 
 [dependencies]
-bimap = { version = "0.6.3", features = ["serde"] }
 minijinja = "2.21.0"
 serde = { version = "1.0.228", features = ["derive", "rc"] }

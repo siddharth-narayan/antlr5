@@ -11,15 +11,13 @@ pub struct AltIR {
     options: PhantomData<()>,
     elements: Vec<ElementIR>,
     channel: Option<String>,
-    recursive_locations: Vec<usize>
 }
 
 impl AltIR {
-    pub fn new(parent_rule_id: usize, alt: &Alt, table: &SymbolTable) -> Result<AltIR, &'static str> {
+    pub fn new(alt: &Alt, table: &SymbolTable) -> Result<AltIR, &'static str> {
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
         let mut elements = Vec::new();
-        let mut recursive_locations: Vec<usize> = Vec::new();
 
         for (element_index, element) in alt.elements().iter().enumerate() {
             let element = match element {
@@ -27,9 +25,6 @@ impl AltIR {
                     match atom {
                         Atom::ID(n) => {
                             if let Some(id) = table.get_rule_id(&n) {
-                                if id == parent_rule_id {
-                                    recursive_locations.push(element_index)
-                                }
                                 ElementIR::RuleAtom { id, suffix: *suffix}
                             } else if let Some(id) = table.get_token_id(&n) {
                                 ElementIR::TokenAtom { id, suffix: *suffix}
@@ -47,7 +42,7 @@ impl AltIR {
                     let mut alts = Vec::new();
                     
                     for alt in block.0.alts() {
-                        alts.push(Arc::new(AltIR::new(parent_rule_id, alt, table)?));
+                        alts.push(Arc::new(AltIR::new(alt, table)?));
                     };
 
                     ElementIR::Block { block: alts, suffix: *suffix }
@@ -61,7 +56,7 @@ impl AltIR {
             elements.push(element);
         };
 
-        Ok(AltIR { label, options: PhantomData, elements, channel, recursive_locations })
+        Ok(AltIR { label, options: PhantomData, elements, channel })
     }
 
     pub fn label(&self) -> Option<&String> {
@@ -70,13 +65,5 @@ impl AltIR {
 
     pub fn elements(&self) -> &Vec<ElementIR> {
         &self.elements
-    }
-
-    pub fn is_recursive(&self) -> bool {
-        self.recursive_locations.len() > 0
-    }
-    
-    pub fn recursive_locations(&self) -> &Vec<usize> {
-        &self.recursive_locations
     }
 }

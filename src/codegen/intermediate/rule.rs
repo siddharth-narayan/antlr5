@@ -31,10 +31,28 @@ impl RuleIR {
             return Err("There are no nonempty alts");
         };
 
-        let id = table.get_rule_id(&name).expect("No ruleid");
+        for alt in rule.alts() {
+            alts.push(Arc::new(AltIR::new(alt, table)?));
+        }
+
+        return Ok(RuleIR {
+            name: name,
+            optional,
+            alts,
+        });
+    }
+
+    pub fn new_tokenrule(rule: &TokenRule, table: &SymbolTable) -> Result<RuleIR, &'static str> {
+        let name = rule.name().clone();
+        let optional = rule.alt_list().optional();
+        let mut alts = Vec::new();
+
+        if rule.alt_list().alts().len() == 0 {
+            return Err("There are no nonempty alts");
+        };
 
         for alt in rule.alts() {
-            alts.push(Arc::new(AltIR::new(id, alt, table)?));
+            alts.push(Arc::new(AltIR::new(alt, table)?));
         }
 
         return Ok(RuleIR {

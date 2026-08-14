@@ -2,7 +2,7 @@ use std::{ffi::OsStr, fs, path::Path, process::Command, sync::Arc};
 
 use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR}}, langs::filters::{capitalize, element_prefix, element_suffix, id_from_rule_name_filter, lookahead_lookup_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR}}, langs::filters::{capitalize, element_prefix, element_suffix, id_from_rule_name_filter, rule_from_id_filter, token_from_id_filter, uppercase}};
 
 mod filters;
 
@@ -71,5 +71,5 @@ pub fn add_default_filters(env: &mut Environment, ir: Arc<AntlrIR>) {
     env.add_filter("rule_from_id", rule_from_id_filter(ir.clone()));
     env.add_filter("id_from_rule", id_from_rule_name_filter(ir.clone()));
     env.add_filter("token_from_id", token_from_id_filter(ir.clone()));
-    env.add_filter("lookahead_lookup_filter", lookahead_lookup_filter(ir.clone()));
+    // env.add_filter("lookahead_lookup_filter", lookahead_lookup_filter(ir.clone()));
 }

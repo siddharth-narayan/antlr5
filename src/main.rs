@@ -3,7 +3,7 @@
 
 use std::{fs::read_to_string, hint::black_box, sync::Arc};
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{Language, jinja_env, output}};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{Cache, nth}, intermediate::AntlrIR}, langs::{Language, jinja_env, output}};
 
 #[cfg(test)]
 mod tests;
@@ -25,13 +25,21 @@ fn main() -> Result<(), ()> {
     let ir = AntlrIR::new(ast);
     // println!("{:#?}", ir.symbols());
 
+    let mut cache = Cache::new();
+
     // for index in 0..ir.rules().len() {
-        // println!("Calculating lookahead for rule {} ({})", ir.symbols().get_rule_name(index).unwrap(), index);
-        // let la = stacker::grow(4 * 1024 * 1024 * 1024, || ir.lookahead(index));
-        // println!("Lookahead {}: {:#?}", index, la);
-        // black_box(la);
+    //     println!("Calculating nth for rule {} ({})", ir.symbols().get_rule_name(index).unwrap(), index);
+
+        
+    //     for (alt_index, alt) in ir.get_rule(index).unwrap().alts().iter().enumerate() {
+    //         let nth_set = nth(alt.clone(), 0, 0, 0, &mut cache, ir.rules());
+    //         println!("NTH set for alt {} is {:#?}", alt_index, nth_set);
+    //         black_box(nth_set);
+    //     }
     // }
 
+    let nth_set = nth(ir.get_rule(0).unwrap().alts().get(0).unwrap().clone(), 0, 0, 0, &mut cache, ir.rules());
+    println!("NTH set for rule 0 alt 0 is {:#?}", nth_set);
     // let la = ir.lookahead(327);
     // let la = ir.nth(ir.get_alt(327, 0).unwrap().clone(), 65);
     // println!("Output: {:#?}", la);

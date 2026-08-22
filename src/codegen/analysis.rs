@@ -30,7 +30,7 @@ pub enum MatchNode {
     },
 }
 
-struct Cache<K: Hash + Eq, V: Hash + Eq> {
+pub struct Cache<K: Hash + Eq, V: Hash + Eq> {
     map: HashMap<K, HashSet<V>>
 }
 
@@ -64,20 +64,7 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
     }
 }
 
-// Lookahead and nth functions do not save their state for any alt, so likely could be a lot of performance gain saving the NTH set for each alt
-// pub fn nth(rules: &Vec<Arc<RuleIR>>, alt: Arc<AltIR>, n: usize) -> Option<HashSet<ElementIR>> {
-//     let mut n_cache = Cache::new();
-//     let mut len_cache = Cache::new();
-
-//     let mut visited = HashSet::new();
-//     internal_nth(&mut n_cache, &mut len_cache, rules, alt, 0, n, 0, &mut visited)
-// }
-
-fn alt_len(alt: Arc<AltIR>) {
-
-}
-
-fn internal_nth<'a>(
+pub fn nth<'a>(
     alt: Arc<AltIR>,
     n:  usize,
 
@@ -86,42 +73,44 @@ fn internal_nth<'a>(
     nth_cache: &'a mut Cache<(Arc<AltIR>, usize), ElementIR>,
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
+    if current_pos > n {
+        return None
+    }
+
     if let Some(e) = nth_cache.get(&(alt.clone(), n)) {
         return Some(e)
     }
 
-    let element_ref = alt.clone();
-    let element = element_ref.elements().get(element_pos)?;
+    let element = alt.elements().get(element_pos)?.clone();
 
-    if let ElementIR::TokenAtom { .. } | ElementIR::RuleAtom { .. } = element {
-        if current_pos >= n {
-            nth_cache.insert((alt.clone(), n), element.clone());
-            return nth_cache.get(&(alt, n))
-        }
+    if current_pos == n {
+        nth_cache.insert((alt.clone(), n), element.clone());
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        let optional_skipped: HashSet<ElementIR> = internal_nth(alt.clone(), n, current_pos + 1, element_pos + 1, nth_cache, rules).into_flat_iter().cloned().collect();
+        let optional_skipped: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, element_pos + 1, nth_cache, rules).into_flat_iter().cloned().collect();
         nth_cache.extend((alt.clone(), n), optional_skipped);
     };
 
     match element {
         ElementIR::RuleAtom { id, .. } => {
-            for alt in rules.get(*id).unwrap().alts().clone() {
-                let alt_nth: HashSet<ElementIR> = internal_nth(alt.clone(), n, current_pos + 1,0, nth_cache, rules).into_flat_iter().cloned().collect();
-                nth_cache.extend((alt.clone(), n).clone(), alt_nth)
+            for alt in rules.get(id).unwrap().alts().clone() {
+                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_pos,0, nth_cache, rules).into_flat_iter().cloned().collect();
+                nth_cache.extend((alt.clone(), n), alt_nth)
             }
         }
 
         ElementIR::Block { block, .. } => {
-            for alt in block.clone() {
-                let alt_nth: HashSet<ElementIR> = internal_nth(alt.clone(), n, current_pos, 0, nth_cache, rules).into_flat_iter().cloned().collect();
-                nth_cache.extend((alt.clone(), n).clone(), alt_nth);
+            for alt in block {
+                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, 0, nth_cache, rules).into_flat_iter().cloned().collect();
+                nth_cache.extend((alt.clone(), n), alt_nth);
             }
         }
 
         _ => ()
     }
 
-    return internal_nth(alt, n, current_pos + 1 , element_pos + 1, nth_cache, rules)
+    let _ = nth(alt.clone(), n, current_pos + 1 , element_pos + 1, nth_cache, rules);
+
+    nth_cache.get(&(alt, n))
 }

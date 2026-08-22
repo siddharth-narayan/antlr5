@@ -1,7 +1,6 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-use bimap::BiMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::{Choice, MatchNode}, intermediate::{alt::AltIR, rule::RuleIR}, symbols::SymbolTable}};

@@ -1,4 +1,3 @@
-use bimap::BiMap;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet, hash_set::IntoIter}, hash::Hash, sync::Arc,
@@ -40,12 +39,12 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
         Cache { map: HashMap::new() }
     }
 
-    pub fn get(&self, key: K) -> Option<&HashSet<V>> {
-        self.map.get(&key)
+    pub fn get(&self, key: &K) -> Option<&HashSet<V>> {
+        self.map.get(key)
     }
 
-    pub fn insert(&mut self, key: &K, item: V) {
-        match self.map.get_mut(key) {
+    pub fn insert(&mut self, key: K, item: V) {
+        match self.map.get_mut(&key) {
             Some(s) => {
                 s.insert(item);
             },
@@ -53,14 +52,14 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
             None => {
                 let mut set = HashSet::new();
                 set.insert(item);
-                self.map.insert(key.clone(), set);
+                self.map.insert(key, set);
             }
         }
     }
 
-    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: &K, values: I) {
+    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) {
         for item in values.into_iter() {
-            self.insert(key, item);
+            self.insert(key.clone(), item);
         }
     }
 }
@@ -74,9 +73,13 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
 //     internal_nth(&mut n_cache, &mut len_cache, rules, alt, 0, n, 0, &mut visited)
 // }
 
+fn alt_len(alt: Arc<AltIR>) {
+
+}
+
 fn internal_nth<'a>(
     alt: Arc<AltIR>,
-    n: usize,
+    n:  usize,
 
     current_pos: usize,
     element_pos: usize,
@@ -85,49 +88,46 @@ fn internal_nth<'a>(
     rules: &Vec<Arc<RuleIR>>,
     visited: &mut HashSet<usize>,
 ) -> Option<&'a HashSet<ElementIR>> {
-    if let Some(e) = nth_cache.get((alt, n)) {
+    if let Some(e) = nth_cache.get(&(alt.clone(), n)) {
         return Some(e)
     }
 
-    let element = alt.elements().get(element_pos)?;
+    let element_ref = alt.clone();
+    let element = element_ref.elements().get(element_pos)?;
+
+    if let ElementIR::TokenAtom { .. } | ElementIR::RuleAtom { .. } = element {
+        if current_pos >= n {
+            nth_cache.insert((alt.clone(), n), element.clone());
+            return nth_cache.get(&(alt, n))
+        }
+    }
+
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        let mut new_visited = visited.clone();
-        nth_cache.extend(&(alt, n), internal_nth(alt.clone(), n, current_pos, element_pos + 1, nth_cache, len_cache, rules, &mut new_visited).into_flat_iter().cloned());
+        let optional_skipped = internal_nth(alt.clone(), n, current_pos + 1, element_pos + 1, nth_cache, len_cache, rules).into_flat_iter().cloned();
+        nth_cache.extend((alt.clone(), n), optional_skipped);
     };
 
     match element {
         ElementIR::RuleAtom { id, .. } => {
-            if !visited.contains(id) {
-                visited.insert(*id);
-
-                for alt in rules.get(*id).unwrap().alts().clone() {
-                    let mut new_visited = visited.clone();
-                    nth_atoms.extend(
-                        internal_nth(rules, alt, 0, n - pos, depth + 1, &mut new_visited).clone(),
-                    )
-                }
+            for alt in rules.get(*id).unwrap().alts().clone() {
+                nth_cache.extend((alt.clone(), n).clone(), 
+                    internal_nth(alt.clone(), n, current_pos + 1,0, nth_cache, len_cache, rules).into_flat_iter().cloned()
+                )
             }
         }
 
         ElementIR::Block { block, .. } => {
             for alt in block {
+                let alt = alt.clone();
                 let mut new_visited = visited.clone();
-                nth_atoms.extend(
-                    internal_nth(rules, alt.clone(), 0, n - pos, depth + 1, &mut new_visited)
-                        .clone(),
-                )
+                nth_cache.extend((alt.clone(), n).clone(),
+                    internal_nth(alt, n, current_pos, 0, nth_cache, len_cache, rules).into_flat_iter().cloned()
+                );
             }
         }
 
         _ => ()
     }
 
-    if let ElementIR::TokenAtom { .. } | ElementIR::RuleAtom { .. } = element {
-        if pos >= n {
-            nth_atoms.insert(element.clone(), depth);
-            break;
-        }
-    }
-
-    nth_cache.get(key)
+    return internal_nth(alt, n, current_pos + 1 , element_pos + 1, nth_cache, len_cache, rules, visited)
 }

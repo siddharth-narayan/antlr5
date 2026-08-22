@@ -1,8 +1,7 @@
 
-use bimap::BiMap;
 use serde::{Deserialize, Serialize};
 
-use crate::antlr::ast::{ANTLRAst, Alt, Atom, Element, Rule, TokenRule};
+use crate::{antlr::ast::{ANTLRAst, Alt, Atom, Element, Rule, TokenRule}, util::BiMap};
 
 #[derive(Debug)]
 pub enum AnalysisErr {
@@ -82,11 +81,11 @@ impl SymbolTable {
     }
 
     pub fn get_rule_id(&self, name: &String) -> Option<usize> {
-        self.rule_map.get_by_left(name).cloned()
+        self.rule_map.get(name).cloned()
     }
     
     pub fn get_rule_name(&self, id: usize) -> Option<String> {
-        self.rule_map.get_by_right(&id).cloned()
+        self.rule_map.get_inverse(&id).cloned()
     }
 
     pub fn token_rules(&self) -> &Vec<TokenRule> {
@@ -98,23 +97,23 @@ impl SymbolTable {
     }
     
     pub fn get_token_id(&self, name: &String) -> Option<usize> {
-        self.token_map.get_by_left(name).cloned()
+        self.token_map.get(name).cloned()
     }
     
     pub fn get_token_name(&self, id: usize) -> Option<String> {
-        self.token_map.get_by_right(&id).cloned()
+        self.token_map.get_inverse(&id).cloned()
     }
     
     pub fn get_strlit_id(&self, name: &String) -> Option<usize> {
-        self.strlit_map.get_by_left(name).cloned()
+        self.strlit_map.get(name).cloned()
     }
 
     pub fn get_strlit_name(&self, id: usize) -> Option<String> {
-        self.strlit_map.get_by_right(&id).cloned()
+        self.strlit_map.get_inverse(&id).cloned()
     }
 
     pub fn insert_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
-        if self.rule_map.contains_left(&name) {
+        if self.rule_map.contains(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
@@ -124,7 +123,7 @@ impl SymbolTable {
     }
 
     pub fn insert_token_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
-        if self.token_map.contains_left(&name) {
+        if self.token_map.contains(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
@@ -134,7 +133,7 @@ impl SymbolTable {
     }
 
     pub fn insert_strlit(&mut self, name: String) {
-        if self.strlit_map.contains_left(&name) {
+        if self.strlit_map.contains(&name) {
             return
         }
         self.strlit_map.insert(name, self.token_map.len() + self.strlit_map.len());

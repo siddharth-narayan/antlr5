@@ -11,6 +11,7 @@ mod tests;
 mod antlr;
 mod codegen;
 mod langs;
+mod util;
 
 fn main() -> Result<(), ()> {
     let path = std::env::args().nth(1).unwrap_or("src/tests/cobol.g4".into());

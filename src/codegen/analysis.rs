@@ -6,7 +6,7 @@ use std::{
 use crate::{
     antlr::ast::EBNFSuffix, codegen::{
         RuleRef, intermediate::{
-            AntlrIR, alt::AltIR, element::ElementIR, rule::RuleIR,
+            AntlrIR, alt::{self, AltIR}, element::ElementIR, rule::RuleIR,
         },
     },
 };
@@ -84,9 +84,7 @@ fn internal_nth<'a>(
     current_pos: usize,
     element_pos: usize,
     nth_cache: &'a mut Cache<(Arc<AltIR>, usize), ElementIR>,
-    len_cache: &'a mut Cache<Arc<AltIR>, usize>,
     rules: &Vec<Arc<RuleIR>>,
-    visited: &mut HashSet<usize>,
 ) -> Option<&'a HashSet<ElementIR>> {
     if let Some(e) = nth_cache.get(&(alt.clone(), n)) {
         return Some(e)
@@ -103,31 +101,27 @@ fn internal_nth<'a>(
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        let optional_skipped = internal_nth(alt.clone(), n, current_pos + 1, element_pos + 1, nth_cache, len_cache, rules).into_flat_iter().cloned();
+        let optional_skipped: HashSet<ElementIR> = internal_nth(alt.clone(), n, current_pos + 1, element_pos + 1, nth_cache, rules).into_flat_iter().cloned().collect();
         nth_cache.extend((alt.clone(), n), optional_skipped);
     };
 
     match element {
         ElementIR::RuleAtom { id, .. } => {
             for alt in rules.get(*id).unwrap().alts().clone() {
-                nth_cache.extend((alt.clone(), n).clone(), 
-                    internal_nth(alt.clone(), n, current_pos + 1,0, nth_cache, len_cache, rules).into_flat_iter().cloned()
-                )
+                let alt_nth: HashSet<ElementIR> = internal_nth(alt.clone(), n, current_pos + 1,0, nth_cache, rules).into_flat_iter().cloned().collect();
+                nth_cache.extend((alt.clone(), n).clone(), alt_nth)
             }
         }
 
         ElementIR::Block { block, .. } => {
-            for alt in block {
-                let alt = alt.clone();
-                let mut new_visited = visited.clone();
-                nth_cache.extend((alt.clone(), n).clone(),
-                    internal_nth(alt, n, current_pos, 0, nth_cache, len_cache, rules).into_flat_iter().cloned()
-                );
+            for alt in block.clone() {
+                let alt_nth: HashSet<ElementIR> = internal_nth(alt.clone(), n, current_pos, 0, nth_cache, rules).into_flat_iter().cloned().collect();
+                nth_cache.extend((alt.clone(), n).clone(), alt_nth);
             }
         }
 
         _ => ()
     }
 
-    return internal_nth(alt, n, current_pos + 1 , element_pos + 1, nth_cache, len_cache, rules, visited)
+    return internal_nth(alt, n, current_pos + 1 , element_pos + 1, nth_cache, rules)
 }

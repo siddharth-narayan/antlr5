@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet, hash_set::IntoIter}, hash::Hash, sync::Arc,
 };
-
+use std::fmt::Debug;
 use crate::{
     antlr::ast::EBNFSuffix, codegen::{
         RuleRef, intermediate::{
@@ -32,6 +32,12 @@ pub enum MatchNode {
 
 pub struct Cache<K: Hash + Eq, V: Hash + Eq> {
     map: HashMap<K, HashSet<V>>
+}
+
+impl<K: Debug + Hash + Eq, V: Debug + Hash + Eq> Debug for Cache<K, V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#?}", self.map)
+    }
 }
 
 impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
@@ -70,6 +76,8 @@ pub fn nth<'a>(
 
     current_pos: usize,
     element_pos: usize,
+    depth: usize,
+
     nth_cache: &'a mut Cache<(Arc<AltIR>, usize), ElementIR>,
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
@@ -77,10 +85,10 @@ pub fn nth<'a>(
         return None
     }
 
-    if let Some(e) = nth_cache.get(&(alt.clone(), n)) {
-        return Some(e)
+    if nth_cache.get(&(alt.clone(), n)).is_some() && depth == 0 {
+        return None
     }
-
+    
     let element = alt.elements().get(element_pos)?.clone();
 
     if current_pos == n {
@@ -88,21 +96,21 @@ pub fn nth<'a>(
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        let optional_skipped: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, element_pos + 1, nth_cache, rules).into_flat_iter().cloned().collect();
+        let optional_skipped: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, element_pos + 1, depth + 1, nth_cache, rules).into_flat_iter().cloned().collect();
         nth_cache.extend((alt.clone(), n), optional_skipped);
     };
 
     match element {
         ElementIR::RuleAtom { id, .. } => {
             for alt in rules.get(id).unwrap().alts().clone() {
-                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_pos,0, nth_cache, rules).into_flat_iter().cloned().collect();
+                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, 0, depth + 1, nth_cache, rules).into_flat_iter().cloned().collect();
                 nth_cache.extend((alt.clone(), n), alt_nth)
             }
         }
 
         ElementIR::Block { block, .. } => {
             for alt in block {
-                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, 0, nth_cache, rules).into_flat_iter().cloned().collect();
+                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_pos, 0, depth + 1, nth_cache, rules).into_flat_iter().cloned().collect();
                 nth_cache.extend((alt.clone(), n), alt_nth);
             }
         }
@@ -110,7 +118,7 @@ pub fn nth<'a>(
         _ => ()
     }
 
-    let _ = nth(alt.clone(), n, current_pos + 1 , element_pos + 1, nth_cache, rules);
+    let _ = nth(alt.clone(), n, current_pos + 1 , element_pos + 1, depth + 1, nth_cache, rules);
 
     nth_cache.get(&(alt, n))
 }

@@ -1,7 +1,7 @@
 #![feature(titlecase)]
 #![feature(option_into_flat_iter)]
 
-use std::{fs::read_to_string, hint::black_box, sync::Arc};
+use std::{collections::HashSet, fs::read_to_string, hint::black_box, sync::Arc};
 
 use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{Cache, nth}, intermediate::AntlrIR}, langs::{Language, jinja_env, output}};
 
@@ -14,7 +14,7 @@ mod langs;
 mod util;
 
 fn main() -> Result<(), ()> {
-    let path = std::env::args().nth(1).unwrap_or("src/tests/cobol.g4".into());
+    let path = std::env::args().nth(1).unwrap_or("src/tests/lookahead.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // Lex + Parse
@@ -38,7 +38,7 @@ fn main() -> Result<(), ()> {
     //     }
     // }
 
-    let nth_set = nth(ir.get_rule(0).unwrap().alts().get(0).unwrap().clone(), 0, 0, 0, &mut cache, ir.rules());
+    let nth_set = nth(ir.get_rule(0).unwrap().alts().get(0).unwrap().clone(), 0, 0, 0, 0, &mut cache, ir.rules());
     println!("NTH set for rule 0 alt 0 is {:#?}", nth_set);
     // let la = ir.lookahead(327);
     // let la = ir.nth(ir.get_alt(327, 0).unwrap().clone(), 65);

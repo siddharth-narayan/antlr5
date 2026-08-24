@@ -113,37 +113,36 @@ pub fn nth<'a>(
     (alt, element_idx): (Arc<AltIR>, usize),
     continuation: Option<(Arc<AltIR>, usize)>,
 
-    nth_set: &mut Cache<(Arc<AltIR>, usize), ElementIR>,
+    nth_set_cache: &'a mut Cache<(Arc<AltIR>, usize), ElementIR>,
     visited: &mut HashSet<(Arc<AltIR>, usize, usize)>,
     rules: &Vec<Arc<RuleIR>>,
-) {
+) -> Option<&'a HashSet<ElementIR>> {
+    let mut set = HashSet::new();
+    
     if current_idx > n || !visited.insert((alt.clone(), n, element_idx)) {
-        return;
+        return None;
     }
     
-    let element = match alt.elements().get(element_idx) {
-        Some(e) => e.clone(),
-        None => return
-    };
+    let element = alt.elements().get(element_idx)?.clone();
 
     if current_idx == n {
-        nth_set.insert((alt.clone(), n), element.clone());
+        nth_set_cache.insert((alt.clone(), n), element.clone());
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        nth(n, current_idx, (alt.clone(), element_idx + 1), None, nth_set, visited, rules)
+        set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), None, nth_set_cache, visited, rules).into_flat_iter().cloned())
     };
 
     match element {
         ElementIR::RuleAtom { id, .. } => {
             for rule_alt in rules.get(id).unwrap().alts().clone() {
-                nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set, visited, rules)
+                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set_cache, visited, rules).into_flat_iter().cloned())
             }
         }
 
         ElementIR::Block { block, .. } => {
             for rule_alt in block {
-                nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set, visited, rules)
+                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set_cache, visited, rules).into_flat_iter().cloned())
             }
         }
 
@@ -151,6 +150,9 @@ pub fn nth<'a>(
     }
 
     if let Some((continue_alt, continue_element_idx)) = continuation {
-        nth(n, current_idx + 1, (continue_alt, continue_element_idx), None, nth_set, visited, rules);
+        set.extend(nth(n, current_idx + 1, (continue_alt, continue_element_idx), None, nth_set_cache, visited, rules).into_flat_iter().cloned());
     }
+
+    nth_set_cache.extend((alt.clone(), element_idx), set.into_iter());
+    Some(nth_set_cache.get(&(alt, element_idx)).unwrap())
 }

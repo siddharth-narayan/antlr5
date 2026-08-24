@@ -39,8 +39,8 @@ fn main() -> Result<(), ()> {
     // }
 
     nth(0, 0, (ir.get_rule_alt(0, 0).unwrap(), 0), None, &mut cache, &mut HashSet::new(), ir.rules());
-    // println!("{:#?}", cache.get(&(ir.get_rule_alt(0, 0).unwrap(), 0)));
-    println!("{:#?}", cache);
+    println!("{:#?}", cache.get(&(ir.get_rule_alt(0, 0).unwrap(), 0)));
+    // println!("{:#?}", cache);
     // let la = ir.lookahead(327);
     // let la = ir.nth(ir.get_alt(327, 0).unwrap().clone(), 65);
     // println!("Output: {:#?}", la);

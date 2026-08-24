@@ -46,6 +46,10 @@ impl AntlrIR {
         self.rules.get(rule).cloned()
     }
 
+    pub fn get_rule_alt(&self, rule: usize, alt: usize) -> Option<Arc<AltIR>> {
+        self.rules.get(rule)?.alts().get(alt).cloned()
+    }
+
     pub fn token_rules(&self) -> &Vec<Arc<RuleIR>> {
         &self.token_rules
     }

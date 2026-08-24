@@ -107,54 +107,50 @@ pub fn alt_len<'a>(alt: Arc<AltIR>, element_pos: usize, count: usize, visited: &
 }
 
 pub fn nth<'a>(
-    alt: Arc<AltIR>,
     n:  usize,
-
     current_idx: usize,
-    element_idx: usize,
-    depth: usize,
 
-    nth_cache: &'a mut Cache<(Arc<AltIR>, usize), ElementIR>,
+    (alt, element_idx): (Arc<AltIR>, usize),
+    continuation: Option<(Arc<AltIR>, usize)>,
+
+    nth_set: &mut Cache<(Arc<AltIR>, usize), ElementIR>,
+    visited: &mut HashSet<(Arc<AltIR>, usize, usize)>,
     rules: &Vec<Arc<RuleIR>>,
-) -> Option<&'a HashSet<ElementIR>> {
-    if current_idx > n {
-        return None
-    }
-
-    if nth_cache.get(&(alt.clone(), n)).is_some() && depth == 0 {
-        return None
+) {
+    if current_idx > n || !visited.insert((alt.clone(), n, element_idx)) {
+        return;
     }
     
-    let element = alt.elements().get(element_idx)?.clone();
+    let element = match alt.elements().get(element_idx) {
+        Some(e) => e.clone(),
+        None => return
+    };
 
     if current_idx == n {
-        nth_cache.insert((alt.clone(), n), element.clone());
+        nth_set.insert((alt.clone(), n), element.clone());
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        let optional_skipped: HashSet<ElementIR> = nth(alt.clone(), n, current_idx, element_idx + 1, depth + 1, nth_cache, rules).into_flat_iter().cloned().collect();
-        nth_cache.extend((alt.clone(), n), optional_skipped);
+        nth(n, current_idx, (alt.clone(), element_idx + 1), None, nth_set, visited, rules)
     };
 
     match element {
         ElementIR::RuleAtom { id, .. } => {
-            for alt in rules.get(id).unwrap().alts().clone() {
-                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_idx, 0, depth + 1, nth_cache, rules).into_flat_iter().cloned().collect();
-                nth_cache.extend((alt.clone(), n), alt_nth)
+            for rule_alt in rules.get(id).unwrap().alts().clone() {
+                nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set, visited, rules)
             }
         }
 
         ElementIR::Block { block, .. } => {
-            for alt in block {
-                let alt_nth: HashSet<ElementIR> = nth(alt.clone(), n, current_idx, 0, depth + 1, nth_cache, rules).into_flat_iter().cloned().collect();
-                nth_cache.extend((alt.clone(), n), alt_nth);
+            for rule_alt in block {
+                nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set, visited, rules)
             }
         }
 
         _ => ()
     }
 
-    let _ = nth(alt.clone(), n, current_idx + 1 , element_idx + 1, depth + 1, nth_cache, rules);
-
-    nth_cache.get(&(alt, n))
+    if let Some((continue_alt, continue_element_idx)) = continuation {
+        nth(n, current_idx + 1, (continue_alt, continue_element_idx), None, nth_set, visited, rules);
+    }
 }

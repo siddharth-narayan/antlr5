@@ -70,6 +70,42 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
     }
 }
 
+pub fn alt_len<'a>(alt: Arc<AltIR>, element_pos: usize, count: usize, visited: &mut HashSet<Arc<AltIR>>, len_cache: &mut HashSet<usize>, rules: &Vec<Arc<RuleIR>>) {
+    if !visited.insert(alt.clone()) {
+        return
+    }
+
+    let element = match alt.elements().get(element_pos) {
+        Some(e) => e,
+        None => {
+            // Where the magic happens
+            len_cache.insert(count - 1);
+            return;
+        }
+    };
+    
+    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
+        alt_len(alt.clone(), element_pos + 1, count, visited, len_cache, rules);
+    };
+
+    match element {
+        ElementIR::RuleAtom { id, .. } => {
+            for rule_alt in rules.get(*id).unwrap().alts() {
+                alt_len(rule_alt.clone(), 0, count, visited, len_cache, rules);
+            }
+        },
+        ElementIR::TokenAtom { .. } => {
+            alt_len(alt.clone(), element_pos + 1, count + 1, visited, len_cache, rules);
+        },
+        ElementIR::Block { block, .. } => {
+            for rule_alt in block {
+                alt_len(rule_alt.clone(), 0, count, visited, len_cache, rules);
+            }
+        }
+        _ => ()
+    }
+}
+
 pub fn nth<'a>(
     alt: Arc<AltIR>,
     n:  usize,

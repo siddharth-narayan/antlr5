@@ -23,28 +23,12 @@ fn main() -> Result<(), ()> {
 
     let ast = parser.grammar_spec().unwrap();
     let ir = AntlrIR::new(ast);
-    // println!("{:#?}", ir.symbols());
-
+    
     let mut cache = Cache::new();
-
-    // for index in 0..ir.rules().len() {
-    //     println!("Calculating nth for rule {} ({})", ir.symbols().get_rule_name(index).unwrap(), index);
-
-        
-    //     for (alt_index, alt) in ir.get_rule(index).unwrap().alts().iter().enumerate() {
-    //         let nth_set = nth(alt.clone(), 0, 0, 0, &mut cache, ir.rules());
-    //         println!("NTH set for alt {} is {:#?}", alt_index, nth_set);
-    //         black_box(nth_set);
-    //     }
-    // }
 
     nth(0, 0, (ir.get_rule_alt(0, 0).unwrap(), 0), None, &mut cache, &mut HashSet::new(), ir.rules());
     println!("{:#?}", cache.get(&(ir.get_rule_alt(0, 0).unwrap(), 0)));
-    // println!("{:#?}", cache);
-    // let la = ir.lookahead(327);
-    // let la = ir.nth(ir.get_alt(327, 0).unwrap().clone(), 65);
-    // println!("Output: {:#?}", la);
-    // black_box(la);
+
 
 
     let ir = Arc::new(ir);

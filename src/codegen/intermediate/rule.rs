@@ -22,13 +22,13 @@ pub struct RuleIR {
 }
 
 impl RuleIR {
-    pub fn new(rule: &Rule, table: &SymbolTable) -> Result<RuleIR, &'static str> {
+    pub fn new(rule: &Rule, table: &SymbolTable) -> Result<RuleIR, String> {
         let name = rule.name().clone();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
 
         if rule.alt_list().alts().len() == 0 {
-            return Err("There are no nonempty alts");
+            return Err("There are no nonempty alts".to_string());
         };
 
         for alt in rule.alts() {
@@ -42,13 +42,13 @@ impl RuleIR {
         });
     }
 
-    pub fn new_tokenrule(rule: &TokenRule, table: &SymbolTable) -> Result<RuleIR, &'static str> {
+    pub fn new_tokenrule(rule: &TokenRule, table: &SymbolTable) -> Result<RuleIR, String> {
         let name = rule.name().clone();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
 
         if rule.alt_list().alts().len() == 0 {
-            return Err("There are no nonempty alts");
+            return Err("There are no nonempty alts".to_string());
         };
 
         for alt in rule.alts() {

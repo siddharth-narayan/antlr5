@@ -118,15 +118,19 @@ pub fn nth<'a>(
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
     let mut set = HashSet::new();
-    
-    if current_idx > n || !visited.insert((alt.clone(), n, element_idx)) {
-        return None;
+        
+    let too_far = current_idx > n;
+    let already_visited = !visited.insert((alt.clone(), n, element_idx));
+    if too_far || already_visited {
+        return None
     }
     
     let element = alt.elements().get(element_idx)?.clone();
 
     if current_idx == n {
         nth_set_cache.insert((alt.clone(), n), element.clone());
+    }  else if let Some((continue_alt, continue_element_idx)) = continuation {
+        set.extend(nth(n, current_idx + 1, (continue_alt, continue_element_idx), None, nth_set_cache, visited, rules).into_flat_iter().cloned());
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
@@ -149,10 +153,10 @@ pub fn nth<'a>(
         _ => ()
     }
 
-    if let Some((continue_alt, continue_element_idx)) = continuation {
-        set.extend(nth(n, current_idx + 1, (continue_alt, continue_element_idx), None, nth_set_cache, visited, rules).into_flat_iter().cloned());
-    }
-
     nth_set_cache.extend((alt.clone(), element_idx), set.into_iter());
-    Some(nth_set_cache.get(&(alt, element_idx)).unwrap())
+    nth_set_cache.get(&(alt, element_idx))
+}
+
+fn lookahead(alts: Vec<Arc<AltIR>>) -> MatchNode {
+
 }

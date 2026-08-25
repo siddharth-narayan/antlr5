@@ -14,7 +14,7 @@ pub struct AltIR {
 }
 
 impl AltIR {
-    pub fn new(alt: &Alt, table: &SymbolTable) -> Result<AltIR, &'static str> {
+    pub fn new(alt: &Alt, table: &SymbolTable) -> Result<AltIR, String> {
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
         let mut elements = Vec::new();
@@ -29,7 +29,7 @@ impl AltIR {
                             } else if let Some(id) = table.get_token_id(&n) {
                                 ElementIR::TokenAtom { id, suffix: *suffix}
                             } else {
-                                return Err("No rule id found");
+                                return Err(format!("No rule found for id {}", n).to_string());
                             }
                         },
                         Atom::StringLit(n) => {

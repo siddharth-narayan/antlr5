@@ -9,7 +9,7 @@ pub fn codegen(ir: AntlrIR) {
 }
 
 #[test]
-#[should_panic(expected = "No rule id found")]
+#[should_panic(expected = "No rule found")]
 pub fn antlr() {
     let lexer_ir = parse(include_str!("ANTLRv4Lexer.g4"));
     let parser_ir = parse(include_str!("ANTLRv4Parser.g4"));

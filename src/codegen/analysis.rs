@@ -30,19 +30,19 @@ pub enum MatchNode {
     },
 }
 
-pub struct Cache<K: Hash + Eq, V: Hash + Eq> {
+pub struct HashSetMap<K: Hash + Eq, V: Hash + Eq> {
     map: HashMap<K, HashSet<V>>
 }
 
-impl<K: Debug + Hash + Eq, V: Debug + Hash + Eq> Debug for Cache<K, V> {
+impl<K: Debug + Hash + Eq, V: Debug + Hash + Eq> Debug for HashSetMap<K, V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#?}", self.map)
     }
 }
 
-impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
-    pub fn new() -> Cache<K, V> {
-        Cache { map: HashMap::new() }
+impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
+    pub fn new() -> HashSetMap<K, V> {
+        HashSetMap { map: HashMap::new() }
     }
 
     pub fn get(&self, key: &K) -> Option<&HashSet<V>> {
@@ -63,10 +63,12 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> Cache<K, V> {
         }
     }
 
-    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) {
+    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) -> Option<&HashSet<V>> {
         for item in values.into_iter() {
             self.insert(key.clone(), item);
         }
+
+        self.get(&key)
     }
 }
 
@@ -113,10 +115,12 @@ pub fn nth<'a>(
     (alt, element_idx): (Arc<AltIR>, usize),
     continuation: Option<(Arc<AltIR>, usize)>,
 
-    nth_set_cache: &'a mut Cache<(Arc<AltIR>, usize), ElementIR>,
+    nth_set_cache: &'a mut HashSetMap<(Arc<AltIR>, usize), ElementIR>,
     visited: &mut HashSet<(Arc<AltIR>, usize, usize)>,
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
+    println!("n: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
+
     let mut set = HashSet::new();
         
     let too_far = current_idx > n;
@@ -125,19 +129,33 @@ pub fn nth<'a>(
         return None
     }
     
-    let element = alt.elements().get(element_idx)?.clone();
+    let element = match alt.elements().get(element_idx) {
+        Some(e) => {
+            println!("{:#?}", e);
+            e.clone()
+        },
+        None => {
+            if let Some((continue_alt, continue_element_idx)) = continuation {
+                set.extend(nth(n, current_idx, (continue_alt, continue_element_idx), None, nth_set_cache, visited, rules).into_flat_iter().cloned());
+            }
+
+            return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter());
+        }
+    };
 
     if current_idx == n {
-        nth_set_cache.insert((alt.clone(), n), element.clone());
-    }  else if let Some((continue_alt, continue_element_idx)) = continuation {
-        set.extend(nth(n, current_idx + 1, (continue_alt, continue_element_idx), None, nth_set_cache, visited, rules).into_flat_iter().cloned());
+        set.insert(element.clone());
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), None, nth_set_cache, visited, rules).into_flat_iter().cloned())
+        set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), continuation.clone(), nth_set_cache, visited, rules).into_flat_iter().cloned())
     };
 
     match element {
+        ElementIR::TokenAtom { .. } => {
+            set.extend(nth(n, current_idx + 1, (alt.clone(), element_idx + 1), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
+        }
+
         ElementIR::RuleAtom { id, .. } => {
             for rule_alt in rules.get(id).unwrap().alts().clone() {
                 set.extend(nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set_cache, visited, rules).into_flat_iter().cloned())
@@ -153,10 +171,18 @@ pub fn nth<'a>(
         _ => ()
     }
 
-    nth_set_cache.extend((alt.clone(), element_idx), set.into_iter());
-    nth_set_cache.get(&(alt, element_idx))
+    // Do we need this?
+    return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 
-fn lookahead(alts: Vec<Arc<AltIR>>) -> MatchNode {
+// fn lookahead(alts: Vec<Arc<AltIR>>) -> MatchNode {
+//     let alts: HashMap<usize, Arc<AltIR>> = alts.into_iter().enumerate().collect();
+//     let mut n = 0;
 
-}
+//     let cache: HashSetMap<ElementIR, (usize, Arc<AltIR>)> = HashSetMap::new();
+
+//     for alt in alts {
+
+//     }
+
+// }

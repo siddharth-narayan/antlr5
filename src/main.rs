@@ -3,7 +3,7 @@
 
 use std::{collections::HashSet, fs::read_to_string, hint::black_box, sync::Arc};
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{Cache, nth}, intermediate::AntlrIR}, langs::{Language, jinja_env, output}};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{HashSetMap, nth}, intermediate::AntlrIR}, langs::{Language, jinja_env, output}};
 
 #[cfg(test)]
 mod tests;
@@ -24,7 +24,7 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = AntlrIR::new(ast);
     
-    let mut cache = Cache::new();
+    let mut cache = HashSetMap::new();
 
     nth(0, 0, (ir.get_rule_alt(0, 0).unwrap(), 0), None, &mut cache, &mut HashSet::new(), ir.rules());
     println!("{:#?}", cache.get(&(ir.get_rule_alt(0, 0).unwrap(), 0)));

@@ -116,22 +116,22 @@ pub fn nth<'a>(
     continuation: Option<(Arc<AltIR>, usize)>,
 
     nth_set_cache: &'a mut HashSetMap<(Arc<AltIR>, usize), ElementIR>,
-    visited: &mut HashSet<(Arc<AltIR>, usize, usize)>,
+    visited: &mut HashSet<(Arc<AltIR>, usize, usize, usize)>,
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
-    println!("n: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
+    // println!("n: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
 
     let mut set = HashSet::new();
         
     let too_far = current_idx > n;
-    let already_visited = !visited.insert((alt.clone(), n, element_idx));
+    let already_visited = !visited.insert((alt.clone(), n, element_idx, current_idx));
     if too_far || already_visited {
         return None
     }
     
     let element = match alt.elements().get(element_idx) {
         Some(e) => {
-            println!("{:#?}", e);
+            // println!("{:#?}", e);
             e.clone()
         },
         None => {

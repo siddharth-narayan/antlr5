@@ -18,7 +18,7 @@ pub enum AnalysisErr {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SymbolTable {
-    ast: ANTLRAst,
+    // ast: ANTLRAst,
 
     rule_map: BiMap<String, usize>,
     token_map: BiMap<String, usize>,
@@ -45,11 +45,11 @@ pub fn get_strlits(alt: &Alt) -> Vec<String> {
 }
 
 impl SymbolTable {
-    pub fn new(ast: ANTLRAst) -> SymbolTable {
-        let mut table = SymbolTable { ast, rule_map: BiMap::new(), token_map: BiMap::new(), strlit_map: BiMap::new() };
+    pub fn new(ast: &ANTLRAst) -> SymbolTable {
+        let mut table = SymbolTable { rule_map: BiMap::new(), token_map: BiMap::new(), strlit_map: BiMap::new() };
 
         // I don't want to clone everywhere :(
-        for rule in table.ast.rules().clone() {
+        for rule in ast.rules().clone() {
             let _ = table.insert_rule(rule.name().clone());
 
             for alt in rule.alts() {
@@ -59,7 +59,7 @@ impl SymbolTable {
             }
         }
 
-        for rule in table.ast.token_rules().clone() {
+        for rule in ast.token_rules().clone() {
             let _ = table.insert_token_rule(rule.name().clone());
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
@@ -72,14 +72,6 @@ impl SymbolTable {
         table
     }
 
-    pub fn rules(&self) -> &Vec<Rule> {
-        self.ast.rules()
-    }
-
-    pub fn get_rule(&self, index: usize) -> Option<&Rule> {
-        self.ast.rules().get(index)
-    }
-
     pub fn get_rule_id(&self, name: &String) -> Option<usize> {
         self.rule_map.get(name).cloned()
     }
@@ -88,14 +80,6 @@ impl SymbolTable {
         self.rule_map.get_inverse(&id).cloned()
     }
 
-    pub fn token_rules(&self) -> &Vec<TokenRule> {
-        self.ast.token_rules()
-    }
-
-    pub fn get_token(&self, index: usize) -> Option<&TokenRule> {
-        self.ast.token_rules().get(index)
-    }
-    
     pub fn get_token_id(&self, name: &String) -> Option<usize> {
         self.token_map.get(name).cloned()
     }

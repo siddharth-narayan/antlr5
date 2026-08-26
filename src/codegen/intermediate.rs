@@ -11,6 +11,7 @@ pub mod alt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntlrIR {
+    ast: Arc<ANTLRAst>,
     rules: Vec<Arc<RuleIR>>,
     token_rules: Vec<Arc<RuleIR>>,
 
@@ -19,19 +20,21 @@ pub struct AntlrIR {
 
 impl AntlrIR {
     pub fn new(ast: ANTLRAst) -> AntlrIR {
-        let symbol_table = SymbolTable::new(ast);
+        let ast = Arc::new(ast);
+        let symbol_table = SymbolTable::new(&ast);
 
         let mut rules = Vec::new();
-        for rule in symbol_table.rules() {
+        for rule in ast.rules() {
             rules.push(Arc::new(RuleIR::new(rule, &symbol_table).unwrap()))
         }
 
         let mut token_rules = Vec::new();
-        for rule in symbol_table.token_rules() {
+        for rule in ast.token_rules() {
             token_rules.push(Arc::new(RuleIR::new_tokenrule(rule, &symbol_table).unwrap()))
         }
         
         AntlrIR {
+            ast: ast,
             rules,
             token_rules,
             symbol_table,

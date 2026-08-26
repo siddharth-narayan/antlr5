@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet, hash_set::IntoIter}, hash::Hash, sync::Arc,
+    collections::{HashMap, HashSet, VecDeque, hash_set::IntoIter}, hash::Hash, sync::Arc,
 };
 use std::fmt::Debug;
 use crate::{
@@ -113,13 +113,13 @@ pub fn nth<'a>(
     current_idx: usize,
 
     (alt, element_idx): (Arc<AltIR>, usize),
-    continuation: Option<(Arc<AltIR>, usize)>,
+    continuation: &mut VecDeque<(Arc<AltIR>, usize)>,
 
     nth_set_cache: &'a mut HashSetMap<(Arc<AltIR>, usize), ElementIR>,
     visited: &mut HashSet<(Arc<AltIR>, usize, usize, usize)>,
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
-    // println!("n: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
+    println!("\nn: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
 
     let mut set = HashSet::new();
         
@@ -131,14 +131,15 @@ pub fn nth<'a>(
     
     let element = match alt.elements().get(element_idx) {
         Some(e) => {
-            // println!("{:#?}", e);
+            println!("{:#?}", e);
             e.clone()
         },
         None => {
-            if let Some((continue_alt, continue_element_idx)) = continuation {
-                set.extend(nth(n, current_idx, (continue_alt, continue_element_idx), None, nth_set_cache, visited, rules).into_flat_iter().cloned());
+            if let Some((continue_alt, continue_element_idx)) = continuation.pop_back() {
+                set.extend(nth(n, current_idx, (continue_alt, continue_element_idx), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned());
             }
 
+            // println!("set for alt {:#?}: {:#?}", alt, set);
             return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter());
         }
     };
@@ -148,7 +149,8 @@ pub fn nth<'a>(
     }
 
     if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), continuation.clone(), nth_set_cache, visited, rules).into_flat_iter().cloned())
+        // Should continuation be cloned here?
+        set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
     };
 
     match element {
@@ -158,13 +160,15 @@ pub fn nth<'a>(
 
         ElementIR::RuleAtom { id, .. } => {
             for rule_alt in rules.get(id).unwrap().alts().clone() {
-                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set_cache, visited, rules).into_flat_iter().cloned())
+                continuation.push_back((alt.clone(), element_idx + 1));
+                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
             }
         }
 
         ElementIR::Block { block, .. } => {
             for rule_alt in block {
-                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), Some((alt.clone(), element_idx + 1)), nth_set_cache, visited, rules).into_flat_iter().cloned())
+                continuation.push_back((alt.clone(), element_idx + 1));
+                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
             }
         }
 
@@ -172,6 +176,7 @@ pub fn nth<'a>(
     }
 
     // Do we need this?
+    // println!("set for alt {:#?}: {:#?}", alt, set);
     return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 

@@ -32,7 +32,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in rule.alts().iter().enumerate() {
-            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).unwrap()), table)?));
+            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).expect("No rule found")), table)?));
         }
 
         return Ok(RuleIR {
@@ -52,7 +52,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in rule.alts().iter().enumerate() {
-            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).unwrap()), table)?));
+            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_token_id(&name).expect("No rule found")), table)?));
         }
 
         return Ok(RuleIR {

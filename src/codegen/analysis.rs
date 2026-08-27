@@ -110,6 +110,7 @@ pub fn nth<'a>(
         }
     };
 
+    // Overhangs not included here
     if current_idx == n {
         set.insert(element.clone());
     }

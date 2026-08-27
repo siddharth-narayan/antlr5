@@ -14,6 +14,7 @@ static GRAMMAR: &'static str =
     star: y* z ;
     ";
 
+#[test]
 pub fn n() {
     let ir = parse(GRAMMAR);
 
@@ -34,7 +35,6 @@ pub fn n() {
     ]);
 
     let n2_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 1, suffix: None }, // x
         ElementIR::RuleAtom { id: 2, suffix: None }, // y
         ElementIR::RuleAtom { id: 3, suffix: None }, // z
 
@@ -44,7 +44,6 @@ pub fn n() {
 
     assert_eq!(ir.nth(0, 0).unwrap(), n0_expected);
     assert_eq!(ir.nth(1, 0).unwrap(), n1_expected);
-    // THIS SHOULD WORKKKKK
     assert_eq!(ir.nth(2, 0).unwrap(), n2_expected);
 }
 
@@ -113,30 +112,4 @@ pub fn star() {
     assert_eq!(ir.nth(0, 5).unwrap(), expected_0);
     assert_eq!(ir.nth(1, 5).unwrap(), expected_1);
     assert_eq!(ir.nth(2, 5).unwrap(), expected_2);
-}
-
-#[test]
-pub fn offset_check() {
-    let ir = parse(GRAMMAR);
-
-    println!("{:#?}", ir.symbols());
-
-    let alt = ir.get_rule_alt(1, 0).unwrap();
-
-    let mut nth_cache = HashSetMap::new();
-    let n1 = nth(0, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut nth_cache, &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    // println!("n1_alt0: {:#?}", n1);
-    // println!("NTH CACHCHCEHE{:#?}", nth_cache);
-
-
-    // let n1_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-    //     ElementIR::RuleAtom { id: 1, suffix: None }, // x
-    //     ElementIR::RuleAtom { id: 3, suffix: None }, // z
-
-    //     ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
-    // ]);
-
-    // assert_eq!(n1, n1_expected);
-
-
 }

@@ -31,8 +31,8 @@ impl RuleIR {
             return Err("There are no nonempty alts".to_string());
         };
 
-        for alt in rule.alts() {
-            alts.push(Arc::new(AltIR::new(alt, table)?));
+        for (alt_index, alt) in rule.alts().iter().enumerate() {
+            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).unwrap()), table)?));
         }
 
         return Ok(RuleIR {
@@ -51,8 +51,8 @@ impl RuleIR {
             return Err("There are no nonempty alts".to_string());
         };
 
-        for alt in rule.alts() {
-            alts.push(Arc::new(AltIR::new(alt, table)?));
+        for (alt_index, alt) in rule.alts().iter().enumerate() {
+            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).unwrap()), table)?));
         }
 
         return Ok(RuleIR {

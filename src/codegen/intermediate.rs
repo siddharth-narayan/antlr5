@@ -1,9 +1,9 @@
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::{HashMap, HashSet, VecDeque}, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::{Choice, MatchNode}, intermediate::{alt::AltIR, rule::RuleIR}, symbols::SymbolTable}};
+use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::{Choice, HashSetMap, MatchNode}, intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}};
 
 pub mod rule;
 pub mod element;
@@ -39,6 +39,17 @@ impl AntlrIR {
             token_rules,
             symbol_table,
         }
+    }
+
+    pub fn nth(&self, n: usize, rule: usize) -> Option<HashSet<ElementIR>> {
+        let mut nth_set = HashSet::new();
+
+        for alt in self.get_rule(rule)?.alts() {
+            let n = crate::nth(n, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), self.rules()).cloned().unwrap_or_default();
+            nth_set.extend(n);
+        }
+
+        Some(nth_set)
     }
 
     pub fn rules(&self) -> &Vec<Arc<RuleIR>> {

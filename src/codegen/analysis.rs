@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tracing::instrument;
 use std::{
     collections::{HashMap, HashSet, VecDeque, hash_set::IntoIter}, hash::Hash, sync::Arc,
 };
@@ -72,42 +73,7 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
     }
 }
 
-pub fn alt_len<'a>(alt: Arc<AltIR>, element_pos: usize, count: usize, visited: &mut HashSet<(Arc<AltIR>, usize)>, len_cache: &mut HashSet<usize>, rules: &Vec<Arc<RuleIR>>) {
-    if !visited.insert((alt.clone(), element_pos)) {
-        return
-    }
-
-    let element = match alt.elements().get(element_pos) {
-        Some(e) => e,
-        None => {
-            // Where the magic happens
-            len_cache.insert(count - 1);
-            return;
-        }
-    };
-    
-    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        alt_len(alt.clone(), element_pos + 1, count, visited, len_cache, rules);
-    };
-
-    match element {
-        ElementIR::RuleAtom { id, .. } => {
-            for rule_alt in rules.get(*id).unwrap().alts() { // same problem it fails after not finishing the rest of the current rule
-                alt_len(rule_alt.clone(), 0, count, visited, len_cache, rules);
-            }
-        },
-        ElementIR::TokenAtom { .. } => {
-            alt_len(alt.clone(), element_pos + 1, count + 1, visited, len_cache, rules);
-        },
-        ElementIR::Block { block, .. } => {
-            for rule_alt in block {
-                alt_len(rule_alt.clone(), 0, count, visited, len_cache, rules);
-            }
-        }
-        _ => ()
-    }
-}
-
+#[instrument(skip(nth_set_cache, visited, rules))]
 pub fn nth<'a>(
     n:  usize,
     current_idx: usize,
@@ -119,7 +85,7 @@ pub fn nth<'a>(
     visited: &mut HashSet<(Arc<AltIR>, usize, usize, usize)>,
     rules: &Vec<Arc<RuleIR>>,
 ) -> Option<&'a HashSet<ElementIR>> {
-    println!("\nn: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
+    // println!("\nn: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
 
     let mut set = HashSet::new();
         
@@ -131,7 +97,7 @@ pub fn nth<'a>(
     
     let element = match alt.elements().get(element_idx) {
         Some(e) => {
-            println!("{:#?}", e);
+            // println!("{:#?}", e);
             e.clone()
         },
         None => {

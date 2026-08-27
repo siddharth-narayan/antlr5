@@ -1,39 +1,21 @@
 use std::{collections::{HashSet, VecDeque}, hash::RandomState};
 
-use crate::{codegen::{analysis::{HashSetMap, nth}, intermediate::element::ElementIR}, tests::parse};
-
-#[test]
-pub fn nth_set() {
-    let x = 
-        "grammar lookahead;
-        n: x y 
-            | y x ; // Unintuively, x will not be included in the nth(2) set, because it doesn't start with the nth nonterminal (z)
-        x: y z ;
-        y: 'y' ;
-        z: 'z' ;
-        ";
-
-    let ir = parse(x);
-
-    println!("{:#?}", ir.symbols());
-
-    let alt0 = ir.get_rule_alt(0, 0).unwrap();
-    let alt1 = ir.get_rule_alt(0, 1).unwrap();
-
-    let n0_alt0 = nth(0, 0, (alt0.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    let n0_alt1 = nth(0, 0, (alt1.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    let n0: HashSet<ElementIR, RandomState> = n0_alt0.union(&n0_alt1).cloned().collect();
-
-    let n1_alt0 = nth(1, 0, (alt0.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    let n1_alt1 = nth(1, 0, (alt1.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    let n1: HashSet<ElementIR, RandomState> = n1_alt0.union(&n1_alt1).cloned().collect();
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{HashSetMap, nth}, intermediate::element::ElementIR}, tests::parse};
 
 
-    let n2_alt0 = nth(2, 0, (alt0.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    println!("n2_alt0: {:#?}", n2_alt0);
-    let n2_alt1 = nth(2, 0, (alt1.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
-    println!("n2_alt1: {:#?}", n2_alt1);
-    let n2: HashSet<ElementIR, RandomState> = n2_alt0.union(&n2_alt1).cloned().collect();
+static GRAMMAR: &'static str = 
+    "grammar lookahead ;
+    n: x y | y x ;
+    x: y z ;
+    y: 'y' ;
+    z: 'z' ;
+
+    optional: y? z ;
+    star: y* z ;
+    ";
+
+pub fn n() {
+    let ir = parse(GRAMMAR);
 
     let n0_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
         ElementIR::RuleAtom { id: 1, suffix: None },
@@ -60,24 +42,82 @@ pub fn nth_set() {
         ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
     ]);
 
-    assert_eq!(n0, n0_expected);
-    assert_eq!(n1, n1_expected);
-    assert_eq!(n2, n2_expected);
-
+    assert_eq!(ir.nth(0, 0).unwrap(), n0_expected);
+    assert_eq!(ir.nth(1, 0).unwrap(), n1_expected);
+    // THIS SHOULD WORKKKKK
+    assert_eq!(ir.nth(2, 0).unwrap(), n2_expected);
 }
 
+#[test]
+pub fn x() {
+    let ir = parse(GRAMMAR);
+
+    let x0_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
+        ElementIR::RuleAtom { id: 2, suffix: None }, // y
+        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
+    ]);
+
+    let x1_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
+        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+    ]);
+
+    let x2_expected: HashSet<ElementIR, RandomState> = HashSet::new();
+
+    assert_eq!(ir.nth(0, 1).unwrap(), x0_expected);
+    assert_eq!(ir.nth(1, 1).unwrap(), x1_expected);
+    assert_eq!(ir.nth(2, 1).unwrap(), x2_expected);
+}
+
+#[test]
+pub fn optional() {
+    let ir = parse(GRAMMAR);
+
+    let expected_0: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
+        ElementIR::RuleAtom { id: 2, suffix: Some(EBNFSuffix::Optional) }, // y
+        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
+        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+    ]);
+
+    let expected_1: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
+        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+    ]);
+
+    let expected_2: HashSet<ElementIR, RandomState> = HashSet::new();
+
+    assert_eq!(ir.nth(0, 4).unwrap(), expected_0);
+    assert_eq!(ir.nth(1, 4).unwrap(), expected_1);
+    assert_eq!(ir.nth(2, 4).unwrap(), expected_2);
+}
+
+#[test]
+pub fn star() {
+    let ir = parse(GRAMMAR);
+
+    let expected_0: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
+        ElementIR::RuleAtom { id: 2, suffix: Some(EBNFSuffix::Star) }, // y
+        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
+        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+    ]);
+
+    let expected_1: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
+        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+    ]);
+
+    let expected_2: HashSet<ElementIR, RandomState> = HashSet::new();
+
+    assert_eq!(ir.nth(0, 5).unwrap(), expected_0);
+    assert_eq!(ir.nth(1, 5).unwrap(), expected_1);
+    assert_eq!(ir.nth(2, 5).unwrap(), expected_2);
+}
 
 #[test]
 pub fn offset_check() {
-    let x = 
-        "grammar lookahead;
-        n: x ;
-        x: y z ;
-        y: 'y' ;
-        z: 'z' ;
-        ";
-
-    let ir = parse(x);
+    let ir = parse(GRAMMAR);
 
     println!("{:#?}", ir.symbols());
 
@@ -86,7 +126,7 @@ pub fn offset_check() {
     let mut nth_cache = HashSetMap::new();
     let n1 = nth(0, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut nth_cache, &mut HashSet::new(), ir.rules()).cloned().unwrap_or_default();
     // println!("n1_alt0: {:#?}", n1);
-    println!("NTH CACHCHCEHE{:#?}", nth_cache);
+    // println!("NTH CACHCHCEHE{:#?}", nth_cache);
 
 
     // let n1_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![

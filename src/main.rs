@@ -38,8 +38,6 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
     
-    
-
     (0..ir.rules().len()).into_par_iter().for_each(
         |rule_id| {
             let mut cache = HashSetMap::new();

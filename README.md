@@ -280,3 +280,7 @@ SymbolTable {
     tokens: {},
 }
 ```
+
+
+Differences from current ANTLR
+- Charsets work differently. They can not be represented as ~('a' | 'b') etc. Represent this as ~[ab]. In addition, '-' must be escaped within a charset unless it's being used as a range.

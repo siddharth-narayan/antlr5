@@ -44,7 +44,7 @@ fn main() -> Result<(), ()> {
         |rule_id| {
             let mut cache = HashSetMap::new();
             println!("Calculating nth sets for rule {}", rule_id);
-            for n in 0..=5 {
+            for n in 0..=25 {
                 let mut set = HashSet::new();
 
                 for alt in ir.get_rule(rule_id).unwrap().alts() {

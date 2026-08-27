@@ -25,7 +25,7 @@ impl Choice {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum MatchNode {
-    Continues(Choice),
+    Choice(Choice),
     Atom {
         next: Option<Box<MatchNode>>
     },
@@ -147,14 +147,62 @@ pub fn nth<'a>(
     return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 
-// fn lookahead(alts: Vec<Arc<AltIR>>) -> MatchNode {
-//     let alts: HashMap<usize, Arc<AltIR>> = alts.into_iter().enumerate().collect();
-//     let mut n = 0;
 
-//     let cache: HashSetMap<ElementIR, (usize, Arc<AltIR>)> = HashSetMap::new();
+fn element_match(alt: Arc<AltIR>, element_idx: usize) {
 
-//     for alt in alts {
+}
 
-//     }
+fn lookahead(
+        ir: Arc<AntlrIR>,
+        alts: HashMap<usize, Arc<AltIR>>,
+        lookahead: usize,
+    ) -> MatchNode {
+        if alts.len() == 1 {
+            return MatchNode::Terminal {
+                alt: *alts.iter().nth(0).unwrap().0,
+                continue_from: lookahead,
+            };
+        }
 
-// }
+        // A map of tokens in the nth place to a set of alts 
+        let mut tokenmap: HashSetMap<usize, usize> = HashSetMap::new();
+        
+        for (alt_index, alt) in &alts {
+            let set = nth(lookahead, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules());
+            if set.is_none_or(|s| s.len() == 0) {
+                continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
+            }
+
+            let set = set.unwrap();
+            
+            for (atom, depth) in set {
+
+
+
+
+                if first.get(&atom).is_none() {
+                    first.insert(atom.clone(), HashMap::new());
+                }
+
+                let vec = first.get_mut(&atom).unwrap();
+                vec.insert(*alt_index, depth);
+            }
+        }
+
+        let mut out = HashMap::new();
+
+        for (atom, available_alts) in &first {
+            let mut filtered_alts: HashMap<usize, Arc<AltIR>> = HashMap::new();
+
+            for alt in alts.iter().filter(|f| available_alts.contains(f.0)) {
+                filtered_alts.insert(*alt.0, alt.1.clone());
+            }
+
+            out.insert(
+                atom.clone(),
+                self.internal_match_alts_enumerated(filtered_alts, lookahead + 1),
+            );
+        }
+
+        MatchNode::Continues(Choice { tree: out })
+    }

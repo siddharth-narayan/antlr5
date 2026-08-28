@@ -35,3 +35,20 @@ impl ElementIR {
         }
     }
 }
+
+// None - None       parsing - match exactly one   --- generation, skip to next element
+// None - Option     parsing, if next token is correct, lookahead on next element, otherwise Option
+// None - Star       
+// None - Plus
+
+// Option - Option
+// Option - Star
+// Option - Plus
+
+// Star - Star
+// Star - Plus
+
+// Plus - Plus
+
+
+// for exact matches we continue to the next element directly

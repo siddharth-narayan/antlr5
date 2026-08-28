@@ -5,11 +5,11 @@ use std::{
 };
 use std::fmt::Debug;
 use crate::{
-    antlr::ast::EBNFSuffix, codegen::{
+    antlr::ast::{EBNFSuffix, Element}, codegen::{
         RuleRef, intermediate::{
             AntlrIR, alt::{self, AltIR}, element::ElementIR, rule::RuleIR,
         },
-    },
+    }, util::HashSetMap,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -26,51 +26,10 @@ impl Choice {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum MatchNode {
     Choice(Choice),
-    Atom {
+    Element {
+        element: ElementIR,
         next: Option<Box<MatchNode>>
     },
-}
-
-pub struct HashSetMap<K: Hash + Eq, V: Hash + Eq> {
-    map: HashMap<K, HashSet<V>>
-}
-
-impl<K: Debug + Hash + Eq, V: Debug + Hash + Eq> Debug for HashSetMap<K, V> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#?}", self.map)
-    }
-}
-
-impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
-    pub fn new() -> HashSetMap<K, V> {
-        HashSetMap { map: HashMap::new() }
-    }
-
-    pub fn get(&self, key: &K) -> Option<&HashSet<V>> {
-        self.map.get(key)
-    }
-
-    pub fn insert(&mut self, key: K, item: V) {
-        match self.map.get_mut(&key) {
-            Some(s) => {
-                s.insert(item);
-            },
-
-            None => {
-                let mut set = HashSet::new();
-                set.insert(item);
-                self.map.insert(key, set);
-            }
-        }
-    }
-
-    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) -> Option<&HashSet<V>> {
-        for item in values.into_iter() {
-            self.insert(key.clone(), item);
-        }
-
-        self.get(&key)
-    }
 }
 
 #[instrument(skip(nth_set_cache, visited, rules))]
@@ -148,61 +107,36 @@ pub fn nth<'a>(
 }
 
 
-fn element_match(alt: Arc<AltIR>, element_idx: usize) {
-
+fn element_match(alt: Arc<AltIR>, element_idx: usize) -> MatchNode {
+    MatchNode::Element { element: ElementIR::RuleAtom { id: 0, suffix: None }, next: None }
 }
 
 fn lookahead(
         ir: Arc<AntlrIR>,
-        alts: HashMap<usize, Arc<AltIR>>,
+        alts: HashMap<usize, (Arc<AltIR>, usize)>,
         lookahead: usize,
     ) -> MatchNode {
         if alts.len() == 1 {
-            return MatchNode::Terminal {
-                alt: *alts.iter().nth(0).unwrap().0,
-                continue_from: lookahead,
-            };
+            let (_, (alt, element_idx)) = alts.iter().nth(0).unwrap();
+            return element_match(alt.clone(), *element_idx);
         }
 
-        // A map of tokens in the nth place to a set of alts 
-        let mut tokenmap: HashSetMap<usize, usize> = HashSetMap::new();
+        let mut tokenmap: HashSetMap<usize, ElementIR> = HashSetMap::new();
         
-        for (alt_index, alt) in &alts {
+        for (alt_index, (alt, alt_element_idx)) in &alts {
             let set = nth(lookahead, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules());
             if set.is_none_or(|s| s.len() == 0) {
                 continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
             }
 
-            let set = set.unwrap();
-            
-            for (atom, depth) in set {
+            let set = set.unwrap().clone();
 
-
-
-
-                if first.get(&atom).is_none() {
-                    first.insert(atom.clone(), HashMap::new());
-                }
-
-                let vec = first.get_mut(&atom).unwrap();
-                vec.insert(*alt_index, depth);
-            }
+            tokenmap.extend(*alt_index, set);
         }
 
-        let mut out = HashMap::new();
-
-        for (atom, available_alts) in &first {
-            let mut filtered_alts: HashMap<usize, Arc<AltIR>> = HashMap::new();
-
-            for alt in alts.iter().filter(|f| available_alts.contains(f.0)) {
-                filtered_alts.insert(*alt.0, alt.1.clone());
-            }
-
-            out.insert(
-                atom.clone(),
-                self.internal_match_alts_enumerated(filtered_alts, lookahead + 1),
-            );
+        for (usize, elements) in tokenmap.clone() {
+            tokenmap.
         }
 
-        MatchNode::Continues(Choice { tree: out })
+        MatchNode::Choice(Choice { tree: out })
     }

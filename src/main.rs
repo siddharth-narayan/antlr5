@@ -7,7 +7,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tracing_subscriber::{Registry, layer::SubscriberExt};
 use tracing_tree::HierarchicalLayer;
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{HashSetMap, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, jinja_env, output}};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::nth, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, jinja_env, output}, util::HashSetMap};
 
 #[cfg(test)]
 mod tests;

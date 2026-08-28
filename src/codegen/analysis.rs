@@ -121,7 +121,7 @@ fn lookahead(
             return element_match(alt.clone(), *element_idx);
         }
 
-        let mut tokenmap: HashSetMap<usize, ElementIR> = HashSetMap::new();
+        let mut tokenmap: HashSetMap<ElementIR, Arc<AltIR>> = HashSetMap::new();
         
         for (alt_index, (alt, alt_element_idx)) in &alts {
             let set = nth(lookahead, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules());
@@ -131,11 +131,20 @@ fn lookahead(
 
             let set = set.unwrap().clone();
 
+            for element in set {
+                if matches!(element, ElementIR::RuleAtom { .. } | ElementIR::TokenAtom { .. }) {
+                    tokenmap.insert(element, alt.clone())
+                }
+            }
             tokenmap.extend(*alt_index, set);
         }
 
-        for (usize, elements) in tokenmap.clone() {
-            tokenmap.
+        for (alt_index, (alt, _)) in &alts {
+            for (usize, elements) in tokenmap.clone() {
+                let other_alt_elements = tokenmap.clone().union_skipping(*alt_index);
+
+                elements.
+            }
         }
 
         MatchNode::Choice(Choice { tree: out })

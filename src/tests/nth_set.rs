@@ -1,6 +1,6 @@
 use std::{collections::{HashSet, VecDeque}, hash::RandomState};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{HashSetMap, nth}, intermediate::element::ElementIR}, tests::parse};
+use crate::{antlr::ast::EBNFSuffix, codegen::{intermediate::element::ElementIR}, tests::parse};
 
 
 static GRAMMAR: &'static str = 

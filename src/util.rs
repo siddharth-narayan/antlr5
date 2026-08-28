@@ -81,6 +81,19 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
 
         self.get(&key)
     }
+
+    pub fn union_skipping(self, skip: K) -> HashSet<V> {
+        let mut set = HashSet::new();
+        for (key, value) in self {
+            if key == skip {
+                continue;
+            }
+            
+            set.extend(value);
+        };
+
+        set
+    }
 }
 
 impl<K: Hash + Eq + Clone, V: Hash + Eq> IntoIterator for HashSetMap<K, V> {

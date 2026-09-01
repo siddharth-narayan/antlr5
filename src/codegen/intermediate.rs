@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet, VecDeque}, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::{Choice, MatchNode}, intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::HashSetMap};
+use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::MatchNode, intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::HashSetMap};
 
 pub mod rule;
 pub mod element;

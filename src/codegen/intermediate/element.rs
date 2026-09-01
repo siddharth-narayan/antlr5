@@ -26,6 +26,13 @@ pub enum ElementIR {
 }
 
 impl ElementIR {
+    pub fn id(&self) -> Option<usize> {
+        match self {
+            ElementIR::RuleAtom { id, .. } | ElementIR::TokenAtom { id, .. } => Some(*id),
+            _ => None
+        }
+    }
+
     pub fn suffix(&self) -> Option<EBNFSuffix> {
         match self {
             ElementIR::RuleAtom { suffix, .. } |

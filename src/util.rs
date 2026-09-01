@@ -4,6 +4,8 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
+use crate::codegen::intermediate::element::ElementIR;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BiMap<K: Eq + Hash, V: Eq + Hash> {
     map_direct: HashMap<K, V>,
@@ -74,6 +76,10 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
         }
     }
 
+    pub fn remove(&mut self, key: K) -> Option<HashSet<V>> {
+        self.map.remove(&key)
+    }
+
     pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) -> Option<&HashSet<V>> {
         for item in values.into_iter() {
             self.insert(key.clone(), item);
@@ -93,6 +99,10 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
         };
 
         set
+    }
+    
+    pub fn remove_all_keys_matching(&mut self, f: impl FnMut(&K, &mut HashSet<V>) -> bool) -> impl Iterator<Item = (K, HashSet<V>)> {
+        self.map.extract_if(f)
     }
 }
 

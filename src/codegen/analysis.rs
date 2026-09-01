@@ -1,31 +1,20 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use std::{
-    collections::{HashMap, HashSet, VecDeque, hash_set::IntoIter}, hash::Hash, sync::Arc,
+    collections::{HashMap, HashSet, VecDeque, hash_set::IntoIter}, hash::Hash, mem::discriminant, sync::Arc,
 };
 use std::fmt::Debug;
 use crate::{
     antlr::ast::{EBNFSuffix, Element}, codegen::{
         RuleRef, intermediate::{
-            AntlrIR, alt::{self, AltIR}, element::ElementIR, rule::RuleIR,
+            AntlrIR, alt::{self, AltIR}, element::{self, ElementIR}, rule::RuleIR,
         },
     }, util::HashSetMap,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Choice {
-    pub tree: HashMap<ElementIR, MatchNode>,
-}
-
-impl Choice {
-    pub fn new(tree: HashMap<ElementIR, MatchNode>) -> Choice {
-        Choice { tree }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum MatchNode {
-    Choice(Choice),
+    Peek(HashMap<ElementIR, MatchNode>),
     Element {
         element: ElementIR,
         next: Option<Box<MatchNode>>
@@ -107,24 +96,27 @@ pub fn nth<'a>(
 }
 
 
-fn element_match(alt: Arc<AltIR>, element_idx: usize) -> MatchNode {
+fn match_element(alt: Arc<AltIR>, element_idx: usize) -> MatchNode {
     MatchNode::Element { element: ElementIR::RuleAtom { id: 0, suffix: None }, next: None }
 }
 
-fn lookahead(
+fn match_alts(
         ir: Arc<AntlrIR>,
         alts: HashMap<usize, (Arc<AltIR>, usize)>,
         lookahead: usize,
     ) -> MatchNode {
         if alts.len() == 1 {
             let (_, (alt, element_idx)) = alts.iter().nth(0).unwrap();
-            return element_match(alt.clone(), *element_idx);
+            return match_element(alt.clone(), *element_idx);
         }
-
+        
         let mut tokenmap: HashSetMap<ElementIR, Arc<AltIR>> = HashSetMap::new();
         
-        for (alt_index, (alt, alt_element_idx)) in &alts {
-            let set = nth(lookahead, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), ir.rules());
+        for (_, (alt, _)) in &alts {
+            let mut stack = VecDeque::new();
+            let mut nth_cache = HashSetMap::new();
+
+            let set = nth(lookahead, 0, (alt.clone(), 0), &mut stack, &mut nth_cache, &mut HashSet::new(), ir.rules());
             if set.is_none_or(|s| s.len() == 0) {
                 continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
             }
@@ -132,20 +124,26 @@ fn lookahead(
             let set = set.unwrap().clone();
 
             for element in set {
-                if matches!(element, ElementIR::RuleAtom { .. } | ElementIR::TokenAtom { .. }) {
+                if let ElementIR::TokenAtom { .. } = element {
                     tokenmap.insert(element, alt.clone())
                 }
-            }
-            tokenmap.extend(*alt_index, set);
+            };
         }
 
-        for (alt_index, (alt, _)) in &alts {
-            for (usize, elements) in tokenmap.clone() {
-                let other_alt_elements = tokenmap.clone().union_skipping(*alt_index);
+        let mut out = HashMap::new();
 
-                elements.
-            }
+        for (element, alts) in tokenmap.clone() {
+            let element_matches = |e: &ElementIR, mut _b: &mut HashSet<Arc<AltIR>>| {
+                println!("{:#?}", _b);
+                discriminant(&element) == discriminant(e) && element.id().unwrap() == e.id().unwrap()
+            };
+
+            tokenmap.remove_all_keys_matching(element_matches);
         }
 
-        MatchNode::Choice(Choice { tree: out })
-    }
+        MatchNode::Peek(out)
+}
+
+fn disambiguate_sufffix() -> MatchNode {
+    todo!()
+}

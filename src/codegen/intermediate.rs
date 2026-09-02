@@ -1,9 +1,10 @@
 
-use std::{collections::{HashMap, HashSet, VecDeque}, sync::Arc};
+use std::{collections::{HashSet, VecDeque}, sync::Arc};
 
+use rapidhash::fast::RandomState;
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::ANTLRAst, codegen::{RuleRef, analysis::MatchNode, intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::HashSetMap};
+use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::HashSetMap};
 
 pub mod rule;
 pub mod element;
@@ -41,11 +42,11 @@ impl AntlrIR {
         }
     }
 
-    pub fn nth(&self, n: usize, rule: usize) -> Option<HashSet<ElementIR>> {
-        let mut nth_set = HashSet::new();
+    pub fn nth(&self, n: usize, rule: usize) -> Option<HashSet<ElementIR, RandomState>> {
+        let mut nth_set = HashSet::default();
 
         for alt in self.get_rule(rule)?.alts() {
-            let n = crate::nth(n, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::new(), self.rules()).cloned().unwrap_or_default();
+            let n = crate::nth(n, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), self.rules()).cloned().unwrap_or_default();
             nth_set.extend(n);
         }
 

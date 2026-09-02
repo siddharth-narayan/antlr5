@@ -1,3 +1,4 @@
+use rapidhash::fast::RandomState;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use std::{
@@ -14,7 +15,7 @@ use crate::{
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum MatchNode {
-    Peek(HashMap<ElementIR, MatchNode>),
+    Peek(HashMap<ElementIR, MatchNode, RandomState>),
     Element {
         element: ElementIR,
         next: Option<Box<MatchNode>>
@@ -29,13 +30,13 @@ pub fn nth<'a>(
     (alt, element_idx): (Arc<AltIR>, usize),
     continuation: &mut VecDeque<(Arc<AltIR>, usize)>,
 
-    nth_set_cache: &'a mut HashSetMap<(Arc<AltIR>, usize), ElementIR>,
-    visited: &mut HashSet<(Arc<AltIR>, usize, usize, usize)>,
+    nth_set_cache: &'a mut HashSetMap<(Arc<AltIR>, usize), ElementIR, RandomState>,
+    visited: &mut HashSet<(Arc<AltIR>, usize, usize, usize), RandomState>,
     rules: &Vec<Arc<RuleIR>>,
-) -> Option<&'a HashSet<ElementIR>> {
+) -> Option<&'a HashSet<ElementIR, RandomState>> {
     // println!("\nn: {}, current_idx: {}, element_idx: {}", n, current_idx, element_idx);
 
-    let mut set = HashSet::new();
+    let mut set = HashSet::with_hasher(RandomState::new());
         
     let too_far = current_idx > n;
     let already_visited = !visited.insert((alt.clone(), n, element_idx, current_idx));
@@ -110,13 +111,13 @@ fn match_alts(
             return match_element(alt.clone(), *element_idx);
         }
         
-        let mut tokenmap: HashSetMap<ElementIR, Arc<AltIR>> = HashSetMap::new();
+        let mut tokenmap: HashSetMap<ElementIR, Arc<AltIR>, RandomState> = HashSetMap::new();
         
         for (_, (alt, _)) in &alts {
             let mut stack = VecDeque::new();
             let mut nth_cache = HashSetMap::new();
 
-            let set = nth(lookahead, 0, (alt.clone(), 0), &mut stack, &mut nth_cache, &mut HashSet::new(), ir.rules());
+            let set = nth(lookahead, 0, (alt.clone(), 0), &mut stack, &mut nth_cache, &mut HashSet::default(), ir.rules());
             if set.is_none_or(|s| s.len() == 0) {
                 continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
             }
@@ -130,10 +131,10 @@ fn match_alts(
             };
         }
 
-        let mut out = HashMap::new();
+        let mut out = HashMap::default();
 
         for (element, alts) in tokenmap.clone() {
-            let element_matches = |e: &ElementIR, mut _b: &mut HashSet<Arc<AltIR>>| {
+            let element_matches = |e: &ElementIR, mut _b: &mut HashSet<Arc<AltIR>, RandomState>| {
                 println!("{:#?}", _b);
                 discriminant(&element) == discriminant(e) && element.id().unwrap() == e.id().unwrap()
             };

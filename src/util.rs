@@ -1,20 +1,30 @@
+use std::hash::BuildHasher;
 use std::{collections::HashSet, hash::Hash};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
+use rapidhash::fast::{RandomState};
 use serde::{Deserialize, Serialize};
 
 use crate::codegen::intermediate::element::ElementIR;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BiMap<K: Eq + Hash, V: Eq + Hash> {
-    map_direct: HashMap<K, V>,
-    map_inverse: HashMap<V, K>
+#[
+    serde(
+        bound(
+            serialize = "K: Serialize, V: Serialize",
+            deserialize = "K: Deserialize<'de>, V: Deserialize<'de>"
+        )
+    )
+]
+pub struct BiMap<K: Eq + Hash, V: Eq + Hash, S: BuildHasher + Default = RandomState> {
+    map_direct: HashMap<K, V, S>,
+    map_inverse: HashMap<V, K, S>
 }
 
-impl<K: Eq + Hash + Clone, V: Eq + Hash + Clone> BiMap<K, V> {
-    pub fn new() -> BiMap<K, V> {
-        BiMap { map_direct: HashMap::new(), map_inverse: HashMap::new() }
+impl<K: Eq + Hash + Clone, V: Eq + Hash + Clone, S: BuildHasher + Default> BiMap<K, V, S> {
+    pub fn new() -> BiMap<K, V, S> {
+        BiMap { map_direct: HashMap::default(), map_inverse: HashMap::default() }
     }
 
     pub fn len(&self) -> usize {
@@ -43,22 +53,22 @@ impl<K: Eq + Hash + Clone, V: Eq + Hash + Clone> BiMap<K, V> {
 
 
 #[derive(Clone)]
-pub struct HashSetMap<K: Hash + Eq, V: Hash + Eq> {
-    map: HashMap<K, HashSet<V>>
+pub struct HashSetMap<K: Hash + Eq, V: Hash + Eq, S: BuildHasher + Default = RandomState> {
+    map: HashMap<K, HashSet<V, S>, S>
 }
 
-impl<K: Debug + Hash + Eq, V: Debug + Hash + Eq> Debug for HashSetMap<K, V> {
+impl<K: Debug + Hash + Eq, V: Debug + Hash + Eq, S: BuildHasher + Default> Debug for HashSetMap<K, V, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#?}", self.map)
     }
 }
 
-impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
-    pub fn new() -> HashSetMap<K, V> {
-        HashSetMap { map: HashMap::new() }
+impl<K: Hash + Eq + Clone, V: Hash + Eq, S: BuildHasher + Default> HashSetMap<K, V, S> {
+    pub fn new() -> HashSetMap<K, V, S> {
+        HashSetMap { map: HashMap::default() }
     }
 
-    pub fn get(&self, key: &K) -> Option<&HashSet<V>> {
+    pub fn get(&self, key: &K) -> Option<&HashSet<V, S>> {
         self.map.get(key)
     }
 
@@ -69,18 +79,18 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
             },
 
             None => {
-                let mut set = HashSet::new();
+                let mut set = HashSet::default();
                 set.insert(item);
                 self.map.insert(key, set);
             }
         }
     }
 
-    pub fn remove(&mut self, key: K) -> Option<HashSet<V>> {
+    pub fn remove(&mut self, key: K) -> Option<HashSet<V, S>> {
         self.map.remove(&key)
     }
 
-    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) -> Option<&HashSet<V>> {
+    pub fn extend<I: IntoIterator<Item = V>>(&mut self, key: K, values: I) -> Option<&HashSet<V, S>> {
         for item in values.into_iter() {
             self.insert(key.clone(), item);
         }
@@ -88,8 +98,8 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
         self.get(&key)
     }
 
-    pub fn union_skipping(self, skip: K) -> HashSet<V> {
-        let mut set = HashSet::new();
+    pub fn union_skipping(self, skip: K) -> HashSet<V, RandomState> {
+        let mut set = HashSet::default();
         for (key, value) in self {
             if key == skip {
                 continue;
@@ -101,17 +111,16 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq> HashSetMap<K, V> {
         set
     }
     
-    pub fn remove_all_keys_matching(&mut self, f: impl FnMut(&K, &mut HashSet<V>) -> bool) -> impl Iterator<Item = (K, HashSet<V>)> {
+    pub fn remove_all_keys_matching(&mut self, f: impl FnMut(&K, &mut HashSet<V, S>) -> bool) -> impl Iterator<Item = (K, HashSet<V, S>)> {
         self.map.extract_if(f)
     }
 }
 
-impl<K: Hash + Eq + Clone, V: Hash + Eq> IntoIterator for HashSetMap<K, V> {
-    type Item = (K, HashSet<V>);
-    type IntoIter = <HashMap<K, HashSet<V>> as IntoIterator>::IntoIter;
+impl<K: Hash + Eq + Clone, V: Hash + Eq, S: BuildHasher + Default> IntoIterator for HashSetMap<K, V, S> {
+    type Item = (K, HashSet<V, S>);
+    type IntoIter = <HashMap<K, HashSet<V, S>, S> as IntoIterator>::IntoIter;
     
     fn into_iter(self) -> Self::IntoIter {
         self.map.into_iter()
     }
-    
 }

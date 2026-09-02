@@ -1,4 +1,6 @@
-use std::{collections::{HashSet, VecDeque}, hash::RandomState};
+use std::collections::{HashSet, VecDeque};
+
+use rapidhash::fast::RandomState;
 
 use crate::{antlr::ast::EBNFSuffix, codegen::{intermediate::element::ElementIR}, tests::parse};
 
@@ -61,7 +63,7 @@ pub fn x() {
         ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
     ]);
 
-    let x2_expected: HashSet<ElementIR, RandomState> = HashSet::new();
+    let x2_expected: HashSet<ElementIR, RandomState> = HashSet::default();
 
     assert_eq!(ir.nth(0, 1).unwrap(), x0_expected);
     assert_eq!(ir.nth(1, 1).unwrap(), x1_expected);
@@ -84,7 +86,7 @@ pub fn optional() {
         ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
     ]);
 
-    let expected_2: HashSet<ElementIR, RandomState> = HashSet::new();
+    let expected_2: HashSet<ElementIR, RandomState> = HashSet::default();
 
     assert_eq!(ir.nth(0, 4).unwrap(), expected_0);
     assert_eq!(ir.nth(1, 4).unwrap(), expected_1);
@@ -107,7 +109,7 @@ pub fn star() {
         ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
     ]);
 
-    let expected_2: HashSet<ElementIR, RandomState> = HashSet::new();
+    let expected_2: HashSet<ElementIR, RandomState> = HashSet::default();
 
     assert_eq!(ir.nth(0, 5).unwrap(), expected_0);
     assert_eq!(ir.nth(1, 5).unwrap(), expected_1);

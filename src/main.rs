@@ -1,5 +1,6 @@
 #![feature(titlecase)]
 #![feature(option_into_flat_iter)]
+#![allow(unused)] // Temporary
 
 use std::{collections::{HashSet, VecDeque}, fs::read_to_string, hash::RandomState, hint::black_box, sync::Arc};
 

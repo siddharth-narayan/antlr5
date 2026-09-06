@@ -13,15 +13,6 @@ use crate::{
     }, util::HashSetMap,
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum MatchNode {
-    Peek(HashMap<ElementIR, MatchNode, RandomState>),
-    Element {
-        element: ElementIR,
-        next: Option<Box<MatchNode>>
-    },
-}
-
 #[instrument(skip(nth_set_cache, visited, rules))]
 pub fn nth<'a>(
     n:  usize,
@@ -96,55 +87,140 @@ pub fn nth<'a>(
     return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum MatchNode {
+    Peek {
+        alt: Arc<AltIR>,
+        element_idx: usize,
 
-fn match_element(alt: Arc<AltIR>, element_idx: usize) -> MatchNode {
-    MatchNode::Element { element: ElementIR::RuleAtom { id: 0, suffix: None }, next: None }
+        peek: HashMap<usize, MatchNode, RandomState>,
+        fallback: Option<Box<MatchNode>>
+    },
+
+    Element {
+        alt: Arc<AltIR>,
+        element_idx: usize,
+
+        element: ElementIR,
+        next: Option<Box<MatchNode>>
+    },
+
+    Finish,
 }
 
-fn match_alts(
-        ir: Arc<AntlrIR>,
-        alts: HashMap<usize, (Arc<AltIR>, usize)>,
-        lookahead: usize,
-    ) -> MatchNode {
-        if alts.len() == 1 {
-            let (_, (alt, element_idx)) = alts.iter().nth(0).unwrap();
-            return match_element(alt.clone(), *element_idx);
-        }
-        
-        let mut tokenmap: HashSetMap<ElementIR, Arc<AltIR>, RandomState> = HashSetMap::new();
-        
-        for (_, (alt, _)) in &alts {
-            let mut stack = VecDeque::new();
-            let mut nth_cache = HashSetMap::new();
+impl MatchNode {
 
-            let set = nth(lookahead, 0, (alt.clone(), 0), &mut stack, &mut nth_cache, &mut HashSet::default(), ir.rules());
-            if set.is_none_or(|s| s.len() == 0) {
-                continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
-            }
+// None - None       parsing - match exactly one   --- generation, skip to next element
+// None - Option     parsing, if next token is correct, lookahead on next element, otherwise Option
+// None - Star       
+// None - Plus
 
-            let set = set.unwrap().clone();
+// Option - Option // Exact
+// Option - Star
+// Option - Plus
 
-            for element in set {
-                if let ElementIR::TokenAtom { .. } = element {
-                    tokenmap.insert(element, alt.clone())
+// Star - Star
+// Star - Plus
+
+// Plus - Plus // Exact
+
+
+// for exact matches we continue to the next element directly
+    pub fn merge(&mut self, other: MatchNode) {
+        match self {
+            MatchNode::Peek { alt: alt_left, element_idx: element_idx_left, peek: peek_left,fallback: fallback_left } => {
+                match other {
+                    MatchNode::Peek { alt: alt_right, element_idx: element_idx_right, peek: peek_right, fallback: fallback_right } => {
+                        // Match fallback
+                        *fallback_left = fallback_left.map_or(
+                            fallback_right,
+                            |mut fallback_left: Box<MatchNode>| {
+                            if let Some(fallback_right) = fallback_right {
+                                fallback_left.merge(*fallback_right);
+                            }
+
+                            Some(fallback_left)
+                        });
+                    },
+                    MatchNode::Element { alt, element_idx, element, next } => todo!(),
+                    MatchNode::Finish => todo!(),
                 }
-            };
+            },
+
+            MatchNode::Element { alt, element_idx, element, next } => {
+                match other {
+                    // Swap and recurse
+                    MatchNode::Peek { alt, element_idx, peek } => {
+                        
+                    },
+                    MatchNode::Element { alt, element_idx, element, next } => todo!(),
+                    MatchNode::Finish => todo!(),
+                }
+            }
+            
+            MatchNode::Finish => {
+                *self = other;
+            }
         }
-
-        let mut out = HashMap::default();
-
-        for (element, alts) in tokenmap.clone() {
-            let element_matches = |e: &ElementIR, mut _b: &mut HashSet<Arc<AltIR>, RandomState>| {
-                println!("{:#?}", _b);
-                discriminant(&element) == discriminant(e) && element.id().unwrap() == e.id().unwrap()
-            };
-
-            tokenmap.remove_all_keys_matching(element_matches);
-        }
-
-        MatchNode::Peek(out)
+    }
 }
 
-fn disambiguate_sufffix() -> MatchNode {
-    todo!()
+fn match_element(alt: Arc<AltIR>, element_idx: usize) -> Option<MatchNode> {
+    Some(MatchNode::Element { alt: alt.clone(), element_idx, element: alt.elements().get(element_idx)?.clone(), next: match_element(alt, element_idx + 1).map(Box::new) })
 }
+
+fn match_alts(alts: &Vec<Arc<AltIR>>) -> MatchNode {
+    let mut match_node = match_element(alts[0].clone(), 0).unwrap();
+
+    for next_alt in alts.get(1..).unwrap() {
+        match_node.merge(match_element(next_alt.clone(), 0).unwrap())
+    };
+
+    match_node
+}
+
+// fn match_alts_old(
+//         ir: Arc<AntlrIR>,
+//         alts: HashMap<usize, (Arc<AltIR>, usize)>,
+//         lookahead: usize,
+//     ) -> MatchNode {
+//         if alts.len() == 1 {
+//             let (_, (alt, element_idx)) = alts.iter().nth(0).unwrap();
+//             return match_element(alt.clone(), *element_idx);
+//         }
+        
+//         let mut tokenmap: HashSetMap<ElementIR, Arc<AltIR>, RandomState> = HashSetMap::new();
+        
+//         for (_, (alt, _)) in &alts {
+//             let mut stack = VecDeque::new();
+//             let mut nth_cache = HashSetMap::new();
+
+//             let set = nth(lookahead, 0, (alt.clone(), 0), &mut stack, &mut nth_cache, &mut HashSet::default(), ir.rules());
+//             if set.is_none_or(|s| s.len() == 0) {
+//                 continue; // Add FOLLOW sets. Right now whatever alt is longest will be matched
+//             }
+
+//             let set = set.unwrap().clone();
+
+//             for element in set {
+//                 if let ElementIR::TokenAtom { .. } = element {
+//                     tokenmap.insert(element, alt.clone())
+//                 }
+//             };
+//         }
+
+//         let mut out = HashMap::default();
+
+//         for (element, alts) in tokenmap.clone() {
+//             let element_matches = |e: &ElementIR, mut _b: &mut HashSet<Arc<AltIR>, RandomState>| {
+//                 println!("{:#?}", _b);
+//                 discriminant(&element) == discriminant(e) && element.id().unwrap() == e.id().unwrap()
+//             };
+
+//             let ambiguous_matches: Vec<_> = tokenmap.remove_all_keys_matching(element_matches).collect();
+            
+            
+//         }
+
+//         MatchNode::Peek(out)
+// }

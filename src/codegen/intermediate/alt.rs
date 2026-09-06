@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::{marker::PhantomData, sync::Arc};
 
+use crate::util::HashArc;
 use crate::{
     antlr::ast::{Alt, Atom, Element},
     codegen::{intermediate::element::ElementIR, symbols::SymbolTable},
@@ -59,7 +60,7 @@ impl AltIR {
                     let mut alts = Vec::new();
 
                     for (alt_index, alt) in block.0.alts().iter().enumerate() {
-                        alts.push(Arc::new(AltIR::new(alt, alt_index, None, table)?));
+                        alts.push(HashArc::new(AltIR::new(alt, alt_index, None, table)?));
                     }
 
                     ElementIR::Block {

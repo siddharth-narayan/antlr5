@@ -1,4 +1,5 @@
 use std::hash::BuildHasher;
+use std::ops::Deref;
 use std::{collections::HashSet, hash::Hash};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -7,6 +8,31 @@ use rapidhash::fast::{RandomState};
 use serde::{Deserialize, Serialize};
 
 use crate::codegen::intermediate::element::ElementIR;
+
+#[derive(PartialEq, Eq, Serialize, Deserialize, Clone, Debug)]
+pub struct HashArc<T> {
+    inner: std::sync::Arc<T>
+}
+
+impl<T> HashArc<T> {
+    pub fn new(inner: T) -> HashArc<T> {
+        HashArc { inner: std::sync::Arc::new(inner) }
+    }
+}
+
+impl<T> Hash for HashArc<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::sync::Arc::as_ptr(&self.inner).hash(state);
+    }
+}
+
+impl<T> Deref for HashArc<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[

@@ -4,7 +4,7 @@ use std::{collections::{HashSet, VecDeque}, sync::Arc};
 use rapidhash::fast::RandomState;
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::HashSetMap};
+use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::{HashArc, HashSetMap}};
 
 pub mod rule;
 pub mod element;
@@ -61,7 +61,7 @@ impl AntlrIR {
         self.rules.get(rule).cloned()
     }
 
-    pub fn get_rule_alt(&self, rule: usize, alt: usize) -> Option<Arc<AltIR>> {
+    pub fn get_rule_alt(&self, rule: usize, alt: usize) -> Option<HashArc<AltIR>> {
         self.rules.get(rule)?.alts().get(alt).cloned()
     }
 
@@ -73,7 +73,7 @@ impl AntlrIR {
         &self.symbol_table
     }
 
-    pub fn get_alt(&self, rule: usize, alt: usize) -> Option<Arc<AltIR>> {
+    pub fn get_alt(&self, rule: usize, alt: usize) -> Option<HashArc<AltIR>> {
         self.rules.get(rule)?.alts().get(alt).cloned()
     }
 }

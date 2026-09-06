@@ -1,8 +1,8 @@
-use std::{collections::{BTreeSet, HashSet}, sync::Arc};
+use std::{collections::{BTreeSet}, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::{AltIR}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::AltIR, util::HashArc};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum ElementIR {
@@ -19,7 +19,7 @@ pub enum ElementIR {
         suffix: Option<EBNFSuffix>
     },
     Block {
-        block: Vec<Arc<AltIR>>,
+        block: Vec<HashArc<AltIR>>,
         suffix: Option<EBNFSuffix>
     },
     // EBNF(EBNF)

@@ -3,8 +3,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    antlr::ast::{Rule, TokenRule},
-    codegen::{intermediate::alt::AltIR, symbols::SymbolTable},
+    antlr::ast::{Rule, TokenRule}, codegen::{intermediate::alt::AltIR, symbols::SymbolTable}, util::HashArc,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +17,7 @@ pub struct RuleIR {
     // prequel: PhantomData<()>,
     name: String,
     optional: bool,
-    alts: Vec<Arc<AltIR>>,
+    alts: Vec<HashArc<AltIR>>,
 }
 
 impl RuleIR {
@@ -32,7 +31,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in rule.alts().iter().enumerate() {
-            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).expect("No rule found")), table)?));
+            alts.push(HashArc::new(AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).expect("No rule found")), table)?));
         }
 
         return Ok(RuleIR {
@@ -52,7 +51,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in rule.alts().iter().enumerate() {
-            alts.push(Arc::new(AltIR::new(alt, alt_index, Some(table.get_token_id(&name).expect("No rule found")), table)?));
+            alts.push(HashArc::new(AltIR::new(alt, alt_index, Some(table.get_token_id(&name).expect("No rule found")), table)?));
         }
 
         return Ok(RuleIR {
@@ -66,7 +65,7 @@ impl RuleIR {
         &self.name
     }
 
-    pub fn alts(&self) -> &Vec<Arc<AltIR>> {
+    pub fn alts(&self) -> &Vec<HashArc<AltIR>> {
         &self.alts
     }
 }

@@ -68,8 +68,8 @@ pub fn uppercase(string: String) -> String {
 }
 
 // We DEEP clone the Arc<AntlrIR> here. Any further changes will not affect this specific lookup
-// pub fn lookahead_lookup_filter(ir: Arc<AntlrIR>) -> impl Fn(ViaDeserialize<Vec<Arc<AltIR>>>) -> Option<Value> {
-//     move | alts: ViaDeserialize<Vec<Arc<AltIR>>> | -> Option<Value> {
+// pub fn lookahead_lookup_filter(ir: Arc<AntlrIR>) -> impl Fn(ViaDeserialize<Vec<HashArc<AltIR>>>) -> Option<Value> {
+//     move | alts: ViaDeserialize<Vec<HashArc<AltIR>>> | -> Option<Value> {
 //         let mut ir = Arc::unwrap_or_clone(ir.clone());
 //         Some(Value::from_serialize(ir.internal_lookahead_alts(&alts)))
 //     }

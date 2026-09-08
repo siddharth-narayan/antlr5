@@ -12,6 +12,7 @@
 // Peek
 match self.lexer.peek() {
     {% for key, subnode in node.Peek.peek | items %}
+    // {{ (key | token_from_id) }}
     {{ key }} => {
         {{ match_node(subnode) }}
     }
@@ -24,12 +25,18 @@ match self.lexer.peek() {
 {% macro match_element(node) %}
 {% if node.Element.element.RuleAtom is defined %}
 // RuleAtom
-let ruleabce = self.{{ (node.Element.element.RuleAtom.id | rule_from_id).name }}();
+let {{ (node.Element.element.RuleAtom.id | rule_from_id).name }} = self.{{ (node.Element.element.RuleAtom.id | rule_from_id).name }}();
 {% elif node.Element.element.TokenAtom is defined %}
 // TokenAtom
+match_token({{ node.Element.element.TokenAtom.id}})?;
 {% elif node.Element. element.TokenSet is defined %}
 // TokenSet
 {% else %}
 // Finished
+{% endif %}
+
+{# // {{ node.Element.next }} #}
+{% if node.Element.next is defined %}
+{{ match_element(node.Element.next) }}
 {% endif %}
 {% endmacro %}

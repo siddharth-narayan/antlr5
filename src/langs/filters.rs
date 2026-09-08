@@ -43,15 +43,9 @@ pub fn rule_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value> 
         Some(Value::from_serialize(rule))
     }
 }
-pub fn token_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value>{
-    move | id: usize | -> Option<Value> {
-        if let Some(rule) = ir.token_rules().get(id) {
-            Some(Value::from_serialize(rule.clone()))
-        } else if let Some(token) = ir.token_rules().get(id) {
-            Some(Value::from_serialize(token.clone()))
-        } else {
-            None
-        }
+pub fn token_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<String> {
+    move | id: usize | -> Option<String> {
+        ir.symbols().get_token_name(id)
     }
 }
 

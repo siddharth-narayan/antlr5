@@ -1,36 +1,35 @@
-{% macro match_alts(alts) %}
-{% set la = alts | lookahead_lookup_filter %}
-{{ lookahead(la, alts) }}
-{% endmacro %}
-
-{% macro lookahead(la, alts) %}
-{% if la.Terminal %}
-    {% set alt = alts[la.Terminal.alt] %}
-    {{ match_alt(alt, la.Terminal.continue_from) }}
-    {{ alt.label | default("Alt" ~ la.Terminal.alt, true) }} {
-        
-    }
+{% macro match_node(node) %}
+{% if node.Peek is defined %}
+{{ match_peek(node) }}
+{% elif node.Element is defined %}
+{{ match_element(node) }}
 {% else %}
-    match self.next() {
-        {% for key, value in la.Continues.tree | items %}
-        {{ key.TokenID }} => {
-            {{ lookahead(value, alts) }}
-        }
-        {% endfor %}
-    }
+// Finished
 {% endif %}
 {% endmacro %}
 
-{% macro match_alt(alt, from) %}
-{% for element in alt.elements[from:] %}
-{% if element.Atom %}
-    {% if element.Atom.atom.RuleID %}
-        let {{ (element.Atom.atom.RuleID | rule_from_id).name }} = self.{{ (element.Atom.atom.RuleID | rule_from_id).name }}()?;
-    {% else %}
-        let token = self.match_token({{ element.Atom.atom.TokenID }})?;
-    {% endif %}
+{% macro match_peek(node) %}
+// Peek
+match self.lexer.peek() {
+    {% for key, subnode in node.Peek.peek | items %}
+    {{ key }} => {
+        {{ match_node(subnode) }}
+    }
+    {% endfor %}
+};
+
+
+{% endmacro %}
+
+{% macro match_element(node) %}
+{% if node.Element.element.RuleAtom is defined %}
+// RuleAtom
+let ruleabce = self.{{ (node.Element.element.RuleAtom.id | rule_from_id).name }}();
+{% elif node.Element.element.TokenAtom is defined %}
+// TokenAtom
+{% elif node.Element. element.TokenSet is defined %}
+// TokenSet
 {% else %}
-    // TODO match block
+// Finished
 {% endif %}
-{% endfor %}
 {% endmacro %}

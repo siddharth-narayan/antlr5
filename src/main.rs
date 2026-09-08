@@ -2,13 +2,13 @@
 #![feature(option_into_flat_iter)]
 #![allow(unused)] // Temporary
 
-use std::{collections::{HashSet, VecDeque}, fs::read_to_string, hash::RandomState, hint::black_box, sync::Arc};
+use std::{collections::{HashSet, VecDeque}, fs::read_to_string, hash::RandomState, hint::black_box, sync::Arc, time::Instant};
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tracing_subscriber::{Registry, layer::SubscriberExt};
 use tracing_tree::HierarchicalLayer;
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::nth, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, jinja_env, output}, util::HashSetMap};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, jinja_env, output}, util::HashSetMap};
 
 #[cfg(test)]
 mod tests;
@@ -19,6 +19,7 @@ mod langs;
 mod util;
 
 fn main() -> Result<(), ()> {
+    let now = Instant::now();
     if std::env::args().any(|arg| arg == "--debug") {
         let subscriber = Registry::default().with(
             HierarchicalLayer::new(4)
@@ -40,30 +41,35 @@ fn main() -> Result<(), ()> {
     let ir = Arc::new(AntlrIR::new(ast));
     
     // .with_min_len(ir.rules().len().div_ceil(rayon::current_num_threads()))
-    (0..ir.rules().len()).into_par_iter().for_each(
-        |rule_id| {
-            let mut cache = HashSetMap::new();
-            for n in 0..=25 {
-                let mut set: HashSet<ElementIR, RandomState> = HashSet::default();
+    // (0..ir.rules().len()).into_par_iter().for_each(
+    //     |rule_id| {
+    //         let mut cache = HashSetMap::new();
+    //         for n in 0..=25 {
+    //             let mut set: HashSet<ElementIR, RandomState> = HashSet::default();
 
-                for alt in ir.get_rule(rule_id).unwrap().alts() {
-                    let n = crate::nth(n, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut cache, &mut HashSet::default(), ir.rules()).cloned().unwrap_or_default();
-                    set.extend(n);
-                }
+    //             for alt in ir.get_rule(rule_id).unwrap().alts() {
+    //                 let n = crate::nth(n, 0, (alt.clone(), 0), &mut VecDeque::new(), &mut cache, &mut HashSet::default(), ir.rules()).cloned().unwrap_or_default();
+    //                 set.extend(n);
+    //             }
 
-                // println!("NTH set for n = {}: {:#?}", n, set);
-                black_box(set);
-            }
+    //             // println!("NTH set for n = {}: {:#?}", n, set);
+    //             black_box(set);
+    //         }
 
-            println!("Calculated nth sets for rule {}", rule_id);
-        }
-    );
+    //         println!("Calculated nth sets for rule {}", rule_id);
+    //     }
+    // );
 
-    // // let jinja_env = jinja_env(ir.clone());
+    // let match_node = match_rule(ir.clone(), 1).unwrap();
+    
+    // println!("Match of rule 1: {:#?}", match_node);
 
-    // // output(ir.clone(), "out", jinja_env, Language::Rust);
+    let jinja_env = jinja_env(ir.clone());
+
+    output(ir.clone(), "out", jinja_env, Language::Rust);
     
     // black_box(ir);
-
+    // println!("{:#?}", ir.symbols());
+    // println!("{}ms", now.elapsed().as_millis());
     Ok(())
 }

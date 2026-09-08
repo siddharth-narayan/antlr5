@@ -87,11 +87,11 @@ pub fn nth<'a>(
     return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum MatchNode {
     Peek {
-        alt: HashArc<AltIR>,
-        element_idx: usize,
+        // alt: HashArc<AltIR>,
+        // element_idx: usize,
 
         peek: HashMap<usize, MatchNode, RandomState>,
         fallback: Option<Box<MatchNode>>
@@ -126,15 +126,16 @@ impl MatchNode {
 
 
 // for exact matches we continue to the next element directly
-    pub fn merge(&mut self, mut other: MatchNode) {
+    #[instrument(skip(self, ir, other))]
+    pub fn merge(&mut self, mut other: MatchNode, ir: Arc<AntlrIR>) {
         match self {
-            MatchNode::Peek { alt: alt_left, element_idx: element_idx_left, peek: peek_left, fallback: fallback_left } => {
+            MatchNode::Peek { peek: peek_left, fallback: fallback_left } => {
                 match other {
-                    MatchNode::Peek { alt: alt_right, element_idx: element_idx_right, peek: peek_right, fallback: fallback_right } => {
+                    MatchNode::Peek { peek: peek_right, fallback: fallback_right } => {
                         for (token_right, node_right) in peek_right {
                             match peek_left.get_mut(&token_right) {
                                 Some(match_left) => {
-                                    match_left.merge(node_right);
+                                    match_left.merge(node_right, ir.clone());
                                 },
                                 None => {
                                     peek_left.insert(token_right, node_right);
@@ -146,7 +147,7 @@ impl MatchNode {
                         match fallback_left {
                             Some(fallback_left) => {
                                 if let Some(fallback_right) = fallback_right {
-                                    fallback_left.merge(*fallback_right);
+                                    fallback_left.merge(*fallback_right, ir);
                                 };
                             },
                             None => {
@@ -158,7 +159,7 @@ impl MatchNode {
                     MatchNode::Element { ref element, .. } => {
                         match peek_left.get_mut(&element.id().unwrap()) {
                             Some(match_left) => {
-                                match_left.merge(other);
+                                match_left.merge(other, ir);
                             },
                             None => {
                                 // Do we insert other here?
@@ -171,14 +172,34 @@ impl MatchNode {
                 }
             },
 
-            MatchNode::Element { alt, element_idx, element, next } => {
+            MatchNode::Element { alt: alt_left, element_idx: element_idx_left, element: element_left, next: next_left } => {
                 match other {
                     // Swap and recurse
                     MatchNode::Peek { .. } => {
                         std::mem::swap(self, &mut other);
-                        self.merge(other);
+                        self.merge(other, ir);
                     },
-                    MatchNode::Element { alt, element_idx, element, next } => todo!(),
+                    MatchNode::Element { alt: alt_right, element_idx: element_idx_right, element: element_right, next: next_right } => {
+                        let mut peek = HashMap::default();
+                        if let Some(nthset) = nth(0, 0, (alt_left.clone(), *element_idx_left), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
+                            for element in nthset {
+                                if let ElementIR::TokenAtom { .. } = element {
+                                    peek.insert(element.id().unwrap(), match_element(alt_left.clone(), *element_idx_left).unwrap());
+                                }
+                            }
+                        }
+                        
+                        if let Some(nthset) = nth(0, 0, (alt_right.clone(), element_idx_right), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
+                            for element in nthset {
+                                if let ElementIR::TokenAtom { .. } = element {
+                                    peek.insert(element.id().unwrap(), match_element(alt_right.clone(), element_idx_right).unwrap());
+                                }
+                            }
+                        }
+                        
+                        *self = MatchNode::Peek { peek, fallback: None };
+
+                    },
                     MatchNode::Finish => (),
                 }
             }
@@ -190,18 +211,27 @@ impl MatchNode {
     }
 }
 
-fn match_element(alt: HashArc<AltIR>, element_idx: usize) -> Option<MatchNode> {
+#[instrument]
+pub fn match_element(alt: HashArc<AltIR>, element_idx: usize) -> Option<MatchNode> {
     Some(MatchNode::Element { alt: alt.clone(), element_idx, element: alt.elements().get(element_idx)?.clone(), next: match_element(alt, element_idx + 1).map(Box::new) })
 }
 
-fn match_alts(alts: &Vec<HashArc<AltIR>>) -> MatchNode {
+#[instrument(skip(ir))]
+pub fn match_alts(ir: Arc<AntlrIR>, alts: &Vec<HashArc<AltIR>>) -> MatchNode {
     let mut match_node = match_element(alts[0].clone(), 0).unwrap();
 
     for next_alt in alts.get(1..).unwrap() {
-        match_node.merge(match_element(next_alt.clone(), 0).unwrap())
+        match_node.merge(match_element(next_alt.clone(), 0).unwrap(), ir.clone())
     };
 
     match_node
+}
+
+#[instrument(skip(ir))]
+pub fn match_rule(ir: Arc<AntlrIR>, rule: usize) -> Option<MatchNode> {
+    let rule = ir.rules().get(rule)?;
+
+    Some(match_alts(ir.clone(), rule.alts()))
 }
 
 // fn match_alts_old(

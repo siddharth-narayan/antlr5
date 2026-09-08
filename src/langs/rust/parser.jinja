@@ -1,4 +1,4 @@
-{% from "rust-lookahead" import lookahead, match_alts, match_alt %}
+{% from "rust-lookahead" import match_node %}
 
 pub struct Parser {
     rule_stack: VecDeque<usize>
@@ -9,13 +9,7 @@ impl Parser {
     pub fn {{ rule.name }}(&mut self) -> Result<{{ rule.name | capitalize }}, ANTLRError> {
         self.rule_stack.push({{ rule.name | id_from_rule }});
 
-        {% if rule.alts | length > 1 %}
-        let result = {{ match_alts(rule.alts) }};
-        {% else %}
-        {{ match_alt(rule.alts[0], 0) }}
-        let __result = {{ rule.name | capitalize }} {
-        };
-        {% endif %}
+        {{ match_node(loop.index | lookahead) }}
 
         self.rule_stack.pop();
 

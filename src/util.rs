@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::codegen::intermediate::element::ElementIR;
 
-#[derive(PartialEq, Eq, Serialize, Deserialize, Clone, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct HashArc<T> {
     inner: std::sync::Arc<T>
 }
@@ -17,6 +17,12 @@ pub struct HashArc<T> {
 impl<T> HashArc<T> {
     pub fn new(inner: T) -> HashArc<T> {
         HashArc { inner: std::sync::Arc::new(inner) }
+    }
+}
+
+impl<T: Debug> Debug for HashArc<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&**self, f)
     }
 }
 

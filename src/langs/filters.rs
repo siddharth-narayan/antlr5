@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use minijinja::{Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::{ElementIR}}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::match_rule, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, util::HashArc};
 
 pub fn element_prefix(e: ViaDeserialize<ElementIR>) -> String {
     if let Some(suffix) = e.suffix() {
@@ -68,9 +68,9 @@ pub fn uppercase(string: String) -> String {
 }
 
 // We DEEP clone the Arc<AntlrIR> here. Any further changes will not affect this specific lookup
-// pub fn lookahead_lookup_filter(ir: Arc<AntlrIR>) -> impl Fn(ViaDeserialize<Vec<HashArc<AltIR>>>) -> Option<Value> {
-//     move | alts: ViaDeserialize<Vec<HashArc<AltIR>>> | -> Option<Value> {
-//         let mut ir = Arc::unwrap_or_clone(ir.clone());
-//         Some(Value::from_serialize(ir.internal_lookahead_alts(&alts)))
-//     }
-// }
+pub fn lookahead(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value> {
+    move | rule | -> Option<Value> {
+        let mut ir = Arc::unwrap_or_clone(ir.clone());
+        Some(Value::from_serialize(match_rule(ir.into(), rule)))
+    }
+}

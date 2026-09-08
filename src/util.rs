@@ -5,11 +5,11 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use rapidhash::fast::{RandomState};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::codegen::intermediate::element::ElementIR;
 
-#[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Eq, Deserialize, Clone)]
 pub struct HashArc<T> {
     inner: std::sync::Arc<T>
 }
@@ -23,6 +23,16 @@ impl<T> HashArc<T> {
 impl<T: Debug> Debug for HashArc<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(&**self, f)
+    }
+}
+
+impl<T: Serialize> Serialize for HashArc<T> {
+#[inline]
+fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    {
+        (**self).serialize(serializer)
     }
 }
 

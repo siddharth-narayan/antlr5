@@ -42,12 +42,12 @@ pub enum {{ rule.name | capitalize }} {
 pub struct {{ rule.name | capitalize }} {
     {% for alt in rule.alts %}
         {% for element in alt.elements %}
-            {% if element.Atom.atom.RuleID is defined %}
-            {{ (element.Atom.atom.RuleID | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.Atom.atom.RuleID | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
+            {% if element.RuleAtom is defined %}
+            {{ (element.RuleAtom.id | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.RuleAtom.id | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
             {% endif %}
 
 
-            {% if element.Atom.atom.TokenID is defined %}
+            {% if element.TokenAtom is defined %}
             token_{{ loop.index }}: {{ element | etype_prefix }}Token_{{ loop.index }}{{ element | etype_suffix }},
             {% endif %}
         {% endfor %}

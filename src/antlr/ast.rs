@@ -188,7 +188,5 @@ impl AltList {
 pub enum EBNFSuffix {
     Optional,
     Star,
-    // StarOptional, just star
     Plus,
-    // PlusOptional, just star
 }

@@ -24,7 +24,7 @@ match self.lexer.peek() {
 
 {% macro match_element(node) %}
 {% if node.Element.element.RuleAtom is defined %}
-// RuleAtom
+// RuleAtom, suffix: {{ node.Element.element.RuleAtom.suffix }}
 let {{ (node.Element.element.RuleAtom.id | rule_from_id).name }} = self.{{ (node.Element.element.RuleAtom.id | rule_from_id).name }}();
 {% elif node.Element.element.TokenAtom is defined %}
 // TokenAtom

@@ -65,6 +65,8 @@ pub fn uppercase(string: String) -> String {
 pub fn lookahead(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value> {
     move | rule | -> Option<Value> {
         let mut ir = Arc::unwrap_or_clone(ir.clone());
-        Some(Value::from_serialize(match_rule(ir.into(), rule)))
+        Some(Value::from_serialize(    stacker::grow(16385 * 1024 * 1024, ||
+match_rule(ir.into(), rule))))
     }
+
 }

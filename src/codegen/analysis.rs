@@ -23,11 +23,11 @@ pub fn nth<'a>(
 
     nth_set_cache: &'a mut HashSetMap<(HashArc<AltIR>, usize), ElementIR, RandomState>,
     visited: &mut HashSet<(HashArc<AltIR>, usize, usize, usize), RandomState>,
-    rules: &Vec<Arc<RuleIR>>,
+    rules: &Vec<RuleIR>,
 ) -> Option<&'a HashSet<ElementIR, RandomState>> {
 
     let mut set = HashSet::with_hasher(RandomState::new());
-        
+    
     let too_far = current_idx > n;
     let already_visited = !visited.insert((alt.clone(), n, element_idx, current_idx));
     if too_far || already_visited {
@@ -64,13 +64,6 @@ pub fn nth<'a>(
 
         ElementIR::RuleAtom { id, .. } => {
             for rule_alt in rules.get(id).unwrap().alts().clone() {
-                continuation.push_back((alt.clone(), element_idx + 1));
-                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
-            }
-        }
-
-        ElementIR::Block { block, .. } => {
-            for rule_alt in block {
                 continuation.push_back((alt.clone(), element_idx + 1));
                 set.extend(nth(n, current_idx, (rule_alt.clone(), 0), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
             }

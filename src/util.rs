@@ -1,5 +1,7 @@
 use std::hash::BuildHasher;
-use std::ops::Deref;
+use std::mem::MaybeUninit;
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 use std::{collections::HashSet, hash::Hash};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -8,6 +10,7 @@ use rapidhash::fast::{RandomState};
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::codegen::intermediate::element::ElementIR;
+use crate::codegen::intermediate::rule::RuleIR;
 
 #[derive(PartialEq, Eq, Deserialize, Clone)]
 pub struct HashArc<T> {
@@ -43,12 +46,20 @@ impl<T> Hash for HashArc<T> {
 }
 
 impl<T> Deref for HashArc<T> {
-    type Target = T;
+    type Target = Arc<T>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
+
+// impl<T: DerefMut> DerefMut for HashArc<T> {
+//     type Target = T;
+
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.inner
+//     }
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[
@@ -164,5 +175,70 @@ impl<K: Hash + Eq + Clone, V: Hash + Eq, S: BuildHasher + Default> IntoIterator 
     
     fn into_iter(self) -> Self::IntoIter {
         self.map.into_iter()
+    }
+}
+
+
+pub struct Arena<T> {
+    // Unlike a Vec<T>, capacity is the length of the vector, made of MaybeUnininit::unintialized()
+    capacity: usize,
+
+    mask: Vec<bool>,
+    rules: Vec<MaybeUninit<T>>
+}
+
+impl<T> Arena<T> {
+    pub fn new() -> Arena<T> {
+        Arena { capacity: 0, mask: Vec::new(), rules: Vec::new() }
+    }
+
+    pub fn reserve(&mut self, size: usize) {
+        for _ in self.capacity..size {
+            self.rules.push(MaybeUninit::uninit());
+        }
+
+        self.capacity = size;
+    }
+
+    pub fn push(&mut self, item: T) -> usize {
+        self.push_index(0, item)
+    }
+
+    pub fn push_index(&mut self, mut index: usize, item: T) -> usize {
+        loop {
+            match self.mask.get(index) {
+                Some(true) => (),
+                Some(false) => {
+                    self.rules[index] = MaybeUninit::new(item);
+                    self.mask[index] = true;
+
+                    return index;
+                },
+
+                None => {
+                    self.reserve(index + 1);
+                    self.rules[index] = MaybeUninit::new(item);
+                    self.mask[index] = true;
+
+                    return index;
+                }
+            }
+
+            index += 1;
+        }
+    }
+
+    pub fn finalize(mut self) -> Vec<T> {
+        let mut final_vec = Vec::new();
+
+        let mut index = 0;
+        while let Some(true) = self.mask.get(index) {
+            let rule = std::mem::replace(&mut self.rules[index], MaybeUninit::uninit());
+            
+            final_vec.push(unsafe { rule.assume_init() } );
+            index += 1;
+        }
+        
+        final_vec
     }
 }

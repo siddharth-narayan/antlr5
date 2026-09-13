@@ -30,7 +30,7 @@ pub fn get_strlits(alt: &Alt) -> Vec<String> {
     for element in alt.elements() {
         match element {
             Element::Atom{ atom: Atom::StringLit(s), .. } => {
-                out.push(s.clone()); // TODO: This does not catch strlits in blocks
+                out.push(s.clone());
             },
             Element::Block { block, .. } => {
                 for alt in block.0.alts() {
@@ -50,7 +50,6 @@ impl SymbolTable {
 
         // I don't want to clone everywhere :(
         for rule in ast.rules().clone() {
-            let _ = table.insert_rule(rule.name().clone());
 
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
@@ -60,7 +59,6 @@ impl SymbolTable {
         }
 
         for rule in ast.token_rules().clone() {
-            let _ = table.insert_token_rule(rule.name().clone());
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
                     table.insert_strlit(strlit);
@@ -68,7 +66,7 @@ impl SymbolTable {
             }
         }
         
-        table.insert_token_rule("EOF".into());
+        table.insert_token_rule("EOF".into(), usize::MAX);
         table
     }
 
@@ -96,22 +94,22 @@ impl SymbolTable {
         self.strlit_map.get_inverse(&id).cloned()
     }
 
-    pub fn insert_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
+    pub fn insert_rule(&mut self, name: String, index: usize) -> Result<(), AnalysisErr> {
         if self.rule_map.contains(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
-        self.rule_map.insert(name, self.rule_map.len());
+        self.rule_map.insert(name, index);
 
         Ok(())
     }
 
-    pub fn insert_token_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
+    pub fn insert_token_rule(&mut self, name: String, index: usize) -> Result<(), AnalysisErr> {
         if self.token_map.contains(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
-        self.token_map.insert(name, self.token_map.len() + self.strlit_map.len());
+        self.token_map.insert(name, index);
 
         Ok(())
     }

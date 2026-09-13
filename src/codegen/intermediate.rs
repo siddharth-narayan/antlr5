@@ -1,10 +1,10 @@
 
-use std::{collections::{HashSet, VecDeque}, sync::Arc};
+use std::{collections::{HashSet, VecDeque}, mem::MaybeUninit, ops::Deref, sync::Arc};
 
 use rapidhash::fast::RandomState;
 use serde::{Deserialize, Serialize};
 
-use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::{HashArc, HashSetMap}};
+use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::{Arena, HashArc, HashSetMap}};
 
 pub mod rule;
 pub mod element;
@@ -13,8 +13,8 @@ pub mod alt;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntlrIR {
     ast: Arc<ANTLRAst>,
-    rules: Vec<Arc<RuleIR>>,
-    token_rules: Vec<Arc<RuleIR>>,
+    rules: Vec<RuleIR>,
+    token_rules: Vec<RuleIR>,
 
     symbol_table: SymbolTable,
 }
@@ -24,14 +24,27 @@ impl AntlrIR {
         let ast = Arc::new(ast);
         let symbol_table = SymbolTable::new(&ast);
 
-        let mut rules = Vec::new();
-        for rule in ast.rules() {
-            rules.push(Arc::new(RuleIR::new(rule, &symbol_table).unwrap()))
+        let mut rules = Vec::with_capacity(ast.rules().len() + 100);
+        for _ in 0..ast.rules().len() {
+            rules.push(MaybeUninit::uninit())
+        }
+
+        for (rule_idx, rule) in ast.rules().iter().enumerate() {
+            let rule = RuleIR::new(rule, &symbol_table, &mut rules).unwrap();
+            rules[rule_idx] = MaybeUninit::new()
+        }
+
+        let mut rule_idx = 0;
+        while let Some(mut rule) = rules.get_mut(rule_idx) {
+            for alt in rule.assume_init().alts_mut() {
+                let x = Arc::make_mut(alt);
+            }
+            rule_idx += 1;
         }
 
         let mut token_rules = Vec::new();
         for rule in ast.token_rules() {
-            token_rules.push(Arc::new(RuleIR::new_tokenrule(rule, &symbol_table).unwrap()))
+            token_rules.push(RuleIR::new_tokenrule(rule, &symbol_table).unwrap())
         }
         
         AntlrIR {
@@ -53,11 +66,11 @@ impl AntlrIR {
         Some(nth_set)
     }
 
-    pub fn rules(&self) -> &Vec<Arc<RuleIR>> {
+    pub fn rules(&self) -> &Vec<RuleIR> {
         &self.rules
     }
     
-    pub fn get_rule(&self, rule: usize) -> Option<Arc<RuleIR>> {
+    pub fn get_rule(&self, rule: usize) -> Option<RuleIR> {
         self.rules.get(rule).cloned()
     }
 
@@ -65,7 +78,7 @@ impl AntlrIR {
         self.rules.get(rule)?.alts().get(alt).cloned()
     }
 
-    pub fn token_rules(&self) -> &Vec<Arc<RuleIR>> {
+    pub fn token_rules(&self) -> &Vec<RuleIR> {
         &self.token_rules
     }
 

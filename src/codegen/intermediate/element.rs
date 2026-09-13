@@ -14,12 +14,8 @@ pub enum ElementIR {
         id: usize,
         suffix: Option<EBNFSuffix>
     },
-    TokenSet {
+    Set {
         set: BTreeSet<usize>,
-        suffix: Option<EBNFSuffix>
-    },
-    Block {
-        block: Vec<HashArc<AltIR>>,
         suffix: Option<EBNFSuffix>
     },
     // EBNF(EBNF)
@@ -37,8 +33,7 @@ impl ElementIR {
         match self {
             ElementIR::RuleAtom { suffix, .. } |
             ElementIR::TokenAtom  { suffix, .. } |
-            ElementIR::TokenSet { suffix, .. } |
-            ElementIR::Block { suffix, .. } => *suffix
+            ElementIR::Set { suffix, .. } => *suffix
         }
     }
 }

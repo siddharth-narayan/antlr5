@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::{marker::PhantomData, sync::Arc};
 
+use crate::codegen::intermediate::rule::RuleIR;
 use crate::util::HashArc;
 use crate::{
     antlr::ast::{Alt, Atom, Element},
@@ -25,6 +26,7 @@ impl AltIR {
         index: usize,
         parent_rule: Option<usize>,
         table: &SymbolTable,
+        rules: &mut Vec<RuleIR>
     ) -> Result<AltIR, String> {
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
@@ -56,23 +58,14 @@ impl AltIR {
                     },
                 },
                 Element::Block { block, suffix } => {
-                    let _optional = block.0.optional(); // TODO use this for the suffix
-                    let mut alts = Vec::new();
-
-                    for (alt_index, alt) in block.0.alts().iter().enumerate() {
-                        alts.push(HashArc::new(AltIR::new(alt, alt_index, None, table)?));
-                    }
-
-                    ElementIR::Block {
-                        block: alts,
-                        suffix: *suffix,
-                    }
+                    
+                    ElementIR::RuleAtom { id: (), suffix: *suffix }
                 }
                 Element::Set {
                     inverted: _,
                     set,
                     suffix,
-                } => ElementIR::TokenSet {
+                } => ElementIR::Set {
                     set: set.clone(),
                     suffix: *suffix,
                 },

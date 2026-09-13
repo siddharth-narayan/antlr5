@@ -194,6 +194,7 @@ impl<T> Arena<T> {
 
     pub fn reserve(&mut self, size: usize) {
         for _ in self.capacity..size {
+            self.mask.push(false);
             self.rules.push(MaybeUninit::uninit());
         }
 

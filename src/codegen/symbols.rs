@@ -30,7 +30,7 @@ pub fn get_strlits(alt: &Alt) -> Vec<String> {
     for element in alt.elements() {
         match element {
             Element::Atom{ atom: Atom::StringLit(s), .. } => {
-                out.push(s.clone());
+                out.push(s.clone()); // TODO: This does not catch strlits in blocks
             },
             Element::Block { block, .. } => {
                 for alt in block.0.alts() {
@@ -50,6 +50,7 @@ impl SymbolTable {
 
         // I don't want to clone everywhere :(
         for rule in ast.rules().clone() {
+            let _ = table.insert_rule(rule.name().clone());
 
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
@@ -59,6 +60,7 @@ impl SymbolTable {
         }
 
         for rule in ast.token_rules().clone() {
+            let _ = table.insert_token_rule(rule.name().clone());
             for alt in rule.alts() {
                 for strlit in get_strlits(alt) {
                     table.insert_strlit(strlit);
@@ -66,10 +68,14 @@ impl SymbolTable {
             }
         }
         
-        table.insert_token_rule("EOF".into(), usize::MAX);
+        table.insert_token_rule("EOF".into());
         table
     }
 
+    pub fn rule_count(&self) -> usize {
+        self.rule_map.len()
+    }
+    
     pub fn get_rule_id(&self, name: &String) -> Option<usize> {
         self.rule_map.get(name).cloned()
     }
@@ -94,22 +100,22 @@ impl SymbolTable {
         self.strlit_map.get_inverse(&id).cloned()
     }
 
-    pub fn insert_rule(&mut self, name: String, index: usize) -> Result<(), AnalysisErr> {
+    pub fn insert_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
         if self.rule_map.contains(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
-        self.rule_map.insert(name, index);
+        self.rule_map.insert(name, self.rule_map.len());
 
         Ok(())
     }
 
-    pub fn insert_token_rule(&mut self, name: String, index: usize) -> Result<(), AnalysisErr> {
+    pub fn insert_token_rule(&mut self, name: String) -> Result<(), AnalysisErr> {
         if self.token_map.contains(&name) {
             return Err(AnalysisErr::Redefinition { of: name })
         }
 
-        self.token_map.insert(name, index);
+        self.token_map.insert(name, self.token_map.len() + self.strlit_map.len());
 
         Ok(())
     }

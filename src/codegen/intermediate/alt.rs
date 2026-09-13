@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::{marker::PhantomData, sync::Arc};
 
 use crate::codegen::intermediate::rule::RuleIR;
-use crate::util::HashArc;
+use crate::util::{Arena, HashArc};
 use crate::{
     antlr::ast::{Alt, Atom, Element},
     codegen::{intermediate::element::ElementIR, symbols::SymbolTable},
@@ -26,7 +26,7 @@ impl AltIR {
         index: usize,
         parent_rule: Option<usize>,
         table: &SymbolTable,
-        rules: &mut Vec<RuleIR>
+        rules: &mut Arena<RuleIR>,
     ) -> Result<AltIR, String> {
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
@@ -57,10 +57,16 @@ impl AltIR {
                         suffix: *suffix,
                     },
                 },
+
                 Element::Block { block, suffix } => {
-                    
-                    ElementIR::RuleAtom { id: (), suffix: *suffix }
+                    let rule = RuleIR::from_block(block, table, rules).unwrap();
+                    let index = rules.push_index(table.rule_count(), rule);
+                    ElementIR::RuleAtom {
+                        id: index,
+                        suffix: *suffix,
+                    }
                 }
+
                 Element::Set {
                     inverted: _,
                     set,

@@ -24,32 +24,21 @@ impl AntlrIR {
         let ast = Arc::new(ast);
         let symbol_table = SymbolTable::new(&ast);
 
-        let mut rules = Vec::with_capacity(ast.rules().len() + 100);
-        for _ in 0..ast.rules().len() {
-            rules.push(MaybeUninit::uninit())
-        }
+        let mut rules = Arena::new();
 
-        for (rule_idx, rule) in ast.rules().iter().enumerate() {
+        for rule in ast.rules() {
             let rule = RuleIR::new(rule, &symbol_table, &mut rules).unwrap();
-            rules[rule_idx] = MaybeUninit::new()
-        }
-
-        let mut rule_idx = 0;
-        while let Some(mut rule) = rules.get_mut(rule_idx) {
-            for alt in rule.assume_init().alts_mut() {
-                let x = Arc::make_mut(alt);
-            }
-            rule_idx += 1;
+            rules.push(rule);
         }
 
         let mut token_rules = Vec::new();
         for rule in ast.token_rules() {
-            token_rules.push(RuleIR::new_tokenrule(rule, &symbol_table).unwrap())
+            token_rules.push(RuleIR::new_tokenrule(rule, &symbol_table, &mut Arena::new()).unwrap())
         }
         
         AntlrIR {
             ast: ast,
-            rules,
+            rules: rules.finalize(),
             token_rules,
             symbol_table,
         }

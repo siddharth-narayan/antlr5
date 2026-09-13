@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    antlr::ast::{Block, Rule, TokenRule}, codegen::{intermediate::alt::AltIR, symbols::SymbolTable}, util::HashArc,
+    antlr::ast::{Block, Rule, TokenRule}, codegen::{intermediate::alt::AltIR, symbols::SymbolTable}, util::{Arena, HashArc},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,7 +21,7 @@ pub struct RuleIR {
 }
 
 impl RuleIR {
-    pub fn new(rule: &Rule, table: &SymbolTable, rules: &mut Vec<RuleIR>) -> Result<RuleIR, String> {
+    pub fn new(rule: &Rule, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
         let name = rule.name().clone();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
@@ -42,7 +42,7 @@ impl RuleIR {
         });
     }
 
-    pub fn new_tokenrule(rule: &TokenRule, table: &SymbolTable, rules: &mut Vec<RuleIR>) -> Result<RuleIR, String> {
+    pub fn new_tokenrule(rule: &TokenRule, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
         let name = rule.name().clone();
         let optional = rule.alt_list().optional();
         let mut alts = Vec::new();
@@ -62,7 +62,7 @@ impl RuleIR {
         });
     }
 
-    pub fn from_block(block: &Block, table: &SymbolTable, rules: &mut Vec<RuleIR>) -> Result<RuleIR, String> {
+    pub fn from_block(block: &Block, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
         let name = None;
         let optional = block.0.optional();
         let mut alts = Vec::new();

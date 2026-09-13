@@ -8,6 +8,7 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleIR {
+    is_block: bool,
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
     // return_val: PhantomData<()>,
@@ -36,6 +37,7 @@ impl RuleIR {
         }
 
         return Ok(RuleIR {
+            is_block: false,
             name: Some(name),
             optional,
             alts,
@@ -56,6 +58,7 @@ impl RuleIR {
         }
 
         return Ok(RuleIR {
+            is_block: false,
             name: Some(name),
             optional,
             alts,
@@ -76,6 +79,7 @@ impl RuleIR {
         }
 
         return Ok(RuleIR {
+            is_block: true,
             name: name,
             optional,
             alts,

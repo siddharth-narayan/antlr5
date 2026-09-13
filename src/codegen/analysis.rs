@@ -215,7 +215,7 @@ pub fn match_element(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) 
         if let Some(next_element_match) = match_element(alt, element_idx + 1, ir.clone()) {
             base.merge(next_element_match, ir);
         } else {
-            println!("Need to do continues too");
+            // println!("Need to do continues too");
         }
     }
     

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{codegen::{analysis::{MatchNode, match_element}, intermediate::element::ElementIR}, tests::{get_id_closures, parse}};
 
 static GRAMMAR: &'static str = 
@@ -12,7 +14,7 @@ LETTERC: 'c' ;";
 
 #[test]
 pub fn match_alt0() {
-    let ir = parse(GRAMMAR);
+    let ir = Arc::new(parse(GRAMMAR));
 
     let alt0 = ir.get_rule_alt(0, 0).unwrap();
 
@@ -41,16 +43,16 @@ pub fn match_alt0() {
 
     println!("{:#?}", ir.symbols());
 
-    assert_eq!(match_element(alt0, 0).unwrap(), alt0_expected);
+    assert_eq!(match_element(alt0, 0, ir).unwrap(), alt0_expected);
 }
 
 #[test]
 pub fn match_alt1() {
-    let ir = parse(GRAMMAR);
+    let ir = Arc::new(parse(GRAMMAR));
 
     let alt1 = ir.get_rule_alt(0, 1).unwrap();
 
-    let (token_id, strlit_id) = get_id_closures(ir.into());
+    let (token_id, strlit_id) = get_id_closures(ir.clone());
 
     let alt1_expected = MatchNode::Element { 
         alt: alt1.clone(),
@@ -80,5 +82,5 @@ pub fn match_alt1() {
         ))
     };
 
-    assert_eq!(match_element(alt1, 0).unwrap(), alt1_expected);
+    assert_eq!(match_element(alt1, 0, ir).unwrap(), alt1_expected);
 }

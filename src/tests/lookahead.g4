@@ -2,11 +2,11 @@ grammar lookahead;
 
 t: s x*;
 
-s: z s x | LETTERB 'b' LETTERA 'a' | LETTERA 'a' LETTERB 'b';
+s: z s x | LETTERB 'x' LETTERA 'y' | LETTERA 'y' LETTERB 'x';
 
-z: LETTERA 'a' | LETTERB 'b';
+z: LETTERA 'x' | LETTERB 'y';
 
-x: LETTERN 'n';
+x: LETTERN 'z';
 
 LETTERA: 'a';
 LETTERB: 'b';

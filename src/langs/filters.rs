@@ -5,21 +5,48 @@ use minijinja::{Value, value::ViaDeserialize};
 use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::match_rule, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, util::HashArc};
 
 pub fn element_prefix(e: ViaDeserialize<ElementIR>) -> String {
-    if let Some(suffix) = e.suffix() {
-        match suffix {
-            EBNFSuffix::Optional => "Option<".into(),
-            EBNFSuffix::Plus | EBNFSuffix::Star => "Vec<".into(),
+    match e.0 {
+        ElementIR::RuleAtom { id, suffix } => {
+            if let Some(suffix) = e.suffix() {
+                match suffix {
+                    EBNFSuffix::Optional => "Option<Box<".into(),
+                    EBNFSuffix::Plus | EBNFSuffix::Star => "Vec<".into(),
+                }
+            } else {
+                "Box<".into()
+            }
+        },
+
+        ElementIR::TokenAtom { id, suffix } => {
+            String::new()
+        },
+
+        ElementIR::Set { set, suffix } => {
+            String::new()
         }
-    } else {
-        String::new()
     }
 }
 
 pub fn element_suffix(e: ViaDeserialize<ElementIR>) -> String {
-    if let Some(_suffix) = e.suffix() {
-        ">".into()
-    } else {
-        String::new()
+    match e.0 {
+        ElementIR::RuleAtom { id, suffix } => {
+            if let Some(suffix) = e.suffix() {
+                match suffix {
+                    EBNFSuffix::Optional => ">>".into(),
+                    EBNFSuffix::Plus | EBNFSuffix::Star => ">".into(),
+                }
+            } else {
+                ">".into()
+            }
+        },
+
+        ElementIR::TokenAtom { id, suffix } => {
+            String::new()
+        },
+
+        ElementIR::Set { set, suffix } => {
+            String::new()
+        }
     }
 }
 
@@ -45,7 +72,8 @@ pub fn rule_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value> 
 }
 pub fn token_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<String> {
     move | id: usize | -> Option<String> {
-        ir.symbols().get_token_name(id).or(ir.symbols().get_strlit_name(id).map(|s| format!("'{}'", s)))
+        ir.symbols().get_token_name(id)
+        // .or(ir.symbols().get_strlit_name(id).map(|s| format!("'{}'", s)))
     }
 }
 

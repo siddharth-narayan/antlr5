@@ -2,10 +2,12 @@
 use std::collections::VecDeque;
 
 pub enum ANTLRError {
+    NoAlt,
     Mismatched,
     EOF
 }
 
+#[derive(Clone)]
 pub struct Token {
     token_type: usize,
     text: String
@@ -22,12 +24,12 @@ impl Parser {
         self.tokens.get(self.head + 1)
     }
 
-    pub fn match_token(&mut self, token: usize) -> Result<(), ANTLRError> {
+    pub fn match_token(&mut self, token: usize) -> Result<Token, ANTLRError> {
         match self.tokens.get(self.head) {
             Some(t) => {
                 if t.token_type == token {
                     self.head += 1;
-                    Ok(())
+                    Ok(t.clone())
                 } else {
                     Err(ANTLRError::Mismatched)
                 }
@@ -58,15 +60,17 @@ impl Parser {
 {% if rule.alts | length > 1 %}
 pub enum {{ rule.name | capitalize }} {
     {% for alt in rule.alts %}
-    {{ alt.label | default("Alt" ~ loop.index, true) }} {
+    {{ alt.label | default("Alt" ~ loop.index0, true) }} {
         {% for element in alt.elements %}
-            {% if element.Atom.atom.RuleID is defined %}
-            {{ (element.Atom.atom.RuleID | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.Atom.atom.RuleID | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
+            {% if element.RuleAtom is defined %}
+            {{ (element.RuleAtom.id | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.RuleAtom.id | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
             {% endif %}
 
 
-            {% if element.Atom.atom.TokenID is defined %}
-            token_{{ loop.index }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+            {% if element.TokenAtom is defined %}
+                {% if element.TokenAtom.id | token_from_id %}
+                    {{ element.TokenAtom.id | token_from_id }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+                {% endif %}            
             {% endif %}
         {% endfor %}
     },
@@ -83,7 +87,9 @@ pub struct {{ rule.name | capitalize }} {
 
 
             {% if element.TokenAtom is defined %}
-            token_{{ loop.index }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+                {% if element.TokenAtom.id | token_from_id %}
+                    {{ element.TokenAtom.id | token_from_id }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+                {% endif %}
             {% endif %}
         {% endfor %}
     {% endfor %}
@@ -99,7 +105,9 @@ impl {{ rule.name | capitalize }} {
 
 
                 {% if element.TokenAtom is defined %}
-                token_{{ loop.index }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+                    {% if element.TokenAtom.id | token_from_id %}
+                        {{ element.TokenAtom.id | token_from_id }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+                    {% endif %}
                 {% endif %}
             {% endfor %}
         {% endfor %}
@@ -115,7 +123,9 @@ impl {{ rule.name | capitalize }} {
 
 
                     {% if element.TokenAtom is defined %}
-                    token_{{ loop.index }},
+                        {% if element.TokenAtom.id | token_from_id %}
+                            {{ element.TokenAtom.id | token_from_id }},
+                        {% endif %}                    
                     {% endif %}
                 {% endfor %}
             {% endfor %}

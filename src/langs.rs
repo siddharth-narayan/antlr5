@@ -72,4 +72,6 @@ pub fn add_default_filters(env: &mut Environment, ir: Arc<AntlrIR>) {
     env.add_filter("id_from_rule", id_from_rule_name_filter(ir.clone()));
     env.add_filter("token_from_id", token_from_id_filter(ir.clone()));
     env.add_filter("lookahead", lookahead(ir.clone()));
+
+    env.add_filter("default", minijinja::filters::default);
 }

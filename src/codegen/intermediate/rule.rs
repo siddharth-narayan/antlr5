@@ -32,7 +32,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in rule.alts().iter().enumerate() {
-            let alt = AltIR::new(alt, alt_index, Some(table.get_rule_id(&name).expect("No rule found")), table, rules)?;
+            let alt = AltIR::new(alt, alt_index, table.get_rule_id(&name).expect("No rule found"), table, rules)?;
             alts.push(HashArc::new(alt));
         }
 
@@ -54,7 +54,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in rule.alts().iter().enumerate() {
-            alts.push(HashArc::new(AltIR::new(alt, alt_index, Some(table.get_token_id(&name).expect("No rule found")), table, rules)?));
+            alts.push(HashArc::new(AltIR::new(alt, alt_index, table.get_token_id(&name).expect("No rule found"), table, rules)?));
         }
 
         return Ok(RuleIR {
@@ -65,7 +65,7 @@ impl RuleIR {
         });
     }
 
-    pub fn from_block(block: &Block, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
+    pub fn from_block(parent_rule: usize, block: &Block, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
         let name = None;
         let optional = block.0.optional();
         let mut alts = Vec::new();
@@ -75,7 +75,7 @@ impl RuleIR {
         };
 
         for (alt_index, alt) in block.0.alts().iter().enumerate() {
-            alts.push(HashArc::new(AltIR::new(alt, alt_index, None, table, rules)?));
+            alts.push(HashArc::new(AltIR::new(alt, alt_index, parent_rule, table, rules)?));
         }
 
         return Ok(RuleIR {

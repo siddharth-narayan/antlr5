@@ -206,21 +206,25 @@ impl<T> Arena<T> {
     }
 
     pub fn push_index(&mut self, mut index: usize, item: T) -> usize {
+        let position = self.push_index_landing_location(index);
+
+        self.rules[position] = MaybeUninit::new(item);
+        self.mask[position] = true;
+
+        return position;
+    }
+
+    // Where would an element be put if we pushed at a specific index
+    pub fn push_index_landing_location(&mut self, mut index: usize) -> usize {
         loop {
             match self.mask.get(index) {
                 Some(true) => (),
                 Some(false) => {
-                    self.rules[index] = MaybeUninit::new(item);
-                    self.mask[index] = true;
-
                     return index;
                 },
 
                 None => {
                     self.reserve(index + 1);
-                    self.rules[index] = MaybeUninit::new(item);
-                    self.mask[index] = true;
-
                     return index;
                 }
             }

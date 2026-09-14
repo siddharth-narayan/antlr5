@@ -91,10 +91,12 @@ pub enum MatchNode {
         element_idx: usize,
 
         element: ElementIR,
-        next: Option<Box<MatchNode>>
+        next: Box<MatchNode>
     },
 
-    Finish,
+    Finish {
+        alt: HashArc<AltIR>
+    },
 }
 
 impl MatchNode {
@@ -157,7 +159,7 @@ impl MatchNode {
                         }
                     },
                     
-                    MatchNode::Finish => (),
+                    MatchNode::Finish { .. } => (),
                 }
             },
 
@@ -173,7 +175,7 @@ impl MatchNode {
                         if let Some(nthset) = nth(0, 0, (alt_left.clone(), *element_idx_left), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
                             for element in nthset {
                                 if let ElementIR::TokenAtom { .. } = element {
-                                    peek.insert(element.id().unwrap(), match_element_dumb(alt_left.clone(), *element_idx_left, ir.clone()).unwrap());
+                                    peek.insert(element.id().unwrap(), match_element_dumb(alt_left.clone(), *element_idx_left, ir.clone()));
                                 }
                             }
                         }
@@ -181,7 +183,7 @@ impl MatchNode {
                         if let Some(nthset) = nth(0, 0, (alt_right.clone(), element_idx_right), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
                             for element in nthset {
                                 if let ElementIR::TokenAtom { .. } = element {
-                                    peek.insert(element.id().unwrap(), match_element_dumb(alt_right.clone(), element_idx_right, ir.clone()).unwrap());
+                                    peek.insert(element.id().unwrap(), match_element_dumb(alt_right.clone(), element_idx_right, ir.clone()));
                                 }
                             }
                         }
@@ -189,11 +191,11 @@ impl MatchNode {
                         *self = MatchNode::Peek { peek, fallback: None };
 
                     },
-                    MatchNode::Finish => (),
+                    MatchNode::Finish { .. } => (),
                 }
             }
             
-            MatchNode::Finish => {
+            MatchNode::Finish { .. } => {
                 *self = other;
             }
         }
@@ -201,41 +203,42 @@ impl MatchNode {
 }
 
 
-pub fn match_element_dumb(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) -> Option<MatchNode> { 
-    let element: ElementIR = alt.elements().get(element_idx)?.clone();
-    Some(MatchNode::Element { alt: alt.clone(), element_idx, element: element.clone(), next: match_element(alt.clone(), element_idx + 1, ir.clone()).map(Box::new) })
+pub fn match_element_dumb(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) -> MatchNode { 
+    let element: ElementIR = alt.elements().get(element_idx).unwrap().clone();
+    MatchNode::Element { alt: alt.clone(), element_idx, element: element.clone(), next: Box::new(match_element(alt.clone(), element_idx + 1, ir.clone())) }
 }
 
 #[instrument(skip(ir))]
-pub fn match_element(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) -> Option<MatchNode> {
-    let element: ElementIR = alt.elements().get(element_idx)?.clone();
-    let mut base = match_element_dumb(alt.clone(), element_idx, ir.clone())?;
+pub fn match_element(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) -> MatchNode {
+    let element: ElementIR = match alt.elements().get(element_idx) {
+        Some(e) => e.clone(),
+        None => return MatchNode::Finish { alt }
+    };
+
+    let mut base = match_element_dumb(alt.clone(), element_idx, ir.clone());
 
     if element.suffix() == Some(EBNFSuffix::Optional) ||  element.suffix() == Some(EBNFSuffix::Star) {
-        if let Some(next_element_match) = match_element(alt, element_idx + 1, ir.clone()) {
-            base.merge(next_element_match, ir);
-        } else {
-            // println!("Need to do continues too");
-        }
+        let next_element_match = match_element(alt, element_idx + 1, ir.clone());
+        base.merge(next_element_match, ir);
     }
     
-    return Some(base)
+    return base
 }
 
 #[instrument(skip(ir))]
 pub fn match_alts(ir: Arc<AntlrIR>, alts: &Vec<HashArc<AltIR>>) -> MatchNode {
-    let mut match_node = match_element(alts[0].clone(), 0, ir.clone()).unwrap();
+    let mut match_node = match_element(alts[0].clone(), 0, ir.clone());
 
     for next_alt in alts.get(1..).unwrap() {
-        match_node.merge(match_element(next_alt.clone(), 0, ir.clone()).unwrap(), ir.clone())
+        match_node.merge(match_element(next_alt.clone(), 0, ir.clone()), ir.clone())
     };
 
     match_node
 }
 
 #[instrument(skip(ir))]
-pub fn match_rule(ir: Arc<AntlrIR>, rule: usize) -> Option<MatchNode> {
-    let rule = ir.rules().get(rule)?;
+pub fn match_rule(ir: Arc<AntlrIR>, rule: usize) -> MatchNode {
+    let rule = ir.rules().get(rule).unwrap();
 
-    Some(match_alts(ir.clone(), rule.alts()))
+    match_alts(ir.clone(), rule.alts())
 }

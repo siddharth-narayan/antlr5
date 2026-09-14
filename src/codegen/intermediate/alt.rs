@@ -12,7 +12,7 @@ use crate::{
 #[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AltIR {
     index: usize,
-    parent_rule: Option<usize>,
+    parent_rule: usize,
 
     label: Option<String>,
     options: PhantomData<()>,
@@ -24,7 +24,7 @@ impl AltIR {
     pub fn new(
         alt: &Alt,
         index: usize,
-        parent_rule: Option<usize>,
+        parent_rule: usize,
         table: &SymbolTable,
         rules: &mut Arena<RuleIR>,
     ) -> Result<AltIR, String> {
@@ -59,7 +59,7 @@ impl AltIR {
                 },
 
                 Element::Block { block, suffix } => {
-                    let rule = RuleIR::from_block(block, table, rules).unwrap();
+                    let rule = RuleIR::from_block(parent_rule, block, table, rules).unwrap();
                     let index = rules.push_index(table.rule_count(), rule);
                     ElementIR::RuleAtom {
                         id: index,

@@ -45,7 +45,7 @@ pub fn rule_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value> 
 }
 pub fn token_from_id_filter(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<String> {
     move | id: usize | -> Option<String> {
-        ir.symbols().get_token_name(id)
+        ir.symbols().get_token_name(id).or(ir.symbols().get_strlit_name(id).map(|s| format!("'{}'", s)))
     }
 }
 
@@ -65,8 +65,8 @@ pub fn uppercase(string: String) -> String {
 pub fn lookahead(ir: Arc<AntlrIR>) -> impl Fn(usize) -> Option<Value> {
     move | rule | -> Option<Value> {
         let mut ir = Arc::unwrap_or_clone(ir.clone());
-        Some(Value::from_serialize(    stacker::grow(16385 * 1024 * 1024, ||
-match_rule(ir.into(), rule))))
+        let value = Value::from_serialize(match_rule(ir.into(), rule));
+        // println!("{:#?}", value);
+        Some(value)
     }
-
 }

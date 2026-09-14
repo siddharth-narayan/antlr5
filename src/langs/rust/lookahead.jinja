@@ -1,42 +1,53 @@
 {% macro match_node(node) %}
-{% if node.Peek is defined %}
-{{ match_peek(node) }}
-{% elif node.Element is defined %}
-{{ match_element(node) }}
-{% else %}
-// Finished
-{% endif %}
+    {% if node.Peek is defined %}
+        {{ match_peek(node) }}
+    {% elif node.Element is defined %}
+        {{ match_element(node) }}
+    {% else %}
+        // Finished
+    {% endif %}
 {% endmacro %}
+
+
 
 {% macro match_peek(node) %}
-// Peek
-match self.lexer.peek() {
-    {% for key, subnode in node.Peek.peek | items %}
-    // {{ (key | token_from_id) }}
-    {{ key }} => {
-        {{ match_node(subnode) }}
-    }
-    {% endfor %}
-};
-
-
+    // Peek
+    match self.peek().map(|t| t.token_type) {
+        {% for key, subnode in node.Peek.peek | items %}
+            // {{ (key | token_from_id) }}
+            Some({{ key }}) => {
+                {% if subnode.Peek is defined %}
+                    {{ match_peek(subnode) }}
+                {% elif subnode.Element is defined %}
+                    {{ match_element(subnode) }}
+                    
+                    Alt{{ subnode.Element.alt.index }} {
+                        
+                    }
+                {% else %}
+                    // Finished
+                {% endif %}
+            }
+        {% endfor %}
+    };
 {% endmacro %}
 
-{% macro match_element(node) %}
-{% if node.Element.element.RuleAtom is defined %}
-// RuleAtom, suffix: {{ node.Element.element.RuleAtom.suffix }}
-let {{ (node.Element.element.RuleAtom.id | rule_from_id).name }} = self.{{ (node.Element.element.RuleAtom.id | rule_from_id).name }}();
-{% elif node.Element.element.TokenAtom is defined %}
-// TokenAtom
-match_token({{ node.Element.element.TokenAtom.id}})?;
-{% elif node.Element. element.TokenSet is defined %}
-// TokenSet
-{% else %}
-// Finished
-{% endif %}
 
-{# // {{ node.Element.next }} #}
-{% if node.Element.next is defined %}
-{{ match_element(node.Element.next) }}
-{% endif %}
+
+{% macro match_element(node) %}
+    {% if node.Element.element.RuleAtom is defined %}
+        // RuleAtom, suffix: {{ node.Element.element.RuleAtom.suffix }}
+        let {{ (node.Element.element.RuleAtom.id | rule_from_id).name }} = self.{{ (node.Element.element.RuleAtom.id | rule_from_id).name }}();
+    {% elif node.Element.element.TokenAtom is defined %}
+        // {{ node.Element.element.TokenAtom.id | token_from_id }}
+        let token_next_{{ node.Element.element.TokenAtom.id }} = self.match_token({{ node.Element.element.TokenAtom.id }})?;
+    {% elif node.Element. element.TokenSet is defined %}
+        // TokenSet
+    {% else %}
+        // Finished
+    {% endif %}
+
+    {% if node.Element.next is defined %}
+        {{ match_element(node.Element.next) }}
+    {% endif %}
 {% endmacro %}

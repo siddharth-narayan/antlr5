@@ -1,17 +1,52 @@
 {% from "rust-lookahead" import match_node %}
+use std::collections::VecDeque;
+
+pub enum ANTLRError {
+    Mismatched,
+    EOF
+}
+
+pub struct Token {
+    token_type: usize,
+    text: String
+}
 
 pub struct Parser {
+    head: usize,
+    tokens: Vec<Token>,
     rule_stack: VecDeque<usize>
+}
+
+impl Parser {
+    pub fn peek(&self) -> Option<&Token> {
+        self.tokens.get(self.head + 1)
+    }
+
+    pub fn match_token(&mut self, token: usize) -> Result<(), ANTLRError> {
+        match self.tokens.get(self.head) {
+            Some(t) => {
+                if t.token_type == token {
+                    self.head += 1;
+                    Ok(())
+                } else {
+                    Err(ANTLRError::Mismatched)
+                }
+            },
+            None => Err(ANTLRError::EOF)
+        }
+    }
 }
 
 impl Parser {
     {% for rule in rules %}
     pub fn {{ rule.name }}(&mut self) -> Result<{{ rule.name | capitalize }}, ANTLRError> {
-        self.rule_stack.push({{ rule.name | id_from_rule }});
+        self.rule_stack.push_back({{ rule.name | id_from_rule }});
 
-        {{ match_node(loop.index0 | lookahead) }}
+        let __result = {
+            {{ match_node(loop.index0 | lookahead) }}
+        };
 
-        self.rule_stack.pop();
+        self.rule_stack.pop_back();
 
         Ok(__result)
     }
@@ -31,7 +66,7 @@ pub enum {{ rule.name | capitalize }} {
 
 
             {% if element.Atom.atom.TokenID is defined %}
-            token_{{ loop.index }}: {{ element | etype_prefix }}Token_{{ loop.index }}{{ element | etype_suffix }},
+            token_{{ loop.index }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
             {% endif %}
         {% endfor %}
     },
@@ -48,15 +83,43 @@ pub struct {{ rule.name | capitalize }} {
 
 
             {% if element.TokenAtom is defined %}
-            token_{{ loop.index }}: {{ element | etype_prefix }}Token_{{ loop.index }}{{ element | etype_suffix }},
+            token_{{ loop.index }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
             {% endif %}
         {% endfor %}
     {% endfor %}
 }
 
 impl {{ rule.name | capitalize }} {
-    pub fn new() -> {{ rule.name | capitalize }} {
+    pub fn new(
+        {% for alt in rule.alts %}
+            {% for element in alt.elements %}
+                {% if element.RuleAtom is defined %}
+                {{ (element.RuleAtom.id | rule_from_id).name }}: {{ element | etype_prefix }}{{ (element.RuleAtom.id | rule_from_id).name | capitalize }}{{ element | etype_suffix }},
+                {% endif %}
 
+
+                {% if element.TokenAtom is defined %}
+                token_{{ loop.index }}: {{ element | etype_prefix }}Token{{ element | etype_suffix }},
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    ) -> {{ rule.name | capitalize }} {
+
+
+        {{ rule.name | capitalize }} {
+            {% for alt in rule.alts %}
+                {% for element in alt.elements %}
+                    {% if element.RuleAtom is defined %}
+                    {{ (element.RuleAtom.id | rule_from_id).name }},
+                    {% endif %}
+
+
+                    {% if element.TokenAtom is defined %}
+                    token_{{ loop.index }},
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        }
     }
 }
 

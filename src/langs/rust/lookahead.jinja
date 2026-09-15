@@ -8,6 +8,34 @@
             {% for key, subnode in node.Peek.peek | items %}
                 // {{ (key | token_from_id) }}
                 Some({{ key }}) => {
+                    {# Make sure that Options and Vecs are initialized properly #}
+                    {% if subnode.Element is defined %}
+                        {% for element in subnode.Element.alt.elements %}
+                           
+                            {% if element.RuleAtom.suffix == "Optional" %}
+                                let {{ (element.RuleAtom.id | rule_from_id).name }} = None;
+                            {% elif element.RuleAtom.suffix == "Plus" %}
+                                let {{ (element.RuleAtom.id | rule_from_id).name }} = Vec::new();
+                            {% elif element.RuleAtom.suffix == "Star" %}
+                                let {{ (element.RuleAtom.id | rule_from_id).name }} = Vec::new();
+                           
+                           
+                            {% elif element.TokenAtom.suffix == "Optional" %}
+                                let {{ element.TokenAtom.id | token_from_id }} = None;
+                            {% elif element.TokenAtom.suffix == "Plus" %}
+                                let {{ element.TokenAtom.id | token_from_id }} = Vec::new();
+                            {% elif element.TokenAtom.suffix == "Star" %}
+                                let {{ element.TokenAtom.id | token_from_id }} = Vec::new();
+                            {% endif %}
+
+
+                            
+                        {% endfor %}
+                    {% endif %}
+
+
+
+                    {# Then, match normally #}
                     {{ match_node(subnode) }}
                 }
             {% endfor %}

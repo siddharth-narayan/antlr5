@@ -42,7 +42,7 @@ impl Parser {
 impl Parser {
     {% for rule in rules %}
     pub fn {{ rule.name }}(&mut self) -> Result<{{ rule.name | capitalize }}, ANTLRError> {
-        self.rule_stack.push_back({{ rule.name | id_from_rule }});
+        self.rule_stack.push_back({{ rule.id }});
 
         let __result = {
             {{ match_node(loop.index0 | lookahead) }}

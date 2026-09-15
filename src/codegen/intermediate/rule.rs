@@ -8,6 +8,8 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleIR {
+    id: usize,
+
     is_block: bool,
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
@@ -16,7 +18,7 @@ pub struct RuleIR {
     // throws_spec: PhantomData<()>,
     // locals: PhantomData<()>,
     // prequel: PhantomData<()>,
-    name: Option<String>,
+    name: String,
     optional: bool,
     alts: Vec<HashArc<AltIR>>,
 }
@@ -37,8 +39,9 @@ impl RuleIR {
         }
 
         return Ok(RuleIR {
+            id: table.get_rule_id(&name).expect("No rule found"),
             is_block: false,
-            name: Some(name),
+            name: name,
             optional,
             alts,
         });
@@ -58,15 +61,15 @@ impl RuleIR {
         }
 
         return Ok(RuleIR {
+            id: table.get_token_id(&name).expect("No rule found"),
             is_block: false,
-            name: Some(name),
+            name: name,
             optional,
             alts,
         });
     }
 
     pub fn from_block(parent_rule: usize, block: &Block, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
-        let name = None;
         let optional = block.0.optional();
         let mut alts = Vec::new();
 
@@ -78,16 +81,18 @@ impl RuleIR {
             alts.push(HashArc::new(AltIR::new(alt, alt_index, parent_rule, table, rules)?));
         }
 
+        let id = rules.push_index_landing_location(table.rule_count());
         return Ok(RuleIR {
+            id,
             is_block: true,
-            name: name,
+            name: format!("__anonymous_rule_{}", id),
             optional,
             alts,
         });
     }
     
-    pub fn name(&self) -> Option<&String> {
-        self.name.as_ref()
+    pub fn name(&self) -> &String {
+        &self.name
     }
 
     pub fn alts(&self) -> &Vec<HashArc<AltIR>> {

@@ -65,19 +65,28 @@ pub fn header() -> String {
 
 pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
     let name = ir.get_rule(rule).unwrap().name().clone();
+    let rule_match = match_rule(ir.clone(), rule);
+
+    let initializers = if let MatchNode::Element { alt, .. } = &rule_match {
+        format!("{}", alt.elements().iter().enumerate().filter_map(|(e_idx, e)| match_element_initializer(ir.clone(), e, e_idx)).collect::<Vec<_>>().join("\n"))       
+    } else {
+        String::new()
+    };
+
     format!(
         "pub fn {1}(&mut self) -> Result<{2}, ANTLRError> {{
             self.rule_stack.push_back({0});
 
             let __result = {{
                 {3}
+                {4}
             }};
 
             self.rule_stack.pop_back();
             Ok(__result)
         }}",
 
-        rule, name.clone(), capitalize(name), match_node(ir.clone(), &match_rule(ir, rule))
+        rule, name.clone(), capitalize(name), initializers, match_node(ir.clone(), &rule_match)
     )
 }
 

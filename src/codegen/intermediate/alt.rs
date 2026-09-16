@@ -59,8 +59,7 @@ impl AltIR {
                 },
 
                 Element::Block { block, suffix } => {
-                    let rule = RuleIR::from_block(parent_rule, block, table, rules).unwrap();
-                    let index = rules.push_index(table.rule_count(), rule);
+                    let id = RuleIR::from_block(parent_rule, block, table, rules).unwrap();
                     ElementIR::RuleAtom {
                         id: index,
                         suffix: *suffix,

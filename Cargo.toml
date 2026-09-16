@@ -15,7 +15,6 @@ rustflags = ["-Zpolonius=next"]
 debug = true # For profiling with samply
 
 [dependencies]
-minijinja = "2.21.0"
 rapidhash = "4.5.1"
 rayon = "1.12.0"
 serde = { version = "1.0.228", features = ["derive", "rc"] }

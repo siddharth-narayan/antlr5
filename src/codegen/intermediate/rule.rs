@@ -69,26 +69,33 @@ impl RuleIR {
         });
     }
 
-    pub fn from_block(parent_rule: usize, block: &Block, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<RuleIR, String> {
+    pub fn from_block(parent_rule: usize, block: &Block, table: &SymbolTable, rules: &mut Arena<RuleIR>) -> Result<usize, String> {
         let optional = block.0.optional();
         let mut alts = Vec::new();
+        let id = rules.push_index_landing_location(table.rule_count());
+
+        unsafe { rules.mask(id); }
 
         if block.0.alts().len() == 0 {
             return Err("There are no nonempty alts".to_string());
         };
 
         for (alt_index, alt) in block.0.alts().iter().enumerate() {
-            alts.push(HashArc::new(AltIR::new(alt, alt_index, parent_rule, table, rules)?));
+            alts.push(HashArc::new(AltIR::new(alt, alt_index, id, table, rules)?));
         }
 
-        let id = rules.push_index_landing_location(table.rule_count());
-        return Ok(RuleIR {
+
+        let rule = RuleIR {
             id,
             is_block: true,
             name: format!("__anonymous_rule_{}", id),
             optional,
             alts,
-        });
+        };
+
+        rules.set(id, rule);
+
+        Ok(id)
     }
     
     pub fn name(&self) -> &String {

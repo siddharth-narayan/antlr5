@@ -8,7 +8,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tracing_subscriber::{Registry, layer::SubscriberExt};
 use tracing_tree::HierarchicalLayer;
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, jinja_env, output}, util::HashSetMap};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, output}, util::HashSetMap};
 
 #[cfg(test)]
 mod tests;
@@ -44,9 +44,9 @@ fn main() -> Result<(), ()> {
     
     // println!("Match of rule 1: {:#?}", match_node);
 
-    let jinja_env = jinja_env(ir.clone(), Language::Rust);
+    // let jinja_env = jinja_env(ir.clone(), Language::Rust);
 
-    output(ir.clone(), "out.rs", jinja_env, Language::Rust);
+    output(ir.clone(), "out.rs", Language::Rust);
     
     Ok(())
 }

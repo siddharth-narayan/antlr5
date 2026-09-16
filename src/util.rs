@@ -201,6 +201,32 @@ impl<T> Arena<T> {
         self.capacity = size;
     }
 
+    // Should be used to reserve a spot for another element
+    // An element MUST be inserted to this index before .finalize() or .get() are called on this index 
+    pub unsafe fn mask(&mut self, index: usize) {
+        if let Some(mask_element) = self.mask.get_mut(index) {
+            *mask_element = true;
+        };
+    }
+
+    pub fn set(&mut self, index: usize, item: T) {
+        if let Some(element) = self.rules.get_mut(index) {
+
+            *element = MaybeUninit::new(item);
+            
+            unsafe { self.mask(index) };
+
+        }
+    }
+
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if self.mask.get(index).copied().unwrap_or_default() {
+            Some(unsafe { MaybeUninit::assume_init_ref(self.rules.get(index)?) })
+        } else {
+            None
+        }
+    }
+
     pub fn push(&mut self, item: T) -> usize {
         self.push_index(0, item)
     }
@@ -208,11 +234,12 @@ impl<T> Arena<T> {
     pub fn push_index(&mut self, mut index: usize, item: T) -> usize {
         let position = self.push_index_landing_location(index);
 
-        self.rules[position] = MaybeUninit::new(item);
-        self.mask[position] = true;
-
+        self.set(position, item);
+        
         return position;
     }
+
+
 
     // Where would an element be put if we pushed at a specific index
     pub fn push_index_landing_location(&mut self, mut index: usize) -> usize {
@@ -245,5 +272,13 @@ impl<T> Arena<T> {
         }
         
         final_vec
+    }
+}
+
+pub fn capitalize(string: String) -> String {
+    let mut c = string.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_titlecase().collect::<String>() + c.as_str(),
     }
 }

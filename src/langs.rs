@@ -2,7 +2,7 @@ use std::{ffi::OsStr, fs, path::Path, process::Command, sync::Arc};
 
 use minijinja::{Environment, UndefinedBehavior, Value, value::ViaDeserialize};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::ElementIR}, langs::filters::{capitalize, element_prefix, element_suffix, id_from_rule_name_filter, lookahead, rule_from_id_filter, token_from_id_filter, uppercase}};
+use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::ElementIR}, langs::filters::{capitalize, id_from_rule_name_filter, lookahead, rule_from_id_filter, rust::{element_prefix, element_suffix, match_node_filter}, token_from_id_filter, uppercase}};
 
 mod filters;
 
@@ -42,7 +42,7 @@ pub fn output<P: AsRef<Path> + AsRef<OsStr>>(ir: Arc<AntlrIR>, path: P, env: Env
     format(&path, lang);
 }
 
-pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
+pub fn jinja_env(ir: Arc<AntlrIR>, lang: Language) -> Environment<'static> {
     let mut env = Environment::new();
 
     // Env settings must be set above templates
@@ -54,7 +54,15 @@ pub fn jinja_env(ir: Arc<AntlrIR>) -> Environment<'static> {
     env.add_template("rust-lookahead", include_str!("langs/rust/lookahead.jinja")).unwrap();
     env.add_template("python-parse", include_str!("langs/python/parser.jinja")).unwrap();
     
-    add_default_filters(&mut env, ir);
+    add_default_filters(&mut env, ir.clone());
+
+    match lang {
+        Language::Rust => {
+            env.add_filter("match_node", match_node_filter(ir.clone()));
+        },
+
+        _ => ()
+    }
 
     env
 }

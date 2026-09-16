@@ -44,9 +44,9 @@ fn main() -> Result<(), ()> {
     
     // println!("Match of rule 1: {:#?}", match_node);
 
-    let jinja_env = jinja_env(ir.clone());
+    let jinja_env = jinja_env(ir.clone(), Language::Rust);
 
-    output(ir.clone(), "out", jinja_env, Language::Rust);
+    output(ir.clone(), "out.rs", jinja_env, Language::Rust);
     
     Ok(())
 }

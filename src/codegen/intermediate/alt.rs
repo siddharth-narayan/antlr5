@@ -90,6 +90,14 @@ impl AltIR {
         })
     }
 
+    pub fn index(&self) -> usize {
+        self.index
+    }
+    
+    pub fn parent(&self) -> usize {
+        self.parent_rule
+    }
+
     pub fn label(&self) -> Option<&String> {
         self.label.as_ref()
     }

@@ -4,51 +4,8 @@ use minijinja::{Value, value::ViaDeserialize};
 
 use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::match_rule, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, util::HashArc};
 
-pub fn element_prefix(e: ViaDeserialize<ElementIR>) -> String {
-    match e.0 {
-        ElementIR::RuleAtom { id, suffix } => {
-            if let Some(suffix) = e.suffix() {
-                match suffix {
-                    EBNFSuffix::Optional => "Option<Box<".into(),
-                    EBNFSuffix::Plus | EBNFSuffix::Star => "Vec<".into(),
-                }
-            } else {
-                "Box<".into()
-            }
-        },
-
-        ElementIR::TokenAtom { id, suffix } => {
-            String::new()
-        },
-
-        ElementIR::Set { set, suffix } => {
-            String::new()
-        }
-    }
-}
-
-pub fn element_suffix(e: ViaDeserialize<ElementIR>) -> String {
-    match e.0 {
-        ElementIR::RuleAtom { id, suffix } => {
-            if let Some(suffix) = e.suffix() {
-                match suffix {
-                    EBNFSuffix::Optional => ">>".into(),
-                    EBNFSuffix::Plus | EBNFSuffix::Star => ">".into(),
-                }
-            } else {
-                ">".into()
-            }
-        },
-
-        ElementIR::TokenAtom { id, suffix } => {
-            String::new()
-        },
-
-        ElementIR::Set { set, suffix } => {
-            String::new()
-        }
-    }
-}
+#[path = "rust/filters.rs"]
+pub mod rust;
 
 pub fn id_from_rule_name_filter(ir: Arc<AntlrIR>) -> impl Fn(String) -> Value {
     move | name: String | -> Value {

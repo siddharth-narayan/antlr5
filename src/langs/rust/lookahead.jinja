@@ -77,30 +77,54 @@
         {% if (node.Finish.alt.parent_rule | rule_from_id).alts | length > 1 %}
             {{ (node.Finish.alt.parent_rule | rule_from_id).name | capitalize }}::Alt{{ node.Finish.alt.index }} {
                 {% for element in node.Finish.alt.elements %}
-                    {% if element.RuleAtom is defined %}
-                    {{ (element.RuleAtom.id | rule_from_id).name }}: {{ (element.RuleAtom.id | rule_from_id).name }}.into(),
-                    {% endif %}
+                    {% if element.RuleAtom.suffix == "Optional" %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }}: {{ (element.RuleAtom.id | rule_from_id).name }}.map(Box::new),
+                    {% elif element.RuleAtom.suffix == "Plus" %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }},
+                    {% elif element.RuleAtom.suffix == "Star" %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }},
+                    {% elif element.RuleAtom is defined  %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }}: Box::new({{ (element.RuleAtom.id | rule_from_id).name }}),
 
-
-                    {% if element.TokenAtom is defined %}
+                    {% elif element.TokenAtom.suffix == "Optional" %}
+                        {{ (element.TokenAtom.id | token_from_id) }}: {{ (element.TokenAtom.id | token_from_id) }}.map(Box::new),
+                    {% elif element.TokenAtom.suffix == "Plus" %}
+                        {{ element.TokenAtom.id | token_from_id }},
+                    {% elif element.TokenAtom.suffix == "Star" %}
+                        {{ element.TokenAtom.id | token_from_id }},
+                    {% elif element.TokenAtom.id is defined  %}
                         {% if element.TokenAtom.id | token_from_id %}
                             {{ element.TokenAtom.id | token_from_id }},
-                        {% endif %}                    
+                        {% endif %}
                     {% endif %}
+
                 {% endfor %}
             }
         {% else %}
             {{ (node.Finish.alt.parent_rule | rule_from_id).name | capitalize }}::new(
                 {% for element in node.Finish.alt.elements %}
-                    {% if element.RuleAtom is defined %}
-                    {{ (element.RuleAtom.id | rule_from_id).name }}.into(),
+                    {% if element.RuleAtom.suffix == "Optional" %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }}.map(Box::new),
+                    {% elif element.RuleAtom.suffix == "Plus" %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }},
+                    {% elif element.RuleAtom.suffix == "Star" %}
+                        {{ (element.RuleAtom.id | rule_from_id).name }},
+                    {% elif element.RuleAtom is defined  %}
+                        Box::new({{ (element.RuleAtom.id | rule_from_id).name }}),
                     {% endif %}
 
-
-                    {% if element.TokenAtom is defined %}
-                        {% if element.TokenAtom.id | token_from_id %}
+                    {% if element.TokenAtom.id is defined %}
+                        {% if element.TokenAtom.suffix == "Optional" %}
+                            {{ (element.TokenAtom.id | token_from_id) }}.map(Box::new),
+                        {% elif element.TokenAtom.suffix == "Plus" %}
                             {{ element.TokenAtom.id | token_from_id }},
-                        {% endif %}                    
+                        {% elif element.TokenAtom.suffix == "Star" %}
+                            {{ element.TokenAtom.id | token_from_id }},
+                        {% elif element.TokenAtom.id is defined  %}
+                            {% if element.TokenAtom.id | token_from_id %}
+                                {{ element.TokenAtom.id | token_from_id }},
+                            {% endif %}
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
             )

@@ -2,4 +2,5 @@
 .vscode
 **/.antlr/*
 out
+out.rs
 profile.json.gz

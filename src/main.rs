@@ -43,10 +43,13 @@ fn main() -> Result<(), ()> {
     // let match_node = match_rule(ir.clone(), 1).unwrap();
     
     // println!("Match of rule 1: {:#?}", match_node);
-
+    // println!("{:#?}", ir.symbols());
     // let jinja_env = jinja_env(ir.clone(), Language::Rust);
 
     output(ir.clone(), "out.rs", Language::Rust);
     
+    // println!("{:#?}", ir.get_rule(6).unwrap()); // unary
+    println!("{:#?}", ir.get_rule(70).unwrap()); // statement
+
     Ok(())
 }

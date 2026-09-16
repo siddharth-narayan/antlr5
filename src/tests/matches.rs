@@ -22,28 +22,28 @@ pub fn match_alt0() {
         alt: alt0.clone(),
         element_idx: 0,
         element: ElementIR::RuleAtom { id: 1, suffix: None },
-        next: Some(Box::new(
+        next: Box::new(
             MatchNode::Element {
                 alt: alt0.clone(),
                 element_idx: 1,
                 element: ElementIR::RuleAtom { id: 0, suffix: None },
-                next: Some(Box::new(
+                next: Box::new(
                     MatchNode::Element {
                         alt: alt0.clone(),
                         element_idx: 2,
                         element: ElementIR::RuleAtom { id: 2, suffix: None },
-                        next: None
+                        next: Box::new(MatchNode::Finish { alt: alt0.clone() })
                     }
-                ))
+                )
             }
-        ))
+        )
     };
 
    
 
     println!("{:#?}", ir.symbols());
 
-    assert_eq!(match_element(alt0, 0, ir).unwrap(), alt0_expected);
+    assert_eq!(match_element(alt0, 0, ir), alt0_expected);
 }
 
 #[test]
@@ -58,29 +58,29 @@ pub fn match_alt1() {
         alt: alt1.clone(),
         element_idx: 0,
         element: ElementIR::TokenAtom { id: token_id("LETTERB"), suffix: None },
-        next: Some(Box::new(
+        next: Box::new(
             MatchNode::Element {
                 alt: alt1.clone(),
                 element_idx: 1,
                 element: ElementIR::TokenAtom { id: strlit_id("b"), suffix: None },
-                next: Some(Box::new(
+                next: Box::new(
                     MatchNode::Element {
                         alt: alt1.clone(),
                         element_idx: 2,
                         element: ElementIR::TokenAtom { id: token_id("LETTERA"), suffix: None },
-                        next: Some(Box::new(
+                        next: Box::new(
                             MatchNode::Element {
                                 alt: alt1.clone(),
                                 element_idx: 3,
                                 element: ElementIR::TokenAtom { id: strlit_id("a"), suffix: None },
-                                next: None
+                                next: Box::new(MatchNode::Finish { alt: alt1.clone() })
                             }
-                        ))
+                        )
                     }
-                ))
+                )
             }
-        ))
+        )
     };
 
-    assert_eq!(match_element(alt1, 0, ir).unwrap(), alt1_expected);
+    assert_eq!(match_element(alt1, 0, ir), alt1_expected);
 }

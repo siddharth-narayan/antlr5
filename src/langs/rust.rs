@@ -191,7 +191,7 @@ pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
                 };
 
                 format!(
-                    "{}: {}Token{},", name, prefix , suffix
+                    "{}: {}Token{},", name, prefix, suffix
                 )
             } else {
                 String::new()
@@ -211,8 +211,8 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &HashMap<usize, MatchNode, RandomState
 
     format!(
         "match self.peek().map(|t| t.token_type) {{
-            _ => panic!(),
             {}
+            _ => panic!(),
         }}
         ",
 
@@ -272,14 +272,18 @@ pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR) -> Strin
 
 pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR, element_idx: usize, next: &MatchNode) -> String {
     let initializers = if element_idx == 0 {
-        alt.elements().iter().map(|e| match_element_initializer(ir.clone(), e)).collect::<Vec<_>>().join("\n")
+        format!("// ELEMENT 0 INITIALIZERS: --- ALT: {:#?} \n{}", alt, alt.elements().iter().map(|e| match_element_initializer(ir.clone(), e)).collect::<Vec<_>>().join("\n"))
     } else {
         String::new()
     };
 
     let element = match element {
         ElementIR::RuleAtom { id, suffix } => {
-            let n = ir.get_rule(*id).unwrap().name().clone();
+                        let n = ir.get_rule(*id).unwrap().name().clone();
+
+            if *id == 6 {
+                // println!("ID 6 AAHAHAHA name is {}", n);
+            }
 
             match suffix {
                 None => format!("let {} = Box::new(self.{}()?);", n, n),

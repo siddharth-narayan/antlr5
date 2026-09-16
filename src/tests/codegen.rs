@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::jinja_env, tests::parse};
+use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{Language, output}, tests::parse};
 
 pub fn codegen(ir: AntlrIR) {
     let ir = Arc::new(ir);
-    let env = jinja_env(ir.clone());
-    env.get_template("rust-parse").unwrap().render(ir.clone()).unwrap();
+    output(ir.clone(),"/dev/null", Language::Rust);
 }
 
 #[test]

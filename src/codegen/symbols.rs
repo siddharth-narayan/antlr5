@@ -74,11 +74,19 @@ impl SymbolTable {
     }
     
     pub fn get_rule_id(&self, name: &String) -> Option<usize> {
-        self.rule_map.get(name).cloned()
+        let id =         self.rule_map.get(name).cloned()?;
+
+        // println!("FOR NAME {} RETURN ID {}", name, id);
+        Some(id)
     }
     
-    pub fn get_rule_name(&self, id: usize) -> Option<String> {
-        self.rule_map.get_inverse(&id).cloned()
+    pub fn get_rule_name(&self, id: usize) -> String {
+        match self.rule_map.get_inverse(&id).cloned() {
+            Some(s) => s,
+            None => {
+                format!("__anonymous_rule_{}", id)
+            }
+        }
     }
 
     pub fn get_token_id(&self, name: &String) -> Option<usize> {

@@ -27,6 +27,10 @@ impl AltIR {
         table: &SymbolTable,
         rules: &mut Arena<RuleIR>,
     ) -> Result<AltIR, String> {
+
+        if index == 6 && parent_rule == 70 {
+            println!("THIS BETTER BE LOGICALOR {:#?}", alt.elements());
+        }
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
         let mut elements = Vec::new();
@@ -112,7 +116,7 @@ impl Debug for AltIR {
             .field("parent_rule", &self.parent_rule)
             // .field("label", &self.label)
             // .field("options", &self.options)
-            // .field("elements", &self.elements)
+            .field("elements", &self.elements)
             // .field("channel", &self.channel)
             .finish()
     }

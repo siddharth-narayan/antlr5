@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
 use crate::{
     antlr::ast::{Block, Rule, TokenRule}, codegen::{intermediate::alt::AltIR, symbols::SymbolTable}, util::{Arena, HashArc},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct RuleIR {
     id: usize,
 

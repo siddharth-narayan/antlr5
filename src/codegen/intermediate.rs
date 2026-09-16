@@ -2,7 +2,6 @@
 use std::{collections::{HashSet, VecDeque}, mem::MaybeUninit, ops::Deref, sync::Arc};
 
 use rapidhash::fast::RandomState;
-use serde::{Deserialize, Serialize};
 
 use crate::{antlr::ast::ANTLRAst, codegen::{intermediate::{alt::AltIR, element::ElementIR, rule::RuleIR}, symbols::SymbolTable}, util::{Arena, HashArc, HashSetMap}};
 
@@ -10,7 +9,7 @@ pub mod rule;
 pub mod element;
 pub mod alt;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct AntlrIR {
     ast: Arc<ANTLRAst>,
     rules: Vec<RuleIR>,

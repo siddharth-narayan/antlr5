@@ -1,5 +1,4 @@
 use rapidhash::fast::RandomState;
-use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use std::{
     collections::{HashMap, HashSet, VecDeque, hash_set::IntoIter}, hash::Hash, mem::discriminant, sync::Arc,
@@ -76,7 +75,7 @@ pub fn nth<'a>(
     return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MatchNode {
     Peek {
         // alt: HashArc<AltIR>,

@@ -1,8 +1,6 @@
 use std::{collections::BTreeSet, marker::PhantomData};
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct ANTLRAst {
     rules: Vec<Rule>,
     token_rules: Vec<TokenRule>
@@ -22,7 +20,7 @@ impl ANTLRAst {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct TokenRule {
     is_fragment: bool,
     name: String,
@@ -55,7 +53,7 @@ impl TokenRule {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct Rule {
     // modifiers: PhantomData<()>,
     // actions: PhantomData<()>,
@@ -91,7 +89,7 @@ impl Rule {
 }
 
 // Should Element really have PartialEq/Eq derived?
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone, Hash)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Element {
     Atom {
         atom: Atom,
@@ -119,16 +117,16 @@ impl Element {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, Clone, PartialEq, Hash)]
+#[derive(Debug, Eq, Clone, PartialEq, Hash)]
 pub struct Block(pub AltList);
 
-#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Atom {
     StringLit(String),
     ID(String)
 }
 
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct Alt {
     label: Option<String>,
     options: PhantomData<()>,
@@ -160,7 +158,7 @@ impl Alt {
 }
 
 // AltList is a necessary struct because it can represent an anonymous alt list inside a block
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct AltList {
     optional: bool,
     alts: Vec<Alt>
@@ -184,7 +182,7 @@ impl AltList {
 }
 
 
-#[derive(Clone, Copy, Debug, Serialize, Eq, PartialEq, Deserialize, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum EBNFSuffix {
     Optional,
     Star,

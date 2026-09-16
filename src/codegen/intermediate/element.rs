@@ -1,10 +1,8 @@
 use std::{collections::{BTreeSet}, sync::Arc};
 
-use serde::{Deserialize, Serialize};
-
 use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::AltIR, util::HashArc};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum ElementIR {
     RuleAtom {
         id: usize,

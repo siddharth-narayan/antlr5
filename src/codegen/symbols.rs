@@ -1,6 +1,3 @@
-
-use serde::{Deserialize, Serialize};
-
 use crate::{antlr::ast::{ANTLRAst, Alt, Atom, Element, Rule, TokenRule}, util::BiMap};
 
 #[derive(Debug)]
@@ -16,7 +13,7 @@ pub enum AnalysisErr {
     AltLabels
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
     // ast: ANTLRAst,
 

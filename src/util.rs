@@ -7,12 +7,11 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use rapidhash::fast::{RandomState};
-use serde::{Deserialize, Serialize, Serializer};
 
 use crate::codegen::intermediate::element::ElementIR;
 use crate::codegen::intermediate::rule::RuleIR;
 
-#[derive(PartialEq, Eq, Deserialize, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct HashArc<T> {
     inner: std::sync::Arc<T>
 }
@@ -26,16 +25,6 @@ impl<T> HashArc<T> {
 impl<T: Debug> Debug for HashArc<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(&**self, f)
-    }
-}
-
-impl<T: Serialize> Serialize for HashArc<T> {
-#[inline]
-fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-    {
-        (**self).serialize(serializer)
     }
 }
 
@@ -53,23 +42,7 @@ impl<T> Deref for HashArc<T> {
     }
 }
 
-// impl<T: DerefMut> DerefMut for HashArc<T> {
-//     type Target = T;
-
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.inner
-//     }
-// }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[
-    serde(
-        bound(
-            serialize = "K: Serialize, V: Serialize",
-            deserialize = "K: Deserialize<'de>, V: Deserialize<'de>"
-        )
-    )
-]
+#[derive(Debug, Clone)]
 pub struct BiMap<K: Eq + Hash, V: Eq + Hash, S: BuildHasher + Default = RandomState> {
     map_direct: HashMap<K, V, S>,
     map_inverse: HashMap<V, K, S>

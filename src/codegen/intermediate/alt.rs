@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::{marker::PhantomData, sync::Arc};
 
@@ -9,7 +8,7 @@ use crate::{
     codegen::{intermediate::element::ElementIR, symbols::SymbolTable},
 };
 
-#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct AltIR {
     index: usize,
     parent_rule: usize,

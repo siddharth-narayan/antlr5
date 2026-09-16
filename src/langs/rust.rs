@@ -20,7 +20,7 @@ pub fn render(ir: Arc<AntlrIR>) -> String {
 }
 
 pub fn header() -> String {
-    "
+    "#![allow(unused, nonstandard_style)]
     use std::collections::VecDeque;
     
     pub enum ANTLRError {
@@ -196,6 +196,14 @@ pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -
     }
 }
 
+pub fn match_node(ir: Arc<AntlrIR>, node: &MatchNode) -> String {
+    match node {
+        MatchNode::Peek { peek, fallback } => match_peek(ir.clone(), peek, fallback.as_ref()),
+        MatchNode::Element { alt, element_idx, element, next } => match_element(ir, alt.clone(), element, *element_idx, next),
+        MatchNode::Finish { alt } => match_finish(ir, alt.clone()),
+    }
+}
+
 pub fn match_peek(ir: Arc<AntlrIR>, peek: &HashMap<usize, MatchNode, RandomState>, fallback: Option<&Box<MatchNode>>) -> String {
     let cases = peek.iter().map(|(key, value)| {
         match_case(ir.clone(), *key, value)
@@ -213,24 +221,24 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &HashMap<usize, MatchNode, RandomState
 }
 
 pub fn match_case(ir: Arc<AntlrIR>, key: usize, value: &MatchNode) -> String {
+    let initializers = if let MatchNode::Element { alt, .. } = value {
+        format!("{}", alt.elements().iter().enumerate().filter_map(|(e_idx, e)| match_element_initializer(ir.clone(), e, e_idx)).collect::<Vec<_>>().join("\n"))       
+    } else {
+        String::new()
+    };
+
     format!(
         "
             Some({}) => {{
+                {}
                 {}
             }},
         ",
 
         key,
+        initializers,
         match_node(ir.clone(), &value)
     )
-}
-
-pub fn match_node(ir: Arc<AntlrIR>, node: &MatchNode) -> String {
-    match node {
-        MatchNode::Peek { peek, fallback } => match_peek(ir.clone(), peek, fallback.as_ref()),
-        MatchNode::Element { alt, element_idx, element, next } => match_element(ir, alt.clone(), element, *element_idx, next),
-        MatchNode::Finish { alt } => match_finish(ir, alt.clone()),
-    }
 }
 
 pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
@@ -242,12 +250,6 @@ pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR, element_
 }
 
 pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR, element_idx: usize, next: &MatchNode) -> String {
-    let initializers = if element_idx == 0 {
-        format!("{}", alt.elements().iter().enumerate().filter_map(|(e_idx, e)| match_element_initializer(ir.clone(), e, e_idx)).collect::<Vec<_>>().join("\n"))
-    } else {
-        String::new()
-    };
-
     let name = element_name(ir.clone(), element);
     let name_indexed = element_name_indexed(ir.clone(), element, element_idx);
 
@@ -284,7 +286,7 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
         }
     };
 
-    format!("{}\n{}\n{}", initializers, element, match_node(ir, &next))
+    format!("{}\n{}", element, match_node(ir, &next))
 }
 
 pub fn match_finish(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {

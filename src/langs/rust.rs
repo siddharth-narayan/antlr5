@@ -94,7 +94,7 @@ pub fn rule_struct(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
     let name = rule.name().clone();
     let alt = rule.alts().get(0).unwrap();
 
-    let elements: Vec<_> = alt.elements().iter().map(|e| element_decl(ir.clone(), e)).collect();
+    let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
 
     format!(
         "pub struct {0} {{
@@ -108,7 +108,7 @@ pub fn rule_struct(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
                 }}
             }}
         }}
-        ", capitalize(name), elements.join("\n"), alt.elements().iter().map(|e| element_name(ir.clone(), e)).collect::<Vec<_>>().join("")
+        ", capitalize(name), elements.join(",\n"), alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx)).collect::<Vec<_>>().join(",")
     )
 }
 
@@ -126,7 +126,7 @@ pub fn rule_enum(ir: Arc<AntlrIR>, rule: usize) -> String {
 
 pub fn rule_enum_alt(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
     let label = alt.label().cloned().unwrap_or(format!("Alt{}", alt.index()));
-    let elements = alt.elements().iter().map(|e| element_decl(ir.clone(), e)).collect::<Vec<_>>().join("");
+    let elements = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect::<Vec<_>>().join(",");
 
     format!(
         "{} {{
@@ -136,35 +136,38 @@ pub fn rule_enum_alt(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
     )
 }
 
-pub fn element_name(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
+pub fn element_name(ir: Arc<AntlrIR>, element: &ElementIR) -> Option<String> {
     match element {
         ElementIR::RuleAtom { id, suffix } => {
-            format!("{},", ir.rules().get(*id).unwrap().name().clone())
+            Some(ir.rules().get(*id)?.name().clone())
         },
 
         ElementIR::TokenAtom { id, suffix } => {
-            if let Some(name) = ir.symbols().get_token_name(*id) {
-                format!("{},", name.clone())
-            } else {
-                String::new()
-            }
+            let name = ir.symbols().get_token_name(*id)?;
+            Some(name)
         },
 
         ElementIR::Set { set, suffix } => {
-            String::new()
+           None
         }
     }
 }
 
-pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
-    match element {
-        ElementIR::RuleAtom { id, suffix } => {
-            let name = ir.rules().get(*id).unwrap().name();
+pub fn element_name_indexed(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
+    Some(format!("{}_{}", element_name(ir, element)?, element_idx))
+}
 
-            let prefix: String = match element.suffix() {
-                None => "Box<".into(),
-                Some(EBNFSuffix::Optional) => "Option<Box<".into(),
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<".into()
+pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
+    let name = element_name(ir.clone(), element)?;
+    let name_indexed = element_name_indexed(ir.clone(), element, element_idx)?;
+
+
+    match element {
+        ElementIR::RuleAtom { .. } => {
+            let prefix = match element.suffix() {
+                None => "Box<",
+                Some(EBNFSuffix::Optional) => "Option<Box<",
+                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
             };
 
             let suffix: String = match element.suffix() {
@@ -172,35 +175,24 @@ pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
                 None | Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => ">".into()
             };
 
-            format!(
-                "{}: {}{}{},", name, prefix, capitalize(name.clone()), suffix
-            )
+            Some(format!("{}: {}{}{}", name_indexed, prefix, capitalize(name), suffix))
         },
 
-        ElementIR::TokenAtom { id, suffix } => {
-            if let Some(name) = ir.symbols().get_token_name(*id) {
-                let prefix: String = match element.suffix() {
-                    None => "".into(),
-                    Some(EBNFSuffix::Optional) => "Option<".into(),
-                    Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<".into()
-                };
+        ElementIR::TokenAtom { .. } => {
+            let prefix = match element.suffix() {
+                None => "",
+                Some(EBNFSuffix::Optional) => "Option<",
+                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
+            };
 
-                let suffix: String = match element.suffix() {
-                    None => "".into(),
-                    _  => ">".into(),
-                };
+            let suffix = match element.suffix() {
+                None => "",
+                Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => ">"
+            };
 
-                format!(
-                    "{}: {}Token{},", name, prefix, suffix
-                )
-            } else {
-                String::new()
-            }
+            Some(format!("{}: {}Token{}", name_indexed, prefix, suffix))
         },
-
-        ElementIR::Set { set, suffix } => {
-            String::new()
-        }
+        _ => None
     }
 }
 
@@ -241,63 +233,39 @@ pub fn match_node(ir: Arc<AntlrIR>, node: &MatchNode) -> String {
     }
 }
 
-pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
-    match element {
-        ElementIR::RuleAtom { id, suffix } => {
-            let name = ir.get_rule(*id).unwrap().name().clone();
-
-            match suffix {
-                None => String::new(),
-                Some(EBNFSuffix::Optional) => format!("let {} = None;", name),
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("let mut {} = Vec::new();", name)
-            }
-        },
-
-        ElementIR::TokenAtom { id, suffix } => {
-            match ir.symbols().get_token_name(*id) {
-                Some(name) => {
-                    match suffix {
-                        None => String::new(),
-                        Some(EBNFSuffix::Optional) => format!("let {} = None;", name),
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("let mut {} = Vec::new();", name)
-                    } 
-                },
-                None => String::new()
-            }
-        },
-
-        ElementIR::Set { set, suffix } => String::new()
+pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
+    match element.suffix() {
+        None => None,
+        Some(EBNFSuffix::Optional) => Some(format!("let {} = None;", element_decl(ir.clone(), element, element_idx)?)),
+        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => Some(format!("let mut {} = Vec::new();", element_decl(ir.clone(), element, element_idx)?))
     }
 }
 
 pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR, element_idx: usize, next: &MatchNode) -> String {
     let initializers = if element_idx == 0 {
-        format!("// ELEMENT 0 INITIALIZERS: --- ALT: {:#?} \n{}", alt, alt.elements().iter().map(|e| match_element_initializer(ir.clone(), e)).collect::<Vec<_>>().join("\n"))
+        format!("{}", alt.elements().iter().enumerate().filter_map(|(e_idx, e)| match_element_initializer(ir.clone(), e, e_idx)).collect::<Vec<_>>().join("\n"))
     } else {
         String::new()
     };
 
+    let name = element_name(ir.clone(), element);
+    let name_indexed = element_name_indexed(ir.clone(), element, element_idx);
+
     let element = match element {
         ElementIR::RuleAtom { id, suffix } => {
-                        let n = ir.get_rule(*id).unwrap().name().clone();
-
-            if *id == 6 {
-                // println!("ID 6 AAHAHAHA name is {}", n);
-            }
-
             match suffix {
-                None => format!("let {} = Box::new(self.{}()?);", n, n),
-                Some(EBNFSuffix::Optional) => format!("let {} = self.{}().ok().map(Box::new);", n, n),
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(__item) = self.{}() {{ {}.push(__item) }}", n, n)
+                None => format!("let {} = Box::new(self.{}()?);", name_indexed.unwrap(), name.unwrap()),
+                Some(EBNFSuffix::Optional) => format!("let {} = self.{}().ok().map(Box::new);", name_indexed.unwrap(), name.unwrap()),
+                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(__item) = self.{}() {{ {}.push(__item) }}", name.unwrap(), name_indexed.unwrap())
             }
         },
         ElementIR::TokenAtom { id, suffix } => {
             match ir.symbols().get_token_name(*id) {
-                Some(n) => {
+                Some(_) => {
                     match suffix {
-                        None => format!("let {} = self.match_token({})?.clone();", n, id),
-                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok().map(Box::new());", n, n),
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", id, n)
+                        None => format!("let {} = self.match_token({})?.clone();", name_indexed.unwrap(), id),
+                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok().map(Box::new());", name_indexed.unwrap(), id),
+                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", id, name_indexed.unwrap())
                     }
                     
                 },
@@ -323,68 +291,23 @@ pub fn match_finish(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
   let parent_rule = ir.get_rule(alt.parent()).unwrap();
 
     if parent_rule.alts().len() > 1 {
-        let elements: Vec<_> = alt.elements().iter().map(|e| {
-            match e {
-                ElementIR::RuleAtom { id, suffix } => {
-                    let name = ir.get_rule(*id).unwrap().name().clone();
-
-                    match *suffix {
-                        None | Some(EBNFSuffix::Optional) => {
-                            format!("{},", name)
-                        },
-
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => {
-                            format!("{},", name)
-                        },
-                    }
-                },
-                ElementIR::TokenAtom { id, suffix } => {
-                    match ir.symbols().get_token_name(*id) {
-                        Some(name) => format!("{},", name),
-                        None => "// strlit (probably)".into()
-                    }
-                },
-                ElementIR::Set { set, suffix } => "// Set".into()
-            }
-        }).collect();
+        let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx)).collect();
 
         format!(
             "{}::{} {{
                 {}
             }}
-            ", capitalize(parent_rule.name().clone()), alt.label().cloned().unwrap_or(format!("Alt{}", alt.index())), elements.join("\n")
+            ", capitalize(parent_rule.name().clone()), alt.label().cloned().unwrap_or(format!("Alt{}", alt.index())), elements.join(",\n")
         )
     } else {
-        let elements: Vec<_> = alt.elements().iter().map(|e| {
-            match e {
-                ElementIR::RuleAtom { id, suffix } => {
-                    let name = ir.get_rule(*id).unwrap().name().clone();
-
-                    match *suffix {
-                        None | Some(EBNFSuffix::Optional) => {
-                            format!("{},", name)
-                        },
-
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => {
-                            format!("{},", name)
-                        },
-                    }
-                },
-                ElementIR::TokenAtom { id, suffix } => {
-                    match ir.symbols().get_token_name(*id) {
-                        Some(name) => format!("{},", name),
-                        None => String::new()
-                    }
-                },
-                ElementIR::Set { set, suffix } => String::new()
-            }
-        }).collect();
+        let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(
+            |(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx) ).collect();
 
         format!(
             "{}::new (
                 {}
             )
-            ", capitalize(parent_rule.name().clone()), elements.join("\n")
+            ", capitalize(parent_rule.name().clone()), elements.join(",\n")
         )
     }
 }

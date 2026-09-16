@@ -27,10 +27,6 @@ impl AltIR {
         table: &SymbolTable,
         rules: &mut Arena<RuleIR>,
     ) -> Result<AltIR, String> {
-
-        if index == 6 && parent_rule == 70 {
-            println!("THIS BETTER BE LOGICALOR {:#?}", alt.elements());
-        }
         let label = alt.label().cloned();
         let channel = alt.channel().cloned();
         let mut elements = Vec::new();
@@ -64,7 +60,7 @@ impl AltIR {
                 Element::Block { block, suffix } => {
                     let id = RuleIR::from_block(parent_rule, block, table, rules).unwrap();
                     ElementIR::RuleAtom {
-                        id: index,
+                        id,
                         suffix: *suffix,
                     }
                 }

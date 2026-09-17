@@ -286,25 +286,25 @@ pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR, element_
 }
 
 pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR, element_idx: usize, next: &MatchNode) -> String {
-    let name = element_name(ir.clone(), element);
-    let name_indexed = element_name_indexed(ir.clone(), element, element_idx);
+    let name = element_name(ir.clone(), element).unwrap();
+    let name_indexed = element_name_indexed(ir.clone(), element, element_idx).unwrap();
 
     let element = match element {
         ElementIR::RuleAtom { id, suffix } => {
             match suffix {
-                None => format!("{} = {}(parser);", name_indexed.unwrap(), name.unwrap()),
-                Some(EBNFSuffix::Optional) => format!("{} = {}(parser);", name_indexed.unwrap(), name.unwrap()),
+                None => format!("{} = {}(parser);", name_indexed, name),
+                Some(EBNFSuffix::Optional) => format!("{} = {}(parser);", name_indexed, name),
                 Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => 
                 format!("{}* item = NULL;
 
-                while ({}* __item = {}(parser) != NULL) {{ push({}, __item) }}", name.unwrap(), name_indexed.unwrap())
+                while ({}* __item = {}(parser) != NULL) {{ push({}, __item) }}", capitalize(name.clone()), capitalize(name.clone()), name, name)
             }
         },
         ElementIR::TokenAtom { id, suffix } => {
             match ir.symbols().get_token_name(*id) {
                 Some(_) => {
                     match suffix {
-                        None => format!("let {} = self.match_token({})?.clone();", name_indexed.unwrap(), id),
+                        None => format!("let {} = match_token(parser, {})?.clone();", name_indexed.unwrap(), id),
                         Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok().map(Box::new());", name_indexed.unwrap(), id),
                         Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", id, name_indexed.unwrap())
                     }

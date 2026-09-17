@@ -4,7 +4,7 @@ use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, 
 
 pub fn codegen(ir: AntlrIR) {
     let ir = Arc::new(ir);
-    output(ir.clone(),"/dev/null", Language::Rust);
+    output(ir.clone(),"/dev/null".into(), Language::Rust);
 }
 
 #[test]

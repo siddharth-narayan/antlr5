@@ -1,66 +1,96 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use rapidhash::fast::RandomState;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, util::{HashArc, capitalize}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::OutputFile, util::{HashArc, capitalize}};
 
-pub fn render(ir: Arc<AntlrIR>) -> String {
+pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
+    dir.absolute().unwrap();
+    if dir.is_file() {
+        dir = dir.parent().unwrap().to_path_buf()
+    }
+
+    let source_path = dir.join("out.c");
+    let header_path = dir.join("out.h");
+
     let parsers = (0..ir.rules().len()).map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
     let types = (0..ir.rules().len()).map(|r| rule_type(ir.clone(), r)).collect::<Vec<_>>().join("\n");
     
-    format!(
-        "
-        {}
-        impl Parser {{
+    let header = format!(
+        "{}
+        ", types
+    );
+
+    let source = 
+        format!(
+            "
             {}
-        }}
-        
-        {}
-        ", header(), parsers, types)
+            {}
+            {}
+            ", source_file_header(&header_path), parsers, types
+        );
+
+    vec![
+        OutputFile {
+            path: source_path,
+            content: source,
+        },
+
+        OutputFile {
+            path: header_path,
+            content: header,
+        }
+    ]
 }
 
-pub fn header() -> String {
-    "#![allow(unused, nonstandard_style)]
-    use std::collections::VecDeque;
-    
-    pub enum ANTLRError {
-        NoAlt,
-        Mismatched,
-        EOF
-    }
+pub fn source_file_header(header_path: &PathBuf) -> String {
+    format!(
+        "#include <stdint.h>
+        #include <errno.h>
 
-    #[derive(Clone)]
-    pub struct Token {
-        token_type: usize,
-        text: String
-    }
+        #include \"{}\"
 
-    pub struct Parser {
-        head: usize,
-        tokens: Vec<Token>,
-        rule_stack: VecDeque<usize>
-    }
+        typedef struct {{
+            uint32_t token_type;
 
-    impl Parser {
-        pub fn peek(&self) -> Option<&Token> {
-            self.tokens.get(self.head + 1)
-        }
+            char* text;
+            uint32_t text_len;
+        }} Token;
 
-        pub fn match_token(&mut self, token: usize) -> Result<Token, ANTLRError> {
-            match self.tokens.get(self.head) {
-                Some(t) => {
-                    if t.token_type == token {
-                        self.head += 1;
-                        Ok(t.clone())
-                    } else {
-                        Err(ANTLRError::Mismatched)
-                    }
-                },
-                None => Err(ANTLRError::EOF)
-            }
-        }
-    }
-    ".into()
+        typedef struct Parser {{
+            uint32_t head;
+            uint32_t token_count;
+            Token*   tokens;
+        }} Parser;
+
+        Token* get_token(Parser* parser, uint32_t index) {{
+            if (parser->token_count <= index) {{
+                errno = ERANGE;
+                return NULL;
+            }}
+
+            return parser->tokens + index;
+        }}
+
+        Token* peek(Parser* parser) {{
+            return get_token(parser, parser->head + 1);
+            }}
+
+        Token* match_token(Parser* parser, uint32_t token_type) {{
+            Token* token = get_token(parser, parser->head);
+            if (token == NULL) {{
+                return NULL;
+            }}
+
+            if (token->token_type == token_type) {{
+                parser->head += 1;
+                return token;
+            }}
+
+            return NULL;
+        }}
+        ", header_path.to_str().unwrap()
+    )
 }
 
 pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
@@ -74,19 +104,12 @@ pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
     };
 
     format!(
-        "pub fn {1}(&mut self) -> Result<{2}, ANTLRError> {{
-            self.rule_stack.push_back({0});
-
-            let __result = {{
-                {3}
-                {4}
-            }};
-
-            self.rule_stack.pop_back();
-            Ok(__result)
+        "{1}* {0}(Parser* parser) {{
+            {1}* __result = ({1} *) malloc(sizeof({1});
+            {2}
         }}",
 
-        rule, name.clone(), capitalize(name), initializers, match_node(ir.clone(), &rule_match)
+        name.clone(), capitalize(name), match_node(ir.clone(), &rule_match)
     )
 }
 
@@ -106,18 +129,17 @@ pub fn rule_struct(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
     let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
 
     format!(
-        "pub struct {0} {{
-            {1}
-        }}
+        "typedef struct {{
+            {2}
+        }} {1};
 
-        impl {0} {{
-            pub fn new({1}) -> {0} {{
+         {1}* new_{0}({2}) {{
                 {0} {{
                     {2}
                 }}
             }}
         }}
-        ", capitalize(name), elements.join(",\n"), alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx)).collect::<Vec<_>>().join(",")
+        ", name, capitalize(name.clone()), elements.join(",\n")
     )
 }
 
@@ -219,7 +241,14 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &HashMap<usize, MatchNode, RandomState
     }).collect::<Vec<_>>().join("\n");
 
     format!(
-        "match self.peek().map(|t| t.token_type) {{
+
+        "Token* next_token = peek(parser);
+        if (next_token == NULL) {{
+            errno = ERANGE;
+            return NULL
+        }}
+        
+        switch (next_token->token_type) {{
             {}
             _ => panic!(),
         }}
@@ -238,14 +267,12 @@ pub fn match_case(ir: Arc<AntlrIR>, key: usize, value: &MatchNode) -> String {
 
     format!(
         "
-            Some({}) => {{
+            case {}:
                 {}
-                {}
-            }},
+                break;
         ",
 
         key,
-        initializers,
         match_node(ir.clone(), &value)
     )
 }
@@ -253,8 +280,8 @@ pub fn match_case(ir: Arc<AntlrIR>, key: usize, value: &MatchNode) -> String {
 pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
     match element.suffix() {
         None => None,
-        Some(EBNFSuffix::Optional) => Some(format!("let {} = None;", element_decl(ir.clone(), element, element_idx)?)),
-        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => Some(format!("let mut {} = Vec::new();", element_decl(ir.clone(), element, element_idx)?))
+        Some(EBNFSuffix::Optional) => Some(format!("{} = NULL;", element_decl(ir.clone(), element, element_idx)?)),
+        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => Some(format!("{} = ({}*) malloc(sizeof(Array);", element_decl(ir.clone(), element, element_idx)?, element_name(ir, element)?))
     }
 }
 
@@ -265,9 +292,12 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
     let element = match element {
         ElementIR::RuleAtom { id, suffix } => {
             match suffix {
-                None => format!("let {} = Box::new(self.{}()?);", name_indexed.unwrap(), name.unwrap()),
-                Some(EBNFSuffix::Optional) => format!("let {} = self.{}().ok().map(Box::new);", name_indexed.unwrap(), name.unwrap()),
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(__item) = self.{}() {{ {}.push(__item) }}", name.unwrap(), name_indexed.unwrap())
+                None => format!("{} = {}(parser);", name_indexed.unwrap(), name.unwrap()),
+                Some(EBNFSuffix::Optional) => format!("{} = {}(parser);", name_indexed.unwrap(), name.unwrap()),
+                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => 
+                format!("{}* item = NULL;
+
+                while ({}* __item = {}(parser) != NULL) {{ push({}, __item) }}", name.unwrap(), name_indexed.unwrap())
             }
         },
         ElementIR::TokenAtom { id, suffix } => {
@@ -275,7 +305,7 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
                 Some(_) => {
                     match suffix {
                         None => format!("let {} = self.match_token({})?.clone();", name_indexed.unwrap(), id),
-                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok();", name_indexed.unwrap(), id),
+                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok().map(Box::new());", name_indexed.unwrap(), id),
                         Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", id, name_indexed.unwrap())
                     }
                     

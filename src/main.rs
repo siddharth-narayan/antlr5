@@ -1,6 +1,7 @@
 #![feature(titlecase)]
 #![feature(option_into_flat_iter)]
 #![allow(unused)] // Temporary
+#![feature(path_absolute_method)]
 
 use std::{collections::{HashSet, VecDeque}, fs::read_to_string, hash::RandomState, hint::black_box, sync::Arc, time::Instant};
 
@@ -40,7 +41,7 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
 
-    output(ir.clone(), "out.rs", Language::Rust);
+    output(ir.clone(), "out.c".into(), Language::C);
 
     Ok(())
 }

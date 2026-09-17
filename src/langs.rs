@@ -1,31 +1,51 @@
-use std::{ffi::OsStr, fs, path::Path, process::Command, sync::Arc, time::SystemTime};
+use std::{ffi::OsStr, fs, path::{Path, PathBuf}, process::Command, sync::Arc, time::SystemTime};
 
 use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::ElementIR}};
 
 pub mod rust;
+pub mod c;
 
 #[derive(Clone, Copy)]
 pub enum Language {
+    C,
     Rust,
     Python
 }
 
-pub fn render(ir: Arc<AntlrIR>, lang: Language) -> String {
+pub struct OutputFile {
+    path: PathBuf,
+    content: String,
+}
+
+pub fn render<P: AsRef<Path>>(ir: Arc<AntlrIR>, lang: Language, path: P) -> Vec<OutputFile> {
     match lang {
+        Language::C => {
+            c::render(ir, path.as_ref().into())
+        },
+        
         Language::Rust => {
-            rust::render(ir)
+            vec![
+                OutputFile {
+                    path: PathBuf::from("out.rs"),
+                    content: rust::render(ir),
+                }
+            ]
         },
         
         Language::Python => {
-            "unimplemented!".into()
+            Vec::new()
         }
     }
 }
 
-pub fn format<P: AsRef<OsStr>>(path: P, lang: Language) {
+pub fn format(path: PathBuf, lang: Language) {
     match lang {
+        Language::C => {
+            Command::new("clang-format").arg("-i").arg(path.as_os_str()).output();
+        },
+        
         Language::Rust => {
-            Command::new("rustfmt").arg(path).output();
+            Command::new("rustfmt").arg(path.as_os_str()).output();
         },
 
         Language::Python => {
@@ -34,10 +54,21 @@ pub fn format<P: AsRef<OsStr>>(path: P, lang: Language) {
     }
 }
 
-pub fn output<P: AsRef<Path> + AsRef<OsStr>>(ir: Arc<AntlrIR>, path: P, lang: Language) {
+pub fn output(ir: Arc<AntlrIR>, path: PathBuf, lang: Language) {
     let time = SystemTime::now();
-    let content = render(ir, lang);
-    fs::write(&path, content);
+    
+    let outputs = render(ir, lang, path);
+    for output in &outputs {
+        fs::write(&output.path, &output.content);
+    }
+
     println!("Generated parser in {}ms", time.elapsed().unwrap().as_millis());
-    format(&path, lang);
+
+    let time = SystemTime::now();
+    
+    for output in &outputs {
+        format(output.path.clone(), lang);
+    }
+    
+    println!("Formatted parser in {}ms", time.elapsed().unwrap().as_millis());    
 }

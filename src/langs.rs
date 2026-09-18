@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, fs, path::{Path, PathBuf}, process::Command, sync::Arc, time::SystemTime};
+use std::{ffi::OsStr, fs, io::{self, Error}, path::{Path, PathBuf}, process::Command, sync::Arc, time::SystemTime};
 
 use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::ElementIR}};
 
@@ -39,18 +39,22 @@ pub fn render<P: AsRef<Path>>(ir: Arc<AntlrIR>, lang: Language, path: P) -> Vec<
 }
 
 pub fn format(path: PathBuf, lang: Language) {
-    match lang {
+    let result = match lang {
         Language::C => {
-            Command::new("clang-format").arg("-i").arg(path.as_os_str()).output();
+            Command::new("clang-format").arg("-i").arg("--style={ColumnLimit: 0}").arg(path.as_os_str()).output()
         },
         
         Language::Rust => {
-            Command::new("rustfmt").arg(path.as_os_str()).output();
+            Command::new("rustfmt").arg(path.as_os_str()).output()
         },
 
         Language::Python => {
-
+           io::Result::Err(Error::from_raw_os_error(2))
         }
+    };
+
+    if let Err(_) = result {
+        println!("Failed to format your output. It will be messy! Ensure you have the approprate formatter installed for your target language")
     }
 }
 

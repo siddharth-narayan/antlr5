@@ -6,7 +6,8 @@ use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule},
 
 pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
     dir.absolute().unwrap();
-    if dir.is_file() {
+    
+    if dir.extension().is_some() {
         dir = dir.parent().unwrap().to_path_buf()
     }
 
@@ -14,11 +15,31 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
     let header_path = dir.join("out.h");
 
     let parsers = (0..ir.rules().len()).map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-    let types = (0..ir.rules().len()).map(|r| rule_type(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-    
+    let rule_ctors = (0..ir.rules().len()).map(|r| rule_struct_ctor(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+
+
+
+    let rule_typedefs = (0..ir.rules().len()).map(|r| rule_typedef(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+
+    let header_rule_decls = (0..ir.rules().len()).map(
+        |r| 
+        
+        format!(
+            "{}
+            {}
+            {}",
+            rule_struct_decl(ir.clone(), r),
+            rule_parser_decl(ir.clone(), r),
+            rule_struct_ctor_decl(ir.clone(), r)
+        )
+    )
+        .collect::<Vec<_>>().join("\n");
+
     let header = format!(
         "{}
-        ", types
+        {}
+        {}
+        ", header_file_header(), rule_typedefs, header_rule_decls,
     );
 
     let source = 
@@ -27,7 +48,7 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
             {}
             {}
             {}
-            ", source_file_header(&header_path), parsers, types
+            ", source_file_header(&header_path), parsers, rule_ctors
         );
 
     vec![
@@ -45,23 +66,11 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
 
 pub fn source_file_header(header_path: &PathBuf) -> String {
     format!(
-        "#include <stdint.h>
+        "#include <stddef.h>
+        #include <stdint.h>
         #include <errno.h>
 
         #include \"{}\"
-
-        typedef struct {{
-            uint32_t token_type;
-
-            char* text;
-            uint32_t text_len;
-        }} Token;
-
-        typedef struct Parser {{
-            uint32_t head;
-            uint32_t token_count;
-            Token*   tokens;
-        }} Parser;
 
         Token* get_token(Parser* parser, uint32_t index) {{
             if (parser->token_count <= index) {{
@@ -93,6 +102,39 @@ pub fn source_file_header(header_path: &PathBuf) -> String {
     )
 }
 
+pub fn header_file_header() -> String {
+    "typedef struct Token Token;
+    typedef struct Parser Parser;
+    typedef struct Array Array;
+
+    struct Token {
+    uint32_t token_type;
+
+    char *text;
+    uint32_t text_len;
+    };
+
+    struct Parser {
+    uint32_t head;
+    uint32_t token_count;
+    Token *tokens;
+    };
+    
+    struct Array {
+        void** head;
+    };
+    ".into()
+}
+
+pub fn rule_parser_decl(ir: Arc<AntlrIR> , rule: usize) -> String {
+    let name = ir.get_rule(rule).unwrap().name().clone();
+
+    format!(
+        "{1}* parse_{0}(Parser* parser);",
+        name.clone(), capitalize(name)
+    )
+}
+
 pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
     let name = ir.get_rule(rule).unwrap().name().clone();
     let rule_match = match_rule(ir.clone(), rule);
@@ -104,42 +146,77 @@ pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
     };
 
     format!(
-        "{1}* {0}(Parser* parser) {{
-            {1}* __result = ({1} *) malloc(sizeof({1});
+        "{1}* parse_{0}(Parser* parser) {{
+            {3}
             {2}
         }}",
 
-        name.clone(), capitalize(name), match_node(ir.clone(), &rule_match)
+        name.clone(), capitalize(name), match_node(ir.clone(), &rule_match), initializers
     )
 }
 
 pub fn rule_type(ir:Arc<AntlrIR>, rule: usize) -> String {
     if ir.get_rule(rule).unwrap().alts().len() == 1 {
-        rule_struct(ir, rule)
+        rule_struct_decl(ir, rule)
     } else {
         rule_enum(ir, rule)
     }
 }
 
-pub fn rule_struct(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
+pub fn rule_typedef(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
+    let rule = ir.get_rule(rule_idx).unwrap();
+    let name = rule.name().clone();
+
+    format!("typedef struct {0} {0};", capitalize(name.clone())
+    )
+}
+
+pub fn rule_struct_decl(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
     let rule = ir.get_rule(rule_idx).unwrap();
     let name = rule.name().clone();
     let alt = rule.alts().get(0).unwrap();
 
     let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
+    let mut elements= elements.join(";\n");
+    elements.push(';');
 
     format!(
-        "typedef struct {{
-            {2}
-        }} {1};
+        "struct {} {{
+            {}
+        }};
+        ", capitalize(name.clone()), elements
+    )
+}
 
-         {1}* new_{0}({2}) {{
-                {0} {{
-                    {2}
-                }}
+pub fn rule_struct_ctor_decl(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
+    let rule = ir.get_rule(rule_idx).unwrap();
+    let name = rule.name().clone();
+    let alt = rule.alts().get(0).unwrap();
+
+    let elements_decls: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
+
+    format!(
+        "{1}* new_{0}({2});", name, capitalize(name.clone()), elements_decls.join(", ")
+    )
+}
+
+pub fn rule_struct_ctor(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
+    let rule = ir.get_rule(rule_idx).unwrap();
+    let name = rule.name().clone();
+    let alt = rule.alts().get(0).unwrap();
+
+    let elements_decls: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
+    let mut element_decls = elements_decls.join(";\n");
+    element_decls.push(';');
+
+    format!(
+        "
+        {1}* new_{0}({2}) {{
+            {1} {{
+                {3}
             }}
         }}
-        ", name, capitalize(name.clone()), elements.join(",\n")
+        ", name, capitalize(name.clone()), element_decls, alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx)).collect::<Vec<_>>().join(",")
     )
 }
 
@@ -188,43 +265,26 @@ pub fn element_name_indexed(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: 
     Some(format!("{}_{}", element_name(ir, element)?, element_idx))
 }
 
+pub fn element_type(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
+    let e_type = match element {
+        ElementIR::RuleAtom { .. } => {
+            format!("{}*", capitalize(element_name(ir.clone(), element).unwrap()))
+        }
+        
+        _ => "Token*".into()
+    };
+
+    if let Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) = element.suffix() {
+        "Array *".into()
+    } else {
+        e_type
+    }
+}
+
 pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
     let name = element_name(ir.clone(), element)?;
-    let name_indexed = element_name_indexed(ir.clone(), element, element_idx)?;
-
-
-    match element {
-        ElementIR::RuleAtom { .. } => {
-            let prefix = match element.suffix() {
-                None => "Box<",
-                Some(EBNFSuffix::Optional) => "Option<Box<",
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
-            };
-
-            let suffix: String = match element.suffix() {
-                Some(EBNFSuffix::Optional) => ">>".into(),
-                None | Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => ">".into()
-            };
-
-            Some(format!("{}: {}{}{}", name_indexed, prefix, capitalize(name), suffix))
-        },
-
-        ElementIR::TokenAtom { .. } => {
-            let prefix = match element.suffix() {
-                None => "",
-                Some(EBNFSuffix::Optional) => "Option<",
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
-            };
-
-            let suffix = match element.suffix() {
-                None => "",
-                Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => ">"
-            };
-
-            Some(format!("{}: {}Token{}", name_indexed, prefix, suffix))
-        },
-        _ => None
-    }
+    
+    Some(format!("{} {}", element_type(ir.clone(), element), name))
 }
 
 pub fn match_node(ir: Arc<AntlrIR>, node: &MatchNode) -> String {
@@ -245,12 +305,13 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &HashMap<usize, MatchNode, RandomState
         "Token* next_token = peek(parser);
         if (next_token == NULL) {{
             errno = ERANGE;
-            return NULL
+            return NULL;
         }}
         
         switch (next_token->token_type) {{
             {}
-            _ => panic!(),
+            default:
+                exit(-1);
         }}
         ",
 
@@ -269,52 +330,68 @@ pub fn match_case(ir: Arc<AntlrIR>, key: usize, value: &MatchNode) -> String {
         "
             case {}:
                 {}
+                {}
                 break;
         ",
 
         key,
+        initializers,
         match_node(ir.clone(), &value)
     )
 }
 
 pub fn match_element_initializer(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -> Option<String> {
     match element.suffix() {
-        None => None,
-        Some(EBNFSuffix::Optional) => Some(format!("{} = NULL;", element_decl(ir.clone(), element, element_idx)?)),
-        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => Some(format!("{} = ({}*) malloc(sizeof(Array);", element_decl(ir.clone(), element, element_idx)?, element_name(ir, element)?))
+        None | Some(EBNFSuffix::Optional) => Some(format!("{}_{} = NULL;", element_decl(ir.clone(), element, element_idx)?, element_idx)),
+        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => Some(format!("Array* {} = (Array*) malloc(sizeof(Array));", element_name_indexed(ir, element, element_idx)?))
     }
 }
 
 pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR, element_idx: usize, next: &MatchNode) -> String {
-    let name = element_name(ir.clone(), element).unwrap();
-    let name_indexed = element_name_indexed(ir.clone(), element, element_idx).unwrap();
-
     let element = match element {
         ElementIR::RuleAtom { id, suffix } => {
+            let name = element_name(ir.clone(), element).unwrap();
+            let name_indexed = element_name_indexed(ir.clone(), element, element_idx).unwrap();
             match suffix {
-                None => format!("{} = {}(parser);", name_indexed, name),
-                Some(EBNFSuffix::Optional) => format!("{} = {}(parser);", name_indexed, name),
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => 
-                format!("{}* item = NULL;
+                None => 
+                    format!("{} = parse_{}(parser);",
+                        element_name_indexed(ir.clone(),
+                        element,
+                        element_idx).unwrap(),
+                        name
+                    ), //remember optional later
 
-                while ({}* __item = {}(parser) != NULL) {{ push({}, __item) }}", capitalize(name.clone()), capitalize(name.clone()), name, name)
+                Some(EBNFSuffix::Optional) => 
+                    format!("{} = parse_{}(parser);",
+                        element_name_indexed(ir.clone(),
+                        element,
+                        element_idx).unwrap(),
+                        name
+                    ), //remember optional later                
+                
+                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => 
+                    format!("{}* __item = NULL;
+                        while ((__item = parse_{}(parser)) != NULL) {{ push({}, __item); }}", capitalize(element_name(ir.clone(), element).unwrap()),  name_indexed, name_indexed)
             }
         },
         ElementIR::TokenAtom { id, suffix } => {
             match ir.symbols().get_token_name(*id) {
                 Some(_) => {
+                    let name_indexed = element_name_indexed(ir.clone(), element, element_idx).unwrap();
                     match suffix {
-                        None => format!("let {} = match_token(parser, {})?.clone();", name_indexed.unwrap(), id),
-                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok().map(Box::new());", name_indexed.unwrap(), id),
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", id, name_indexed.unwrap())
+                        None => format!("{} = match_token(parser, {});", name_indexed, id),
+                        Some(EBNFSuffix::Optional) => format!("{} = match_token(parser, {});", name_indexed, id), // Remember optional later
+                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!(
+                            "Token* __item = NULL;
+                        while (__item = match_token(parser, {}) != NULL) {{ push({}, __item); }}", id, name_indexed)
                     }
                     
                 },
                 None => {
                     match suffix {
-                        None => format!("let _ = self.match_token({})?;", id),
-                        Some(EBNFSuffix::Optional) => format!("let _ = self.match_token({});", id),
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(_) = self.match_token({}) {{}}", id)
+                        None => format!("match_token(parser, {});", id),
+                        Some(EBNFSuffix::Optional) => format!("match_token(parser, {});", id), // Remember optional later
+                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while (match_token(parser, {}) != NULL) {{}}", id)
                     }
                     
                 }
@@ -335,20 +412,16 @@ pub fn match_finish(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
         let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx)).collect();
 
         format!(
-            "{}::{} {{
-                {}
-            }}
-            ", capitalize(parent_rule.name().clone()), alt.label().cloned().unwrap_or(format!("Alt{}", alt.index())), elements.join(",\n")
+            "return new_{}alt_{}({});
+            ", parent_rule.name().clone(), alt.label().cloned().unwrap_or(format!("Alt{}", alt.index())), elements.join(",\n")
         )
     } else {
         let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(
             |(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx) ).collect();
 
         format!(
-            "{}::new (
-                {}
-            )
-            ", capitalize(parent_rule.name().clone()), elements.join(",\n")
+            "return new_{}({});
+            ", parent_rule.name().clone(), elements.join(", ")
         )
     }
 }

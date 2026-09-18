@@ -89,8 +89,8 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
                     ), //remember optional later                
                 
                 Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => 
-                    format!("{}* __item = NULL;
-                        while ((__item = parse_{}(parser)) != NULL) {{ push({}, __item); }}", capitalize(element_name(ir.clone(), element).unwrap()),  name, name_indexed)
+                    format!("{}* __item_{3} = NULL;
+                        while ((__item_{3} = parse_{}(parser)) != NULL) {{ push({}, __item{3}); }}", capitalize(element_name(ir.clone(), element).unwrap()),  name_indexed, name_indexed, element_idx)
             }
         },
         ElementIR::TokenAtom { id, suffix } => {
@@ -101,8 +101,8 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
                         None => format!("{} = match_token(parser, {});", name_indexed, id),
                         Some(EBNFSuffix::Optional) => format!("{} = match_token(parser, {});", name_indexed, id), // Remember optional later
                         Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!(
-                            "Token* __item = NULL;
-                        while ((__item = match_token(parser, {})) != NULL) {{ push({}, __item); }}", id, name_indexed)
+                            "Token* __item_{2} = NULL;
+                        while (__item_{2} = match_token(parser, {}) != NULL) {{ push({}, __item_{2}); }}", id, name_indexed, element_idx)
                     }
                     
                 },

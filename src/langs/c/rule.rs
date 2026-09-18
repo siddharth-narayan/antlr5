@@ -144,7 +144,7 @@ pub fn rule_ctor(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
                 
                 return __result;
             }}
-            ", rule_enum_ctor_decl(ir.clone(), rule_idx, alt.index()), capitalize(name.clone()), elements_assigns_vec.join("\n")
+            ", rule_struct_ctor_decl(ir.clone(), rule_idx), capitalize(name.clone()), elements_assigns_vec.join("\n")
         )
     }
 

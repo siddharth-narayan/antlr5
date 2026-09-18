@@ -103,7 +103,7 @@ pub fn rule_enum_ctor_decl(ir: Arc<AntlrIR>, rule_idx: usize, alt_idx: usize) ->
     let elements_decls: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
     
     format!(
-        "{1}* new_{0}_alt{3}({2})", name, capitalize(name.clone()), elements_decls.join(", "), alt.index()
+        "{1}* new_{0}_{3}({2})", name, capitalize(name.clone()), elements_decls.join(", "), alt.label().unwrap_or(&format!("alt{}", alt.index()))
     )
 }
 
@@ -114,8 +114,10 @@ pub fn rule_ctor(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
 
     if rule.alts().len() > 1 {
         rule.alts().iter().map(|alt| {
+            let label = alt.label().cloned().unwrap_or(format!("alt{}", alt.index()));
+
             let elements_assigns_vec: Vec<String> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| {
-                Some(format!("__result->{} = {0};", element_name_indexed(ir.clone(), e, e_idx)?))
+                Some(format!("__result->variants.{}.{} = {1};", label, element_name_indexed(ir.clone(), e, e_idx)?))
             }).collect();
 
             format!(
@@ -156,23 +158,23 @@ pub fn rule_enum_decl(ir: Arc<AntlrIR>, rule: usize) -> String {
     format!(
         "struct {} {{
             uint8_t tag;
-            union variants {{
+            union {{
                 {}
-            }};
+            }} variants;
         }};
         ", capitalize(name), alts
     )
 }
 
 pub fn rule_enum_alt(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
-    let label = alt.label().cloned().unwrap_or(format!("Alt{}", alt.index()));
+    let label = alt.label().cloned().unwrap_or(format!("alt{}", alt.index()));
     let elements = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect::<Vec<_>>().join(";\n");
 
     format!(
-        "struct {} {{
+        "struct {{
             uint8_t;
             {}
-        }};
-        ", label, elements
+        }} {};
+        ", elements, label
     )
 }

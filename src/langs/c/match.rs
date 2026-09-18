@@ -46,10 +46,11 @@ pub fn match_case(ir: Arc<AntlrIR>, key: usize, value: &MatchNode) -> String {
 
     format!(
         "
-            case {}:
+            case {}: {{
                 {}
                 {}
                 break;
+            }}
         ",
 
         key,
@@ -89,7 +90,7 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
                 
                 Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => 
                     format!("{}* __item = NULL;
-                        while ((__item = parse_{}(parser)) != NULL) {{ push({}, __item); }}", capitalize(element_name(ir.clone(), element).unwrap()),  name_indexed, name_indexed)
+                        while ((__item = parse_{}(parser)) != NULL) {{ push({}, __item); }}", capitalize(element_name(ir.clone(), element).unwrap()),  name, name_indexed)
             }
         },
         ElementIR::TokenAtom { id, suffix } => {
@@ -101,7 +102,7 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
                         Some(EBNFSuffix::Optional) => format!("{} = match_token(parser, {});", name_indexed, id), // Remember optional later
                         Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!(
                             "Token* __item = NULL;
-                        while (__item = match_token(parser, {}) != NULL) {{ push({}, __item); }}", id, name_indexed)
+                        while ((__item = match_token(parser, {})) != NULL) {{ push({}, __item); }}", id, name_indexed)
                     }
                     
                 },
@@ -130,8 +131,8 @@ pub fn match_finish(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
         let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_name_indexed(ir.clone(), e, e_idx)).collect();
 
         format!(
-            "return new_{}alt_{}({});
-            ", parent_rule.name().clone(), alt.label().cloned().unwrap_or(format!("Alt{}", alt.index())), elements.join(",\n")
+            "return new_{}_{}({});
+            ", parent_rule.name().clone(), alt.label().cloned().unwrap_or(format!("alt{}", alt.index())), elements.join(",\n")
         )
     } else {
         let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(

@@ -61,7 +61,8 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
 
 pub fn source_file_header(header_path: &PathBuf) -> String {
     format!(
-        "#include <stddef.h>
+        "#include <stdlib.h>
+        #include <stddef.h>
         #include <stdint.h>
         #include <errno.h>
 
@@ -92,6 +93,9 @@ pub fn source_file_header(header_path: &PathBuf) -> String {
             }}
 
             return NULL;
+        }}
+
+        void push(Array* array, void* element) {{
         }}
         ", header_path.to_str().unwrap()
     )

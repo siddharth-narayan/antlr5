@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use rapidhash::fast::RandomState;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::rule::{rule_parser, rule_parser_decl, rule_struct_ctor, rule_struct_ctor_decl, rule_struct_decl, rule_typedef}}, util::{HashArc, capitalize}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::rule::{rule_ctor, rule_decl, rule_parser, rule_parser_decl, rule_struct_decl, rule_typedef}}, util::{HashArc, capitalize}};
 
 mod element;
 mod r#match;
@@ -18,25 +18,11 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
     let source_path = dir.join("out.c");
     let header_path = dir.join("out.h");
 
-    let parsers = (0..ir.rules().len()).map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-    let rule_ctors = (0..ir.rules().len()).map(|r| rule_struct_ctor(ir.clone(), r)).collect::<Vec<_>>().join("\n");
 
 
-
+    // Header file
     let rule_typedefs = (0..ir.rules().len()).map(|r| rule_typedef(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-
-    let header_rule_decls = (0..ir.rules().len()).map(
-        |r| 
-        
-        format!(
-            "{}
-            {}
-            {}; // Wheee",
-            rule_struct_decl(ir.clone(), r),
-            rule_parser_decl(ir.clone(), r),
-            rule_struct_ctor_decl(ir.clone(), r)
-        )
-    )
+    let header_rule_decls = (0..ir.rules().len()).map(|r| rule_decl(ir.clone(), r))
         .collect::<Vec<_>>().join("\n");
 
     let header = format!(
@@ -45,6 +31,11 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
         {}
         ", header_file_header(), rule_typedefs, header_rule_decls,
     );
+
+    // Source File
+    let parsers = (0..ir.rules().len()).map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+    let rule_ctors = (0..ir.rules().len()).map(|r| rule_ctor(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+
 
     let source = 
         format!(

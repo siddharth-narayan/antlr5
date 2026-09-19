@@ -19,18 +19,9 @@ pub struct OutputFile {
 
 pub fn render<P: AsRef<Path>>(ir: Arc<AntlrIR>, lang: Language, path: P) -> Vec<OutputFile> {
     match lang {
-        Language::C => {
-            c::render(ir, path.as_ref().into())
-        },
+        Language::C => c::render(ir, path.as_ref().into()),
         
-        Language::Rust => {
-            vec![
-                OutputFile {
-                    path: PathBuf::from("out.rs"),
-                    content: rust::render(ir),
-                }
-            ]
-        },
+        Language::Rust => rust::render(ir),
         
         Language::Python => {
             Vec::new()

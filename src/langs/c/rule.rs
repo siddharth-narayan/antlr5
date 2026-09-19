@@ -78,7 +78,7 @@ pub fn rule_struct_decl(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
     // Empty uint8_t for padding empty structs
     format!(
         "struct {} {{
-            uint8_t;
+            uint8_t __empty;
             {}
         }};
         ", capitalize(name.clone()), elements
@@ -153,7 +153,7 @@ pub fn rule_ctor(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
 pub fn rule_enum_decl(ir: Arc<AntlrIR>, rule: usize) -> String { 
     let name = ir.get_rule(rule).unwrap().name().clone();
 
-    let alts = ir.get_rule(rule).unwrap().alts().iter().map(|a| rule_enum_alt(ir.clone(), a.clone())).collect::<Vec<_>>().join(";");
+    let alts = ir.get_rule(rule).unwrap().alts().iter().map(|a| rule_enum_alt(ir.clone(), a.clone())).collect::<Vec<_>>().join("\n");
 
     format!(
         "struct {} {{
@@ -172,7 +172,7 @@ pub fn rule_enum_alt(ir: Arc<AntlrIR>, alt: HashArc<AltIR>) -> String {
 
     format!(
         "struct {{
-            uint8_t;
+            uint8_t __empty;
             {}
         }} {};
         ", elements, label

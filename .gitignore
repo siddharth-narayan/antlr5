@@ -4,3 +4,6 @@
 out
 out.*
 profile.json.gz
+
+lexer.*
+parser.*

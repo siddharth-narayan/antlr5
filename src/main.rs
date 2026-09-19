@@ -41,7 +41,7 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
 
-    output(ir.clone(), "out.c".into(), Language::C);
+    output(ir.clone(), "out.rs".into(), Language::Rust);
 
     Ok(())
 }

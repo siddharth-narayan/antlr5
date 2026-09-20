@@ -66,10 +66,11 @@ impl AltIR {
                 }
 
                 Element::Set {
-                    inverted: _,
+                    inverted,
                     set,
                     suffix,
                 } => ElementIR::Set {
+                    inverted: *inverted,
                     set: set.clone(),
                     suffix: *suffix,
                 },

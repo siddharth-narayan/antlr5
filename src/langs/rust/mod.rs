@@ -52,17 +52,13 @@ pub fn parse_header() -> String {
     "#![allow(unused, nonstandard_style)]
     use std::collections::VecDeque;
     
+    use lexer::Token;
+
     #[derive(Clone, Debug)]
     pub enum ANTLRError {
         NoViableAlt,
         Mismatched,
         EOF
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct Token {
-        token_type: usize,
-        text: String
     }
 
     #[derive(Clone, Debug)]
@@ -109,12 +105,18 @@ pub fn lexer_header() -> String {
     #[derive(Clone, Debug)]
     pub struct Token {
         token_type: usize,
-        text: String
+        text: String,
+
+        pos: usize,
+        line_number: usize,
+        col_number: usize,
     }
 
     #[derive(Clone, Debug)]
     pub struct Lexer {
         head: usize,
+        select_head: usize,
+        
         text: Vec<char>,
         rule_stack: VecDeque<usize>
     }

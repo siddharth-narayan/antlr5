@@ -116,7 +116,7 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
                 }
             }
         },
-        ElementIR::Set { set, suffix } => {
+        ElementIR::Set { set, suffix, inverted } => {
             "// Set placeholder\n".into()
         }
     };

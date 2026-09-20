@@ -13,6 +13,7 @@ pub enum ElementIR {
         suffix: Option<EBNFSuffix>
     },
     Set {
+        inverted: bool,
         set: BTreeSet<usize>,
         suffix: Option<EBNFSuffix>
     },

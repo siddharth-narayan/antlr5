@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use rapidhash::fast::RandomState;
+use rayon::iter::{IntoParallelIterator, ParallelIterator as _};
 
 use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, rust::{lexer::lexer_match, rule::{rule_parser, rule_type}}}, util::{HashArc, capitalize}};
 
@@ -11,8 +12,8 @@ mod rule;
 mod lexer;
 
 pub fn render(ir: Arc<AntlrIR>) -> Vec<OutputFile> {
-    let parsers = (0..ir.rules().len()).map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-    let types = (0..ir.rules().len()).map(|r| rule_type(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+    let parsers = (0..ir.rules().len()).into_par_iter().map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+    let types = (0..ir.rules().len()).into_par_iter().map(|r| rule_type(ir.clone(), r)).collect::<Vec<_>>().join("\n");
     
     let lexer_match = lexer_match(ir.clone());
     vec![

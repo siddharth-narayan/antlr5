@@ -206,6 +206,9 @@ impl MatchNode {
         let MatchNode::Element { alt: alt_right, element_idx: element_idx_right, element: element_right, next: next_right } = &other else { panic!() };
         
         let mut peek = HashMap::default();
+        
+        // NEED TO FIX THIS!!!
+        // This is absolutely not how merging elements should work
         if let Some(nthset) = nth(0, 0, (alt_left.clone(), *element_idx_left), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
             for element in nthset {
                 if let ElementIR::TokenAtom { .. } = element {

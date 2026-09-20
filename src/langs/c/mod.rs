@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use rapidhash::fast::RandomState;
+use rayon::iter::{IntoParallelIterator, ParallelIterator as _};
 
 use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::rule::{rule_ctor, rule_decl, rule_parser, rule_parser_decl, rule_struct_decl, rule_typedef}}, util::{HashArc, capitalize}};
 
@@ -21,8 +22,8 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
 
 
     // Header file
-    let rule_typedefs = (0..ir.rules().len()).map(|r| rule_typedef(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-    let header_rule_decls = (0..ir.rules().len()).map(|r| rule_decl(ir.clone(), r))
+    let rule_typedefs = (0..ir.rules().len()).into_par_iter().map(|r| rule_typedef(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+    let header_rule_decls = (0..ir.rules().len()).into_par_iter().map(|r| rule_decl(ir.clone(), r))
         .collect::<Vec<_>>().join("\n");
 
     let header = format!(
@@ -33,8 +34,8 @@ pub fn render(ir: Arc<AntlrIR>, mut dir: PathBuf) -> Vec<OutputFile> {
     );
 
     // Source File
-    let parsers = (0..ir.rules().len()).map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
-    let rule_ctors = (0..ir.rules().len()).map(|r| rule_ctor(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+    let parsers = (0..ir.rules().len()).into_par_iter().map(|r| rule_parser(ir.clone(), r)).collect::<Vec<_>>().join("\n");
+    let rule_ctors = (0..ir.rules().len()).into_par_iter().map(|r| rule_ctor(ir.clone(), r)).collect::<Vec<_>>().join("\n");
 
 
     let source = 

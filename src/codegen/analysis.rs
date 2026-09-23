@@ -75,19 +75,6 @@ pub fn nth<'a>(
     return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
 }
 
-#[derive(Hash, Clone, Debug, PartialEq, Eq)]
-struct PeekMatch {
-    pub item: usize, // Can represent a character or token
-    pub greedy: bool, // Should we consume one, or as many as possible
-    pub can_become_greedy: bool, // If it comes from an element with a greedy suffix
-}
-
-impl PeekMatch {
-    pub fn from_token_element(element: &ElementIR) -> PeekMatch {
-        todo!()
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MatchNode {
     Peek {
@@ -269,3 +256,29 @@ pub fn match_rule(ir: Arc<AntlrIR>, rule: usize) -> MatchNode {
 
     match_alts(ir.clone(), rule.alts())
 }
+
+
+
+
+
+
+/////////////////////////////////////////////////
+/// /////////////////////////////////////////////
+#[derive(Hash, Clone, Debug, PartialEq, Eq)]
+struct PeekMatch {
+    pub item: usize, // Can represent a character or token
+    pub greedy: bool, // Should we consume one, or as many as possible
+    pub can_become_greedy: bool, // If it comes from an element with a greedy suffix
+}
+
+impl PeekMatch {
+    pub fn from_token_element(element: &ElementIR) -> PeekMatch {
+        todo!()
+    }
+}
+
+
+
+
+
+

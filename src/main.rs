@@ -31,7 +31,7 @@ fn main() -> Result<(), ()> {
         tracing::subscriber::set_global_default(subscriber).unwrap();
     }
 
-    let path = std::env::args().nth(1).unwrap_or("src/tests/cobol.g4".into());
+    let path = std::env::args().nth(1).unwrap_or("src/tests/grammars/cobol.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // Lex + Parse
@@ -41,7 +41,7 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
 
-    output(ir.clone(), "out.rs".into(), Language::C);
+    output(ir.clone(), "out.rs".into(), Language::Rust);
 
     Ok(())
 }

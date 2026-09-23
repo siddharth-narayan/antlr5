@@ -5,11 +5,8 @@ name = "antlr5"
 version = "0.1.0"
 edition = "2024"
 
-[profile.release]
-rustflags = ["-Zpolonius=next"]
-
-[profile.dev]
-rustflags = ["-Zpolonius=next"]
+[profile.test]
+inherits = "release"
 
 [profile.bench]
 debug = true # For profiling with samply

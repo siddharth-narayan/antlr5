@@ -1,6 +1,6 @@
 // Stolen with love from https://theantlrguy.atlassian.net/wiki/spaces/~admin/pages/524294/LL+grammar+analysis
-
-grammar parrt_test;
+static grammar: &'static str = 
+"grammar parrt_test;
 
 x : A* B X
   | A* C Y
@@ -21,4 +21,4 @@ X: 'x';
 Y: 'y';
 L: 'l';
 R: 'r';
-I: 'i';
+I: 'i';";

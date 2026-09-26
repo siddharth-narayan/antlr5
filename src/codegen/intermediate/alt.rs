@@ -101,6 +101,10 @@ impl AltIR {
         self.label.as_ref()
     }
 
+    pub fn element(&self, element_idx: usize) -> Option<&ElementIR> {
+        self.elements.get(element_idx)
+    }
+
     pub fn elements(&self) -> &Vec<ElementIR> {
         &self.elements
     }

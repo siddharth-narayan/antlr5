@@ -76,14 +76,68 @@ pub fn nth<'a>(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MatchNode {
-    Peek {
-        // alt: HashArc<AltIR>,
-        // element_idx: usize,
+pub struct Peek {
+    map: HashMap<usize, PeekResult>, // The simple token we match on
+    fallback: Option<Box<MatchNode>>
+}
 
-        peek: HashMap<usize, MatchNode, RandomState>,
-        fallback: Option<Box<MatchNode>>
-    },
+impl Peek {
+    pub fn new() -> Peek {
+        Peek {
+            map: HashMap::new(),
+            fallback: None
+        }
+    }
+
+    pub fn map(&self) -> &HashMap<usize, PeekResult> {
+        &self.map
+    }
+
+    pub fn fallback(&self) -> Option<&Box<MatchNode>> {
+        self.fallback.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PeekResult {
+    greedy: bool,
+    can_become_greedy: bool,
+
+    match_node: MatchNode
+}
+
+impl PeekResult {
+    pub fn new(match_node: MatchNode) -> PeekResult {
+        let can_become_greedy = if let MatchNode::Element { ref element, .. } = match_node {
+            match element.suffix() {
+                None => false,
+                Some(EBNFSuffix::Optional) => false,
+                Some(EBNFSuffix::Plus) => true,
+                Some(EBNFSuffix::Star) => true
+            }
+        } else {
+            false
+        };
+
+        PeekResult {
+            greedy: false,
+            can_become_greedy,
+            match_node
+        }
+    }
+
+    pub fn merge(&mut self, other: PeekResult, ir: Arc<AntlrIR>) {
+
+    }
+
+    pub fn match_node(&self) -> &MatchNode {
+        &self.match_node
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MatchNode {
+    Peek(Peek),
 
     Element {
         alt: HashArc<AltIR>,
@@ -146,44 +200,44 @@ impl MatchNode {
     }
 
     pub fn merge_peek_peek(&mut self, other: MatchNode, ir: Arc<AntlrIR>) {
-        let MatchNode::Peek { peek: peek_left, fallback: fallback_left } = self else { panic!() };
-        let MatchNode::Peek { peek: peek_right, fallback: fallback_right } = other else { panic!() };
+        let MatchNode::Peek(peek_left) = self else { panic!() };
+        let MatchNode::Peek(peek_right) = other else { panic!() };
 
-        for (token_right, node_right) in peek_right {
-                match peek_left.get_mut(&token_right) {
+        for (token_right, node_right) in peek_right.map {
+                match peek_left.map.get_mut(&token_right) {
                     Some(match_left) => {
                         match_left.merge(node_right, ir.clone());
                     },
                     None => {
-                        peek_left.insert(token_right, node_right);
+                        peek_left.map.insert(token_right, node_right);
                     }
                 }
             }
 
             // Match fallback
-            match fallback_left {
+            match &mut peek_left.fallback {
                 Some(fallback_left) => {
-                    if let Some(fallback_right) = fallback_right {
+                    if let Some(fallback_right) = peek_right.fallback {
                         fallback_left.merge(*fallback_right, ir);
                     };
                 },
                 None => {
-                    *fallback_left = fallback_right
+                    peek_left.fallback = peek_right.fallback
                 }
             };
     }
 
     pub fn merge_peek_element(&mut self, other: MatchNode, ir: Arc<AntlrIR>) {
-        let MatchNode::Peek { peek: peek_left, fallback: fallback_left } = self else { panic!() };
+        let MatchNode::Peek(peek_left) = self else { panic!() };
         let MatchNode::Element { alt, element_idx, element, next } = &other else { panic!() };
         
-        match peek_left.get_mut(&element.id().unwrap_or_else(|| { println!("{:#?}", element); panic!() })) {
+        match peek_left.map.get_mut(&element.id().unwrap_or_else(|| { println!("{:#?}", element); panic!() })) {
             Some(match_left) => {
-                match_left.merge(other, ir);
+                match_left.match_node.merge(other, ir);
             },
             None => {
                 // Do we insert other here?
-                peek_left.insert(element.id().unwrap(), other);
+                peek_left.map.insert(element.id().unwrap(), PeekResult::new(other));
             }
         }
     }
@@ -192,14 +246,14 @@ impl MatchNode {
         let MatchNode::Element { alt: alt_left, element_idx: element_idx_left, element: element_left, next: next_left } = &other else { panic!() };
         let MatchNode::Element { alt: alt_right, element_idx: element_idx_right, element: element_right, next: next_right } = &other else { panic!() };
         
-        let mut peek = HashMap::default();
+        let mut peek = Peek::new();
         
         // NEED TO FIX THIS!!!
         // This is absolutely not how merging elements should work
         if let Some(nthset) = nth(0, 0, (alt_left.clone(), *element_idx_left), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
             for element in nthset {
                 if let ElementIR::TokenAtom { .. } = element {
-                    peek.insert(element.id().unwrap(), match_element_dumb(alt_left.clone(), *element_idx_left, ir.clone()));
+                    peek.map.insert(element.id().unwrap(), PeekResult::new(match_element_dumb(alt_left.clone(), *element_idx_left, ir.clone())));
                 }
             }
         }
@@ -207,12 +261,12 @@ impl MatchNode {
         if let Some(nthset) = nth(0, 0, (alt_right.clone(), *element_idx_right), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
             for element in nthset {
                 if let ElementIR::TokenAtom { .. } = element {
-                    peek.insert(element.id().unwrap(), match_element_dumb(alt_right.clone(), *element_idx_right, ir.clone()));
+                    peek.map.insert(element.id().unwrap(), PeekResult::new(match_element_dumb(alt_right.clone(), *element_idx_right, ir.clone())));
                 }
             }
         }
         
-        *self = MatchNode::Peek { peek, fallback: None };
+        *self = MatchNode::Peek(Peek::new());
     }
 }
 
@@ -256,29 +310,3 @@ pub fn match_rule(ir: Arc<AntlrIR>, rule: usize) -> MatchNode {
 
     match_alts(ir.clone(), rule.alts())
 }
-
-
-
-
-
-
-/////////////////////////////////////////////////
-/// /////////////////////////////////////////////
-#[derive(Hash, Clone, Debug, PartialEq, Eq)]
-struct PeekMatch {
-    pub item: usize, // Can represent a character or token
-    pub greedy: bool, // Should we consume one, or as many as possible
-    pub can_become_greedy: bool, // If it comes from an element with a greedy suffix
-}
-
-impl PeekMatch {
-    pub fn from_token_element(element: &ElementIR) -> PeekMatch {
-        todo!()
-    }
-}
-
-
-
-
-
-

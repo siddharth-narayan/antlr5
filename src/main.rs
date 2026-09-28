@@ -9,7 +9,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tracing_subscriber::{Registry, layer::SubscriberExt};
 use tracing_tree::HierarchicalLayer;
 
-use crate::{antlr::{lex::Lexer}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, output}, util::HashSetMap};
+use crate::{antlr::lex::{ANTLRTokenType, Lexer}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, output}, util::HashSetMap};
 
 #[cfg(test)]
 mod tests;
@@ -56,6 +56,10 @@ fn main() -> Result<(), ()> {
     // Bootstrapped
     let mut tokens = Vec::new();
     while let Ok(token) = lexer.next_token() {
+        if token.token_type() == ANTLRTokenType::EOF {
+            break;
+        }
+        
         tokens.push(token)
     }
 

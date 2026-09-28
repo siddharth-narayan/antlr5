@@ -18,11 +18,11 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &Peek, fallback: Option<&Box<MatchNode
     }).collect::<Vec<_>>().join("\n");
 
     format!(
-        "match self.peek().map(|t| t.token_type) {{
+        "match self.peek().map(|t| t.token_type() as usize) {{
             {}
 
-            None => return Err(ANTLRError::EOF),
-            _ => return Err(ANTLRError::NoViableAlt),
+            None => return Err(self.err_eof()),
+            _ => return Err(self.err_noviablealt()),
         }}
         ",
 

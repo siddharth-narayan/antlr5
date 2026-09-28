@@ -32,7 +32,7 @@ pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -
         ElementIR::RuleAtom { .. } => {
             let prefix = match element.suffix() {
                 None => "Box<",
-                Some(EBNFSuffix::Optional) => "Option<Box<",
+                Some(EBNFSuffix::Optional) => "std::option::Option<Box<",
                 Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
             };
 
@@ -47,7 +47,7 @@ pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -
         ElementIR::TokenAtom { .. } => {
             let prefix = match element.suffix() {
                 None => "",
-                Some(EBNFSuffix::Optional) => "Option<",
+                Some(EBNFSuffix::Optional) => "std::option::Option<",
                 Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
             };
 

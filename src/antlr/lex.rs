@@ -78,6 +78,8 @@ impl ANTLRToken {
     pub fn text(&self) -> String {
         self.text.clone()
     }
+
+    pub fn position(&self) -> usize { 0 }
 }
 
 #[derive(Debug)]

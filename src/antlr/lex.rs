@@ -61,14 +61,14 @@ pub enum ANTLRTokenType {
 }
 
 #[derive(Clone, Debug)]
-pub struct ANTLRToken {
+pub struct Token {
     token_type: ANTLRTokenType,
     text: String,
 }
 
-impl ANTLRToken {
-    pub fn new(token_type: ANTLRTokenType, text: String) -> ANTLRToken {
-        ANTLRToken { token_type, text }
+impl Token {
+    pub fn new(token_type: ANTLRTokenType, text: String) -> Token {
+        Token { token_type, text }
     }
 
     pub fn token_type(&self) -> ANTLRTokenType {
@@ -124,13 +124,13 @@ impl Lexer {
             .get((self.head + by - 1)..(self.head + by + count - 1))
     }
 
-    pub fn next_token(&mut self) -> Result<ANTLRToken, LexerErr> {
+    pub fn next_token(&mut self) -> Result<Token, LexerErr> {
         let mut current_text = Vec::new();
 
         let character = match self.next() {
             Some(c) => c,
             None => {
-                return Ok(ANTLRToken {
+                return Ok(Token {
                     token_type: ANTLRTokenType::EOF,
                     text: current_text.iter().collect()
                 })
@@ -395,7 +395,7 @@ impl Lexer {
 
         // Fallback to matching ID
         match token {
-            Ok(t) => Ok( ANTLRToken { token_type: t, text: current_text.iter().collect() }),
+            Ok(t) => Ok( Token { token_type: t, text: current_text.iter().collect() }),
             Err(e) => {
                 let mut is_token = false;
 
@@ -430,7 +430,7 @@ impl Lexer {
                     }
                 }
 
-                Ok(ANTLRToken {
+                Ok(Token {
                     token_type: if is_token { TokenID } else { RuleID },
                     text: current_text.iter().collect()
                 })

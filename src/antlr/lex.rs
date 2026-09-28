@@ -486,20 +486,20 @@ impl Lexer {
     }
 
     pub fn match_keyword(&mut self, string: &str) -> Result<(), Option<usize>> {
-        let chars = string.chars();
+        let chars: Vec<_> = string.chars().collect();
 
-        for (index, c) in chars.enumerate() {
+        for (index, c) in chars.iter().copied().enumerate() {
             if c != self.peek(index + 1).ok_or(index)? {
                 return Err(Some(index));
             }
         }
 
         // Check there's no more keyword characters after
-        if let Some('A'..='Z') | Some('a'..='z') = self.peek(1) {
+        if let Some('A'..='Z') | Some('a'..='z') = self.peek(chars.len() + 1) {
             return Err(None)
         };
 
-        self.consume(string.chars().count());
+        self.consume(string.len());
 
         Ok(())
     }

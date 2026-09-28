@@ -42,9 +42,7 @@ impl Parser {
                 break;
             }
             
-           
-            println!("{:#?}", token);
-            
+                       
             tokens.push(token);
 
         };

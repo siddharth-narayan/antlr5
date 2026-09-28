@@ -494,13 +494,14 @@ impl Lexer {
             }
         }
 
+        // Check there's no more keyword characters after
+        if let Some('A'..='Z') | Some('a'..='z') = self.peek(1) {
+            return Err(None)
+        };
+
         self.consume(string.chars().count());
 
-        // Check there's whitespace after
-        match self.peek(1) {
-            Some('A'..='Z') | Some('a'..='z') => Err(None),
-            _ => Ok(())
-        }
+        Ok(())
     }
     
 }

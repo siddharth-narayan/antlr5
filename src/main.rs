@@ -9,7 +9,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tracing_subscriber::{Registry, layer::SubscriberExt};
 use tracing_tree::HierarchicalLayer;
 
-use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, output}, util::HashSetMap};
+use crate::{antlr::{lex::Lexer, parse}, codegen::{analysis::{match_rule, nth}, intermediate::{AntlrIR, element::ElementIR}}, langs::{Language, output}, util::HashSetMap};
 
 #[cfg(test)]
 mod tests;
@@ -31,17 +31,39 @@ fn main() -> Result<(), ()> {
         tracing::subscriber::set_global_default(subscriber).unwrap();
     }
 
-    let path = std::env::args().nth(1).unwrap_or("src/tests/grammars/cobol.g4".into());
+    let path = std::env::args().nth(1).unwrap_or("src/antlr/antlr-updated.g4".into());
     let content = read_to_string(path).map_err(|e| { println!("{}", e); })?;
 
     // Lex + Parse
     let lexer = Lexer::new(content);
-    let mut parser = Parser::new(lexer).unwrap();
+    
+    
+
+    // Unbootstrapped
+    let mut parser = parse::Parser::new(lexer).unwrap();
 
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
 
     output(ir.clone(), "out.rs".into(), Language::Rust);
+
+
+
+
+
+
+
+    // Bootstrapped
+    // let mut tokens = Vec::new();
+    // while let Ok(token) = lexer.next_token() {
+    //     tokens.push(token)
+    // }
+
+    // let mut parser = Parser::new(tokens);
+    // let ast = parser.gSpec().unwrap();
+    
+    // println!("{:#?}", ast);
+
 
     Ok(())
 }

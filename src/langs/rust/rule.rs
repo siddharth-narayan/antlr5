@@ -45,7 +45,8 @@ pub fn rule_struct(ir: Arc<AntlrIR>, rule_idx: usize) -> String {
     let elements: Vec<_> = alt.elements().iter().enumerate().filter_map(|(e_idx, e)| element_decl(ir.clone(), e, e_idx)).collect();
 
     format!(
-        "pub struct {0} {{
+        "#[derive(Clone, Debug)]
+        pub struct {0} {{
             {1}
         }}
 
@@ -65,7 +66,8 @@ pub fn rule_enum(ir: Arc<AntlrIR>, rule: usize) -> String {
 
     let alts = ir.get_rule(rule).unwrap().alts().iter().map(|a| rule_enum_alt(ir.clone(), a.clone())).collect::<Vec<_>>().join(",");
     format!(
-        "pub enum {} {{
+        "#[derive(Clone, Debug)]
+        pub enum {} {{
             {}
         }}
         ", capitalize(name), alts

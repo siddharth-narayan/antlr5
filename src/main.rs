@@ -60,6 +60,10 @@ fn main() -> Result<(), ()> {
             break;
         }
         
+        if token.token_type() == ANTLRTokenType::WS {
+            continue;
+        }
+
         tokens.push(token)
     }
 

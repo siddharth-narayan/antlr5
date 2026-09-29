@@ -60,7 +60,11 @@ pub fn parse_header() -> String {
     #[derive(Clone, Debug)]
     pub enum ANTLRErrorType {
         EOF,
-        NoViableAlt,
+        
+        NoViableAlt {
+          got: usize
+        },
+
         Mismatched
     }
 
@@ -97,12 +101,14 @@ pub fn parse_header() -> String {
             }
         }
 
-        pub fn err_noviablealt(&self) -> ANTLRError {
+        pub fn err_noviablealt(&self, unrecognized: usize) -> ANTLRError {
             ANTLRError {
                 stack: self.rule_stack.clone(),
 
                 position: self.peek().map(|t| t.position()).unwrap_or_default(),
-                error_type: ANTLRErrorType::NoViableAlt
+                error_type: ANTLRErrorType::NoViableAlt {
+                    got: unrecognized
+                }
             }
         }
 

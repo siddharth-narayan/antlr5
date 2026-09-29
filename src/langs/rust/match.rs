@@ -22,7 +22,7 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &Peek, fallback: Option<&Box<MatchNode
             {}
 
             None => return Err(self.err_eof()),
-            _ => return Err(self.err_noviablealt()),
+            unknown => return Err(self.err_noviablealt(unkown)),
         }}
         ",
 

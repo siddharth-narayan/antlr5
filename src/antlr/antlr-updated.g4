@@ -151,7 +151,7 @@ blockSet
 
 setElement
     : TOKENID elementOptions?
-    | STRING_LITERAL elementOptions?
+    | StringLit elementOptions?
     | characterRange
     ;
 
@@ -170,12 +170,12 @@ ruleref
 // ---------------
 // Character Range
 characterRange
-    : STRING_LITERAL RANGE STRING_LITERAL
+    : StringLit RANGE StringLit
     ;
 
 terminalDef
     : TOKENID elementOptions?
-    | STRING_LITERAL elementOptions?
+    | StringLit elementOptions?
     ;
 
 // Terminals may be adorned with certain options when
@@ -186,7 +186,7 @@ elementOptions
 
 elementOption
     : qualifiedIdentifier
-    | identifier ASSIGN (qualifiedIdentifier | STRING_LITERAL | INT)
+    | identifier ASSIGN (qualifiedIdentifier | StringLit | INT)
     ;
 
 identifier
@@ -231,7 +231,7 @@ StringLit
     : 'aaaaaaaaaaaaaaaaaa'
     ;
 
-// UNTERMINATED_STRING_LITERAL
+// UNTERMINATED_StringLit
 //     : '\'' (ESC_SEQUENCE | ~ ['\r\n\\])*
 //     ;
 
@@ -259,7 +259,7 @@ StringLit
 //     : // Action and other blocks start with opening {
 //     '{' (
 //         NESTED_ACTION          // embedded {} block
-//         | STRING_LITERAL       // single quoted string
+//         | StringLit       // single quoted string
 //         | DoubleQuoteLiteral   // double quoted string
 //         | TripleQuoteLiteral   // string literal with triple quotes
 //         | BacktickQuoteLiteral // backtick quoted string
@@ -325,12 +325,12 @@ WS
 //     : '\\' .
 //     ;
 
-// ARGUMENT_STRING_LITERAL
+// ARGUMENT_StringLit
 //     : DoubleQuoteLiteral
 //     ;
 
 // ARGUMENT_CHAR_LITERAL
-//     : STRING_LITERAL
+//     : StringLit
 //     ;
 
 // END_ARGUMENT
@@ -349,13 +349,12 @@ WS
 // -------------------------
 // mode LexerCharSet;
 
-// LEXER_CHAR_SET_BODY
-//     : (~ [\]\\] | '\\' .)+
-//     ;
-
-// LEXER_CHAR_SET
-//     : ']'
-//     ;
+LEXER_CHAR_SET_BODY
+    : (~ [\]\\] | '\\' .)+
+    ;
+LEXER_CHAR_SET
+    : ']'
+    ;
 
 // UNTERMINATED_CHAR_SET
 //     : EOF

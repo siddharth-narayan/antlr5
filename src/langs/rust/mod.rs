@@ -52,8 +52,6 @@ pub fn render(ir: Arc<AntlrIR>) -> Vec<OutputFile> {
 
 pub fn parse_header() -> String {
     "#![allow(unused, nonstandard_style)]
-    use std::collections::VecDeque;
-    
     mod lexer;
     use lexer::Token;
 
@@ -75,12 +73,12 @@ pub fn parse_header() -> String {
     #[derive(Clone, Debug)]
     pub struct Parser {
         head: usize,
-        tokens: std::collections::Vec<Token>,
-        rule_stack: std::collections::VecDeque<usize>,
+        tokens: std::vec::Vec<Token>,
+        rule_stack: std::vec::VecDeque<usize>,
     }
 
     impl Parser {
-        pub fn new(tokens: Vec<Token>) -> Parser {
+        pub fn new(tokens: std::vec::Vec<Token>) -> Parser {
             Parser {
                 head: 0,
                 tokens,

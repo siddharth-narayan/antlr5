@@ -14,6 +14,7 @@ pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
 
     format!(
         "pub fn {1}(&mut self) -> Result<{2}, ANTLRError> {{
+            println!(\"Entering rule {1}\");
             self.rule_stack.push_back({0});
 
             let __result = {{

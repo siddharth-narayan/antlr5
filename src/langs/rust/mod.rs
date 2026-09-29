@@ -75,7 +75,7 @@ pub fn parse_header() -> String {
     #[derive(Clone, Debug)]
     pub struct Parser {
         head: usize,
-        tokens: std::collections::Vec<Token>,
+        tokens: std::vec::Vec<Token>,
         rule_stack: std::collections::VecDeque<usize>,
     }
 

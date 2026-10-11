@@ -18,11 +18,11 @@ pub fn match_peek(ir: Arc<AntlrIR>, peek: &Peek, fallback: Option<&Box<MatchNode
     }).collect::<Vec<_>>().join("\n");
 
     format!(
-        "match self.peek().map(|t| t.token_type() as usize) {{
+        "match self.peek().map(|t| t.token_type()) {{
             {}
 
             None => return Err(self.err_eof()),
-            unknown => return Err(self.err_noviablealt(unkown)),
+            Some(unknown) => return Err(self.err_noviablealt(unknown)),
         }}
         ",
 
@@ -39,13 +39,13 @@ pub fn match_case(ir: Arc<AntlrIR>, key: usize, value: &MatchNode) -> String {
 
     format!(
         "
-            Some({}) => {{
+            Some(TokenType::{}) => {{
                 {}
                 {}
             }},
         ",
 
-        key,
+        ir.symbols().get_token_name(key).unwrap_or("BROKENTOKENIDWHY".into()),
         initializers,
         match_node(ir.clone(), &value)
     )
@@ -75,9 +75,9 @@ pub fn match_element(ir: Arc<AntlrIR>, alt: HashArc<AltIR>, element: &ElementIR,
             match ir.symbols().get_token_name(*id) {
                 Some(_) => {
                     match suffix {
-                        None => format!("let {} = self.match_token({})?.clone();", name_indexed.unwrap(), id),
-                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token({}).ok();", name_indexed.unwrap(), id),
-                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", id, name_indexed.unwrap())
+                        None => format!("let {} = self.match_token(TokenType::{})?.clone();", name_indexed.unwrap(), name.unwrap()),
+                        Some(EBNFSuffix::Optional) => format!("let {} = self.match_token(TokenType::{}).ok();", name_indexed.unwrap(), name.unwrap()),
+                        Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => format!("while let Ok(x) = self.match_token({}) {{ {}.push(x) }}", name.unwrap(), name_indexed.unwrap())
                     }
                     
                 },

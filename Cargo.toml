@@ -12,6 +12,7 @@ inherits = "release"
 debug = true # For profiling with samply
 
 [dependencies]
+clap = { version = "4.6.7", features = ["cargo", "derive"] }
 rapidhash = "4.5.1"
 rayon = "1.12.0"
 tracing = "0.1.44"

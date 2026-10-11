@@ -52,17 +52,16 @@ pub fn render(ir: Arc<AntlrIR>) -> Vec<OutputFile> {
 
 pub fn parse_header() -> String {
     "#![allow(unused, nonstandard_style)]
-    use std::collections::VecDeque;
     
-    mod lexer;
-    use lexer::Token;
+    use std::collections::VecDeque;
+    use super::lexer::{Token, TokenType};
 
     #[derive(Clone, Debug)]
     pub enum ANTLRErrorType {
         EOF,
         
         NoViableAlt {
-          got: usize
+          got: TokenType
         },
 
         Mismatched
@@ -101,7 +100,7 @@ pub fn parse_header() -> String {
             }
         }
 
-        pub fn err_noviablealt(&self, unrecognized: usize) -> ANTLRError {
+        pub fn err_noviablealt(&self, unrecognized: TokenType) -> ANTLRError {
             ANTLRError {
                 stack: self.rule_stack.clone(),
 
@@ -125,10 +124,10 @@ pub fn parse_header() -> String {
             self.tokens.get(self.head + 1)
         }
 
-        pub fn match_token(&mut self, token: usize) -> Result<Token, ANTLRError> {
+        pub fn match_token(&mut self, token: TokenType) -> Result<Token, ANTLRError> {
             match self.tokens.get(self.head) {
                 Some(t) => {
-                    if t.token_type() as usize == token {
+                    if t.token_type() == token {
                         self.head += 1;
                         Ok(t.clone())
                     } else {

@@ -1,5 +1,7 @@
 use std::{ffi::OsStr, fs, io::{self, Error}, path::{Path, PathBuf}, process::Command, sync::Arc, time::SystemTime};
 
+use tracing::{info, warn};
+
 use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, alt::AltIR, element::ElementIR}};
 
 pub mod rust;
@@ -45,7 +47,7 @@ pub fn format(path: PathBuf, lang: Language) {
     };
 
     if let Err(_) = result {
-        println!("Failed to format your output. It will be messy! Ensure you have the approprate formatter installed for your target language")
+        warn!("Failed to format your output. It will be messy! Ensure you have the approprate formatter installed for your target language")
     }
 }
 
@@ -57,7 +59,7 @@ pub fn output(ir: Arc<AntlrIR>, path: PathBuf, lang: Language) {
         fs::write(&output.path, &output.content);
     }
 
-    println!("Generated parser in {}ms", time.elapsed().unwrap().as_millis());
+    info!("Generated parser in {}ms", time.elapsed().unwrap().as_millis());
 
     let time = SystemTime::now();
     
@@ -65,5 +67,5 @@ pub fn output(ir: Arc<AntlrIR>, path: PathBuf, lang: Language) {
         format(output.path.clone(), lang);
     }
     
-    println!("Formatted parser in {}ms", time.elapsed().unwrap().as_millis());    
+    info!("Formatted parser in {}ms", time.elapsed().unwrap().as_millis());    
 }

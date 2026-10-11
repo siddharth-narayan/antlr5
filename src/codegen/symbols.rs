@@ -74,9 +74,7 @@ impl SymbolTable {
     }
     
     pub fn get_rule_id(&self, name: &String) -> Option<usize> {
-        let id =         self.rule_map.get(name).cloned()?;
-
-        // println!("FOR NAME {} RETURN ID {}", name, id);
+        let id = self.rule_map.get(name).cloned()?;
         Some(id)
     }
     
@@ -94,7 +92,7 @@ impl SymbolTable {
     }
     
     pub fn get_token_name(&self, id: usize) -> Option<String> {
-        self.token_map.get_inverse(&id).cloned()
+        self.token_map.get_inverse(&id).or(self.strlit_map.get_inverse(&id).map(|_| format!("__STRLIT_{}", id)).as_ref()).cloned()
     }
     
     pub fn get_strlit_id(&self, name: &String) -> Option<usize> {

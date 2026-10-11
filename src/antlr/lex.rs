@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use crate::antlr::{
     lex::ANTLRTokenType::*,
     lex::LexerErr::*,
@@ -471,7 +473,7 @@ impl Lexer {
                         return Some(catchall)
                     }
 
-                    println!("Invalid escape, skipping");
+                    warn!("Invalid escape, skipping");
                     return None
                 }
             };

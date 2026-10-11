@@ -1,6 +1,8 @@
 
 use std::{sync::Arc, time::{Duration, Instant}};
 
+use tracing::info;
+
 use crate::{antlr::{lex::Lexer, parse::Parser}, codegen::intermediate::AntlrIR, langs::{Language, output, render}, tests::parse};
 
 #[test]
@@ -11,6 +13,6 @@ pub fn codegen() {
     render(ir.into(), Language::Rust, "/dev/null");
     
     let elapsed  = time.elapsed();
-    println!("Elapsed: {}ms", elapsed.as_millis());
+    info!("Elapsed: {}ms", elapsed.as_millis());
     assert!(elapsed < Duration::from_secs(1)) 
 }

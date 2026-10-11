@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
 
+use tracing::{debug, error, trace};
+
 use crate::{antlr::lex::{ANTLRToken, ANTLRTokenType::{self, *}, Lexer, LexerErr}, antlr::ast::*};
 
 
@@ -32,7 +34,7 @@ impl Parser {
 
         loop {
             let token = lexer.next_token()?;
-            // println!("{:#?}", token);
+            trace!("{:#?}\n", token);
 
             if token.token_type() == WS || token.token_type() == Comment || token.token_type() == CommentBlock {
                 continue;
@@ -113,6 +115,8 @@ impl Parser {
 
 impl Parser {
     pub fn grammar_spec(&mut self) -> Result<ANTLRAst, ParserErr> {
+        debug!("Entered grammar_spec");
+
         let mut rules = Vec::new();
         let mut token_rules = Vec::new();
 
@@ -127,8 +131,8 @@ impl Parser {
                     match self.token_rule_spec() {
                         Ok(r) => token_rules.push(r),
                         Err(e) => {
-                            println!("{:#?}", self.peek_n(0, 6));
-                            println!("Failed to parse token rule {}: {:#?}", self.peek(1).text(), e);
+                            debug!("{:#?}", self.peek_n(0, 6));
+                            error!("Failed to parse token rule {}: {:#?}", self.peek(1).text(), e);
                         }
                     }
                 },
@@ -137,8 +141,8 @@ impl Parser {
                     match self.rule_spec() {
                         Ok(r) => rules.push(r),
                         Err(e) => {
-                            println!("{:#?}", self.peek_n(0, 3));
-                            println!("Failed to parse rule {}: {:#?}", self.peek(1).text(), e);
+                            debug!("{:#?}", self.peek_n(0, 3));
+                            error!("Failed to parse rule {}: {:#?}", self.peek(1).text(), e);
                         }
                     }
                 },
@@ -157,6 +161,8 @@ impl Parser {
     }
 
     pub fn rule_spec(&mut self) -> Result<Rule, ParserErr> {
+        debug!("Entered rule_spec");
+
         let rule_name = self.match_token(RuleID)?.text().clone();
         
         self.match_token(Colon)?;
@@ -169,6 +175,7 @@ impl Parser {
     }
 
     pub fn token_rule_spec(&mut self) -> Result<TokenRule, ParserErr> {
+        debug!("Entered token_rule_spec");
         let is_fragment = self.peek_type(1) == Fragment;
         if is_fragment {
             self.consume(1);
@@ -186,6 +193,7 @@ impl Parser {
     }
 
     pub fn block(&mut self) -> Result<Block, ParserErr> {
+        debug!("Entered block");
         self.match_token(LParen)?;
         let alts = self.alt_list()?;
         self.match_token(RParen)?;
@@ -194,6 +202,7 @@ impl Parser {
     }
 
     pub fn element(&mut self) -> Result<Element, ParserErr> {
+        debug!("Entered element");
         // Elements are atom or block  and then a suffix?
         match self.peek_type(1) {
             StringLit => {
@@ -247,6 +256,7 @@ impl Parser {
 
     // An Ok(None) result means an empty alt
     pub fn alt(&mut self) -> Result<Option<Alt>, ParserErr> {
+        debug!("Entered alt");
         let mut elements = Vec::new();
 
         while let Ok(e) = self.element() {
@@ -281,6 +291,7 @@ impl Parser {
 
     // Alts seperated by OR
     pub fn alt_list(&mut self) -> Result<AltList, ParserErr> {
+        debug!("Entered alt_list");
         let mut optional = false;
         let mut alts = Vec::new();
 
@@ -300,6 +311,7 @@ impl Parser {
     }
 
     pub fn atom(&mut self) -> Result<Atom, ParserErr> {
+        debug!("Entered atom");
         let token = self.match_any_token(vec![StringLit, RuleID, TokenID])?;
 
         match token.token_type() {
@@ -310,6 +322,7 @@ impl Parser {
     }
 
     pub fn ebnf_suffix(&mut self) -> Result<EBNFSuffix, ParserErr> {
+        debug!("Entered ebnf_suffix");
         let token =  self.match_any_token(vec![Question, Star, Plus])?;
 
         match token.token_type() {

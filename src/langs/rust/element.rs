@@ -14,7 +14,7 @@ pub fn element_name(ir: Arc<AntlrIR>, element: &ElementIR) -> Option<String> {
         },
 
         ElementIR::Set { set, suffix, inverted } => {
-           None
+           Some("SET".into())
         }
     }
 }

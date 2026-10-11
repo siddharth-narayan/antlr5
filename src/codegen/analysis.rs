@@ -1,5 +1,5 @@
 use rapidhash::fast::RandomState;
-use tracing::instrument;
+use tracing::{error, instrument};
 use std::{
     char, collections::{HashMap, HashSet, VecDeque, hash_set::IntoIter}, hash::Hash, mem::discriminant, sync::Arc,
 };
@@ -231,7 +231,7 @@ impl MatchNode {
         let MatchNode::Peek(peek_left) = self else { panic!() };
         let MatchNode::Element { alt, element_idx, element, next } = &other else { panic!() };
         
-        match peek_left.map.get_mut(&element.id().unwrap_or_else(|| { println!("{:#?}", element); panic!() })) {
+        match peek_left.map.get_mut(&element.id().unwrap_or_else(|| { error!("{:#?}", element); panic!() })) {
             Some(match_left) => {
                 match_left.match_node.merge(other, ir);
             },

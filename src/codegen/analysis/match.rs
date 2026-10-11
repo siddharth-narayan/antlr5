@@ -48,7 +48,7 @@ impl MatchNode {
 
 
 // for exact matches we continue to the next element directly
-    #[instrument(skip(ir))]
+    // #[instrument(skip(ir))]
     pub fn merge(&mut self, mut other: MatchNode, ir: Arc<AntlrIR>) {
         match self {
             MatchNode::Peek { .. } => {
@@ -144,7 +144,7 @@ impl MatchNode {
             }
         }
         
-        *self = MatchNode::Peek(Peek::new());
+        *self = MatchNode::Peek(peek);
     }
 }
 
@@ -154,7 +154,7 @@ pub fn match_element_dumb(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<Antlr
     MatchNode::Element { alt: alt.clone(), element_idx, element: element.clone(), next: Box::new(match_element(alt.clone(), element_idx + 1, ir.clone())) }
 }
 
-#[instrument(skip(ir))]
+// #[instrument(skip(ir))]
 pub fn match_element(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) -> MatchNode {
     let element: ElementIR = match alt.elements().get(element_idx) {
         Some(e) => e.clone(),
@@ -171,7 +171,7 @@ pub fn match_element(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) 
     return base
 }
 
-#[instrument(skip(ir))]
+// #[instrument(skip(ir))]
 pub fn match_alts(ir: Arc<AntlrIR>, alts: &Vec<HashArc<AltIR>>) -> MatchNode {
     let mut match_node = match_element(alts[0].clone(), 0, ir.clone());
 
@@ -182,7 +182,7 @@ pub fn match_alts(ir: Arc<AntlrIR>, alts: &Vec<HashArc<AltIR>>) -> MatchNode {
     match_node
 }
 
-#[instrument(skip(ir))]
+// #[instrument(skip(ir))]
 pub fn match_rule(ir: Arc<AntlrIR>, rule: usize) -> MatchNode {
     let rule = ir.rules().get(rule).unwrap();
 

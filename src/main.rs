@@ -30,7 +30,9 @@ fn main() -> Result<(), ()> {
             HierarchicalLayer::new(4)
                 .with_indent_lines(true)
                 .with_targets(true)
+                .with_filter(LevelFilter::from_level(args.log_level))
         );
+
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let content = read_to_string(&args.path).map_err(|e| { error!("Failed to read file {} {}", args.path.into_string().unwrap_or("".into()), e); })?;
@@ -42,8 +44,8 @@ fn main() -> Result<(), ()> {
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
 
-    println!("{:#?}", match_rule(ir.clone(), 1));
-    // output(ir.clone(), "out.rs".into(), Language::Rust);
+    // println!("{:#?}", match_rule(ir.clone(), 1));
+    output(ir.clone(), "out.rs".into(), Language::Rust);
 
     Ok(())
 }

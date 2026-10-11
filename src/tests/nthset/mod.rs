@@ -2,7 +2,7 @@ use std::collections::{HashSet, VecDeque};
 
 use rapidhash::fast::RandomState;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{intermediate::element::ElementIR}, tests::parse};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::numbers::{ConcreteOrdinal, Ordinal}, intermediate::element::ElementIR}, tests::parse};
 
 
 static GRAMMAR: &'static str = 
@@ -21,27 +21,27 @@ pub fn n() {
     let ir = parse(GRAMMAR);
 
     let n0_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 1, suffix: None },
-        ElementIR::RuleAtom { id: 2, suffix: None },
+        ElementIR::RuleAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }},
+        ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }},
 
-        ElementIR::TokenAtom { id: 0, suffix: None },
+        ElementIR::TokenAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }},
     ]);
     
     let n1_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 1, suffix: None }, // x
-        ElementIR::RuleAtom { id: 2, suffix: None }, // y
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::RuleAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // x
+        ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // y
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // z
 
-        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::TokenAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // 'y'
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // 'z'
     ]);
 
     let n2_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 2, suffix: None }, // y
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
+        ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // y
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // z
 
-        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::TokenAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // 'y'
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // 'z'
     ]);
 
     assert_eq!(ir.nth(0, 0).unwrap(), n0_expected);
@@ -54,13 +54,13 @@ pub fn x() {
     let ir = parse(GRAMMAR);
 
     let x0_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 2, suffix: None }, // y
-        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
+        ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // y
+        ElementIR::TokenAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // 'y'
     ]);
 
     let x1_expected: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // z
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // 'z'
     ]);
 
     let x2_expected: HashSet<ElementIR, RandomState> = HashSet::default();
@@ -75,15 +75,15 @@ pub fn optional() {
     let ir = parse(GRAMMAR);
 
     let expected_0: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 2, suffix: Some(EBNFSuffix::Optional) }, // y
-        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: true, inner: ConcreteOrdinal::Finite(1) } }, // y
+        ElementIR::TokenAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // 'y'
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // z
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // 'z'
     ]);
 
     let expected_1: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // z
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // 'z'
     ]);
 
     let expected_2: HashSet<ElementIR, RandomState> = HashSet::default();
@@ -98,15 +98,15 @@ pub fn star() {
     let ir = parse(GRAMMAR);
 
     let expected_0: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 2, suffix: Some(EBNFSuffix::Star) }, // y
-        ElementIR::TokenAtom { id: 0, suffix: None }, // 'y'
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: true, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 1 } } }, // y
+        ElementIR::TokenAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // 'y'
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // z
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // 'z'
     ]);
 
     let expected_1: HashSet<ElementIR, RandomState> = HashSet::from_iter(vec![
-        ElementIR::RuleAtom { id: 3, suffix: None }, // z
-        ElementIR::TokenAtom { id: 1, suffix: None }, // 'z'
+        ElementIR::RuleAtom { id: 3, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }}, // z
+        ElementIR::TokenAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } }, // 'z'
     ]);
 
     let expected_2: HashSet<ElementIR, RandomState> = HashSet::default();

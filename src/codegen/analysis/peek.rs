@@ -55,7 +55,7 @@ impl PeekResult {
     }
 
     pub fn merge(&mut self, other: PeekResult, ir: Arc<AntlrIR>) {
-
+        panic!()
     }
 
     pub fn match_node(&self) -> &MatchNode {

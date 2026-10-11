@@ -43,7 +43,7 @@ fn main() -> Result<(), ()> {
     let ir = Arc::new(AntlrIR::new(ast));
 
     println!("{:#?}", match_rule(ir.clone(), 1));
-    output(ir.clone(), "out.rs".into(), Language::Rust);
+    // output(ir.clone(), "out.rs".into(), Language::Rust);
 
     Ok(())
 }

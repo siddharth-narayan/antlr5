@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{codegen::{analysis::r#match::{MatchNode, match_element}, intermediate::element::ElementIR}, tests::{get_id_closures, parse}};
+use crate::{codegen::{analysis::{r#match::{MatchNode, match_element}, numbers::{ConcreteOrdinal, Ordinal}}, intermediate::element::ElementIR}, tests::{get_id_closures, parse}};
 
 static GRAMMAR: &'static str = 
 "grammar matches;
@@ -21,17 +21,17 @@ pub fn match_alt0() {
     let alt0_expected = MatchNode::Element { 
         alt: alt0.clone(),
         element_idx: 0,
-        element: ElementIR::RuleAtom { id: 1, suffix: None },
+        element: ElementIR::RuleAtom { id: 1, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } },
         next: Box::new(
             MatchNode::Element {
                 alt: alt0.clone(),
                 element_idx: 1,
-                element: ElementIR::RuleAtom { id: 0, suffix: None },
+                element: ElementIR::RuleAtom { id: 0, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }},
                 next: Box::new(
                     MatchNode::Element {
                         alt: alt0.clone(),
                         element_idx: 2,
-                        element: ElementIR::RuleAtom { id: 2, suffix: None },
+                        element: ElementIR::RuleAtom { id: 2, size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) }},
                         next: Box::new(MatchNode::Finish { alt: alt0.clone() })
                     }
                 )
@@ -57,22 +57,22 @@ pub fn match_alt1() {
     let alt1_expected = MatchNode::Element { 
         alt: alt1.clone(),
         element_idx: 0,
-        element: ElementIR::TokenAtom { id: token_id("LETTERB"), suffix: None },
+        element: ElementIR::TokenAtom { id: token_id("LETTERB"), size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } },
         next: Box::new(
             MatchNode::Element {
                 alt: alt1.clone(),
                 element_idx: 1,
-                element: ElementIR::TokenAtom { id: strlit_id("b"), suffix: None },
+                element: ElementIR::TokenAtom { id: strlit_id("b"), size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } },
                 next: Box::new(
                     MatchNode::Element {
                         alt: alt1.clone(),
                         element_idx: 2,
-                        element: ElementIR::TokenAtom { id: token_id("LETTERA"), suffix: None },
+                        element: ElementIR::TokenAtom { id: token_id("LETTERA"), size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } },
                         next: Box::new(
                             MatchNode::Element {
                                 alt: alt1.clone(),
                                 element_idx: 3,
-                                element: ElementIR::TokenAtom { id: strlit_id("a"), suffix: None },
+                                element: ElementIR::TokenAtom { id: strlit_id("a"), size: Ordinal { is_optional: false, inner: ConcreteOrdinal::Finite(1) } },
                                 next: Box::new(MatchNode::Finish { alt: alt1.clone() })
                             }
                         )

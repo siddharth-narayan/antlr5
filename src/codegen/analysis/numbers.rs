@@ -13,8 +13,8 @@ impl Ordinal {
             Some(s) => {
                 match s {
                     EBNFSuffix::Optional => Ordinal { is_optional: true, inner: ConcreteOrdinal::Finite(1) },
-                    EBNFSuffix::Star => Ordinal { is_optional: true, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 0} },
-                    EBNFSuffix::Plus => Ordinal { is_optional: false, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 0} }
+                    EBNFSuffix::Star => Ordinal { is_optional: true, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 1 } },
+                    EBNFSuffix::Plus => Ordinal { is_optional: false, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 1 } }
                 }
             },
 

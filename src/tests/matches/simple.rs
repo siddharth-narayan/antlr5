@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{codegen::{analysis::{MatchNode, match_element}, intermediate::element::ElementIR}, tests::{get_id_closures, parse}};
+use crate::{codegen::{analysis::r#match::{MatchNode, match_element}, intermediate::element::ElementIR}, tests::{get_id_closures, parse}};
 
 static GRAMMAR: &'static str = 
 "grammar matches;

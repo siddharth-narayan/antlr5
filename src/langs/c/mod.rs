@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use rapidhash::fast::RandomState;
 use rayon::iter::{IntoParallelIterator, ParallelIterator as _};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::rule::{rule_ctor, rule_decl, rule_parser, rule_parser_decl, rule_struct_decl, rule_typedef}}, util::{HashArc, capitalize}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::rule::{rule_ctor, rule_decl, rule_parser, rule_parser_decl, rule_struct_decl, rule_typedef}}, util::{HashArc, capitalize}};
 
 mod element;
 mod r#match;

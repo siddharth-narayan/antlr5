@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR}}, langs::rust::{element::{element_decl, element_name_indexed}, r#match::{match_element_initializer, match_node}}, util::{HashArc, capitalize}};
+use crate::{codegen::{analysis::r#match::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR}}, langs::rust::{element::{element_decl, element_name_indexed}, r#match::{match_element_initializer, match_node}}, util::{HashArc, capitalize}};
 
 pub fn rule_parser(ir: Arc<AntlrIR>, rule: usize) -> String {
     let name = ir.get_rule(rule).unwrap().name().clone();

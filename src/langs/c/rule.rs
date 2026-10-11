@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use rapidhash::fast::RandomState;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::{element::{element_decl, element_name_indexed}, r#match::{match_element_initializer, match_node}}}, util::{HashArc, capitalize}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::r#match::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::{OutputFile, c::{element::{element_decl, element_name_indexed}, r#match::{match_element_initializer, match_node}}}, util::{HashArc, capitalize}};
 
 
 pub fn rule_parser_decl(ir: Arc<AntlrIR> , rule: usize) -> String {

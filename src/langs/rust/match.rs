@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use rapidhash::fast::RandomState;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, Peek}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::rust::element::{element_decl, element_name, element_name_indexed}, util::{HashArc, capitalize}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{r#match::MatchNode, peek::Peek}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::rust::element::{element_decl, element_name, element_name_indexed}, util::{HashArc, capitalize}};
 
 pub fn match_node(ir: Arc<AntlrIR>, node: &MatchNode) -> String {
     match node {

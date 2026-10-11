@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use rapidhash::fast::RandomState;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::{MatchNode, match_rule}, intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::OutputFile, util::{HashArc, capitalize}};
+use crate::{antlr::ast::EBNFSuffix, codegen::{intermediate::{AntlrIR, alt::AltIR, element::ElementIR}}, langs::OutputFile, util::{HashArc, capitalize}};
 
 
 pub fn element_name(ir: Arc<AntlrIR>, element: &ElementIR) -> Option<String> {

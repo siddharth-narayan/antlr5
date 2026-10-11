@@ -6,134 +6,12 @@ use std::{
 use std::fmt::Debug;
 use crate::{
     antlr::ast::{EBNFSuffix, Element}, codegen::{
-        RuleRef, intermediate::{
+        RuleRef, analysis::{algorithm::nth, peek::{Peek, PeekResult}}, intermediate::{
             AntlrIR, alt::{self, AltIR}, element::{self, ElementIR}, rule::RuleIR,
         },
     }, util::{HashArc, HashSetMap},
 };
 
-// #[instrument(skip(nth_set_cache, visited, rules))]
-pub fn nth<'a>(
-    n:  usize,
-    current_idx: usize,
-
-    (alt, element_idx): (HashArc<AltIR>, usize),
-    continuation: &mut VecDeque<(HashArc<AltIR>, usize)>,
-
-    nth_set_cache: &'a mut HashSetMap<(HashArc<AltIR>, usize), ElementIR, RandomState>,
-    visited: &mut HashSet<(HashArc<AltIR>, usize, usize, usize), RandomState>,
-    rules: &Vec<RuleIR>,
-) -> Option<&'a HashSet<ElementIR, RandomState>> {
-
-    let mut set = HashSet::with_hasher(RandomState::new());
-    
-    let too_far = current_idx > n;
-    let already_visited = !visited.insert((alt.clone(), n, element_idx, current_idx));
-    if too_far || already_visited {
-        return None
-    }
-    
-    let element = match alt.elements().get(element_idx) {
-        Some(e) => {
-            e.clone()
-        },
-        None => {
-            if let Some((continue_alt, continue_element_idx)) = continuation.pop_back() {
-                set.extend(nth(n, current_idx, (continue_alt, continue_element_idx), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned());
-            }
-
-            return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter());
-        }
-    };
-
-    // Overhangs not included here
-    if current_idx == n {
-        set.insert(element.clone());
-    }
-
-    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
-        // Should continuation be cloned here?
-        set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
-    };
-
-    match element {
-        ElementIR::TokenAtom { .. } => {
-            set.extend(nth(n, current_idx + 1, (alt.clone(), element_idx + 1), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
-        }
-
-        ElementIR::RuleAtom { id, .. } => {
-            for rule_alt in rules.get(id).unwrap().alts().clone() {
-                continuation.push_back((alt.clone(), element_idx + 1));
-                set.extend(nth(n, current_idx, (rule_alt.clone(), 0), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
-            }
-        }
-
-        _ => ()
-    }
-
-    // Do we need this?
-    return nth_set_cache.extend((alt.clone(), element_idx), set.into_iter())
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Peek {
-    map: HashMap<usize, PeekResult>, // The simple token we match on
-    fallback: Option<Box<MatchNode>>
-}
-
-impl Peek {
-    pub fn new() -> Peek {
-        Peek {
-            map: HashMap::new(),
-            fallback: None
-        }
-    }
-
-    pub fn map(&self) -> &HashMap<usize, PeekResult> {
-        &self.map
-    }
-
-    pub fn fallback(&self) -> Option<&Box<MatchNode>> {
-        self.fallback.as_ref()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PeekResult {
-    greedy: bool,
-    can_become_greedy: bool,
-
-    match_node: MatchNode
-}
-
-impl PeekResult {
-    pub fn new(match_node: MatchNode) -> PeekResult {
-        let can_become_greedy = if let MatchNode::Element { ref element, .. } = match_node {
-            match element.suffix() {
-                None => false,
-                Some(EBNFSuffix::Optional) => false,
-                Some(EBNFSuffix::Plus) => true,
-                Some(EBNFSuffix::Star) => true
-            }
-        } else {
-            false
-        };
-
-        PeekResult {
-            greedy: false,
-            can_become_greedy,
-            match_node
-        }
-    }
-
-    pub fn merge(&mut self, other: PeekResult, ir: Arc<AntlrIR>) {
-
-    }
-
-    pub fn match_node(&self) -> &MatchNode {
-        &self.match_node
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MatchNode {
@@ -170,7 +48,7 @@ impl MatchNode {
 
 
 // for exact matches we continue to the next element directly
-    #[instrument(skip(self, ir, other))]
+    #[instrument(skip(ir))]
     pub fn merge(&mut self, mut other: MatchNode, ir: Arc<AntlrIR>) {
         match self {
             MatchNode::Peek { .. } => {

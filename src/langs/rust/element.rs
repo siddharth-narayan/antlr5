@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::{AntlrIR, element::ElementIR}, util::capitalize};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::numbers::ConcreteOrdinal, intermediate::{AntlrIR, element::ElementIR}}, util::capitalize};
 
 pub fn element_name(ir: Arc<AntlrIR>, element: &ElementIR) -> Option<String> {
     match element {
-        ElementIR::RuleAtom { id, suffix } => {
+        ElementIR::RuleAtom { id, size } => {
             Some(ir.rules().get(*id)?.name().clone())
         },
 
-        ElementIR::TokenAtom { id, suffix } => {
+        ElementIR::TokenAtom { id, size } => {
             let name = ir.symbols().get_token_name(*id)?;
             Some(name)
         },
 
-        ElementIR::Set { set, suffix, inverted } => {
+        ElementIR::Set { set, size, inverted } => {
            Some("SET".into())
         }
     }
@@ -30,30 +30,50 @@ pub fn element_decl(ir: Arc<AntlrIR>, element: &ElementIR, element_idx: usize) -
 
     match element {
         ElementIR::RuleAtom { .. } => {
-            let prefix = match element.suffix() {
-                None => "Box<",
-                Some(EBNFSuffix::Optional) => "std::option::Option<Box<",
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
+            let prefix = if let ConcreteOrdinal::Finite(_) = element.size().inner {
+                if element.size().is_optional {
+                    "std::option::Option<Box<"
+                } else {
+                    "Box<"
+                }
+            } else {
+                "Vec<"
             };
 
-            let suffix: String = match element.suffix() {
-                Some(EBNFSuffix::Optional) => ">>".into(),
-                None | Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => ">".into()
+            let suffix = if let ConcreteOrdinal::Finite(_) = element.size().inner {
+                if element.size().is_optional {
+                    ">>"
+                } else {
+                    ">"
+                }
+            } else {
+                ">"
             };
 
             Some(format!("{}: {}{}{}", name_indexed, prefix, capitalize(name), suffix))
         },
 
         ElementIR::TokenAtom { .. } => {
-            let prefix = match element.suffix() {
-                None => "",
-                Some(EBNFSuffix::Optional) => "std::option::Option<",
-                Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => "Vec<"
+
+            let prefix = if let ConcreteOrdinal::Finite(_) = element.size().inner {
+                if element.size().is_optional {
+                    "std::option::Option<"
+                } else {
+                    ""
+                }
+            } else {
+                "Vec<"
             };
 
-            let suffix = match element.suffix() {
-                None => "",
-                Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) => ">"
+
+            let suffix = if let ConcreteOrdinal::Finite(_) = element.size().inner {
+                if element.size().is_optional {
+                    ">"
+                } else {
+                    ""
+                }
+            } else {
+                ">"
             };
 
             Some(format!("{}: {}Token{}", name_indexed, prefix, suffix))

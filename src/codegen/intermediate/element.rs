@@ -1,21 +1,21 @@
 use std::{collections::{BTreeSet}, sync::Arc};
 
-use crate::{antlr::ast::EBNFSuffix, codegen::intermediate::alt::AltIR, util::HashArc};
+use crate::{antlr::ast::EBNFSuffix, codegen::{analysis::numbers::Ordinal, intermediate::alt::AltIR}, util::HashArc};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum ElementIR {
     RuleAtom {
         id: usize,
-        suffix: Option<EBNFSuffix>
+        size: Ordinal
     },
     TokenAtom {
         id: usize,
-        suffix: Option<EBNFSuffix>
+        size: Ordinal
     },
     Set {
         inverted: bool,
         set: BTreeSet<usize>,
-        suffix: Option<EBNFSuffix>
+        size: Ordinal
     },
     // EBNF(EBNF)
 }
@@ -28,11 +28,11 @@ impl ElementIR {
         }
     }
 
-    pub fn suffix(&self) -> Option<EBNFSuffix> {
+    pub fn size(&self) -> Ordinal {
         match self {
-            ElementIR::RuleAtom { suffix, .. } |
-            ElementIR::TokenAtom  { suffix, .. } |
-            ElementIR::Set { suffix, .. } => *suffix
+            ElementIR::RuleAtom { size, .. } |
+            ElementIR::TokenAtom  { size, .. } |
+            ElementIR::Set { size, .. } => *size
         }
     }
 }

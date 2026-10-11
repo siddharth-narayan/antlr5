@@ -6,7 +6,7 @@ use std::{
 use std::fmt::Debug;
 use crate::{
     antlr::ast::{EBNFSuffix, Element}, codegen::{
-        RuleRef, analysis::{algorithm::nth, peek::{Peek, PeekResult}}, intermediate::{
+        RuleRef, analysis::{algorithm::nth, numbers::{ConcreteOrdinal, Ordinal}, peek::{Peek, PeekResult}}, intermediate::{
             AntlrIR, alt::{self, AltIR}, element::{self, ElementIR}, rule::RuleIR,
         },
     }, util::{HashArc, HashSetMap},
@@ -115,7 +115,7 @@ impl MatchNode {
             },
             None => {
                 // Do we insert other here?
-                peek_left.map.insert(element.id().unwrap(), PeekResult::new(other));
+                peek_left.map.insert(element.id().unwrap(), PeekResult::new(other.clone(), ConcreteOrdinal::Finite(0), element.size()));
             }
         }
     }
@@ -131,7 +131,7 @@ impl MatchNode {
         if let Some(nthset) = nth(0, 0, (alt_left.clone(), *element_idx_left), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
             for element in nthset {
                 if let ElementIR::TokenAtom { .. } = element {
-                    peek.map.insert(element.id().unwrap(), PeekResult::new(match_element_dumb(alt_left.clone(), *element_idx_left, ir.clone())));
+                    peek.map.insert(element.id().unwrap(), PeekResult::new(match_element_dumb(alt_left.clone(), *element_idx_left, ir.clone()), ConcreteOrdinal::Finite(0), Ordinal { is_optional: false, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 1 } } ));
                 }
             }
         }
@@ -139,7 +139,7 @@ impl MatchNode {
         if let Some(nthset) = nth(0, 0, (alt_right.clone(), *element_idx_right), &mut VecDeque::new(), &mut HashSetMap::new(), &mut HashSet::default(), ir.rules()) {
             for element in nthset {
                 if let ElementIR::TokenAtom { .. } = element {
-                    peek.map.insert(element.id().unwrap(), PeekResult::new(match_element_dumb(alt_right.clone(), *element_idx_right, ir.clone())));
+                    peek.map.insert(element.id().unwrap(), PeekResult::new(match_element_dumb(alt_right.clone(), *element_idx_right, ir.clone()), ConcreteOrdinal::Finite(0), Ordinal { is_optional: false, inner: ConcreteOrdinal::Infinite { offset: 0, multiple: 1 } }));
                 }
             }
         }
@@ -163,7 +163,7 @@ pub fn match_element(alt: HashArc<AltIR>, element_idx: usize, ir: Arc<AntlrIR>) 
 
     let mut base = match_element_dumb(alt.clone(), element_idx, ir.clone());
 
-    if element.suffix() == Some(EBNFSuffix::Optional) ||  element.suffix() == Some(EBNFSuffix::Star) {
+    if element.size().is_optional {
         let next_element_match = match_element(alt, element_idx + 1, ir.clone());
         base.merge(next_element_match, ir);
     }

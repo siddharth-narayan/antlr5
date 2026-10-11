@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::{marker::PhantomData, sync::Arc};
 
+use crate::codegen::analysis::numbers::Ordinal;
 use crate::codegen::intermediate::rule::RuleIR;
 use crate::util::{Arena, HashArc};
 use crate::{
@@ -38,12 +39,12 @@ impl AltIR {
                         if let Some(id) = table.get_rule_id(&n) {
                             ElementIR::RuleAtom {
                                 id,
-                                suffix: *suffix,
+                                size: Ordinal::from_suffix(*suffix),
                             }
                         } else if let Some(id) = table.get_token_id(&n) {
                             ElementIR::TokenAtom {
                                 id,
-                                suffix: *suffix,
+                                size: Ordinal::from_suffix(*suffix),
                             }
                         } else {
                             return Err(format!("No rule found for id {}", n).to_string());
@@ -53,7 +54,7 @@ impl AltIR {
                         id: table
                             .get_strlit_id(&n)
                             .expect("Strlit's should all be processed"),
-                        suffix: *suffix,
+                                size: Ordinal::from_suffix(*suffix),
                     },
                 },
 
@@ -61,7 +62,7 @@ impl AltIR {
                     let id = RuleIR::from_block(parent_rule, block, table, rules).unwrap();
                     ElementIR::RuleAtom {
                         id,
-                        suffix: *suffix,
+                                size: Ordinal::from_suffix(*suffix),
                     }
                 }
 
@@ -72,7 +73,7 @@ impl AltIR {
                 } => ElementIR::Set {
                     inverted: *inverted,
                     set: set.clone(),
-                    suffix: *suffix,
+                                size: Ordinal::from_suffix(*suffix),
                 },
             };
 

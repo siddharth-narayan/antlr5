@@ -6,7 +6,7 @@ use std::{
 use std::fmt::Debug;
 use crate::{
     antlr::ast::{EBNFSuffix, Element}, codegen::{
-        RuleRef, analysis::r#match::MatchNode, intermediate::{
+        RuleRef, analysis::{r#match::MatchNode, numbers::{ConcreteOrdinal, Ordinal}}, intermediate::{
             AntlrIR, alt::{self, AltIR}, element::{self, ElementIR}, rule::RuleIR,
         },
     }, util::{HashArc, HashSetMap},
@@ -39,28 +39,17 @@ impl Peek {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PeekResult {
-    pub(super) greedy: bool,
-    pub(super) can_become_greedy: bool,
+    pub(super) consume: ConcreteOrdinal,
+    pub(super) consume_up_to: Ordinal,
 
     pub(super) match_node: MatchNode
 }
 
 impl PeekResult {
-    pub fn new(match_node: MatchNode) -> PeekResult {
-        let can_become_greedy = if let MatchNode::Element { ref element, .. } = match_node {
-            match element.suffix() {
-                None => false,
-                Some(EBNFSuffix::Optional) => false,
-                Some(EBNFSuffix::Plus) => true,
-                Some(EBNFSuffix::Star) => true
-            }
-        } else {
-            false
-        };
-
+    pub fn new(match_node: MatchNode, consume: ConcreteOrdinal, consume_up_to: Ordinal) -> PeekResult {
         PeekResult {
-            greedy: false,
-            can_become_greedy,
+            consume,
+            consume_up_to,
             match_node
         }
     }

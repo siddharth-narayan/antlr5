@@ -7,16 +7,16 @@ use crate::{antlr::ast::EBNFSuffix, codegen::{intermediate::{AntlrIR, alt::AltIR
 
 pub fn element_name(ir: Arc<AntlrIR>, element: &ElementIR) -> Option<String> {
     match element {
-        ElementIR::RuleAtom { id, suffix } => {
+        ElementIR::RuleAtom { id, size } => {
             Some(ir.rules().get(*id)?.name().clone())
         },
 
-        ElementIR::TokenAtom { id, suffix } => {
+        ElementIR::TokenAtom { id, size } => {
             let name = ir.symbols().get_token_name(*id)?;
             Some(name)
         },
 
-        ElementIR::Set { set, suffix, inverted } => {
+        ElementIR::Set { set, size, inverted } => {
            None
         }
     }
@@ -35,7 +35,7 @@ pub fn element_type(ir: Arc<AntlrIR>, element: &ElementIR) -> String {
         _ => "Token*".into()
     };
 
-    if let Some(EBNFSuffix::Plus) | Some(EBNFSuffix::Star) = element.suffix() {
+    if element.size().is_optional {
         "Array *".into()
     } else {
         e_type

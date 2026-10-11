@@ -25,36 +25,25 @@ mod util;
 fn main() -> Result<(), ()> {
     let args = cli::Args::parse();
 
-        let subscriber = Registry::default()
-            .with(
-                HierarchicalLayer::new(4)
-                    .with_indent_lines(true)
-                    .with_targets(true)
-            );
-        tracing::subscriber::set_global_default(subscriber).unwrap();
-
-    // fmt::fmt()
-    //     .with_file(true)
-    //     .without_time()
-    //     .with_target(false)
-    //     .with_line_number(true)
-    //     .with_max_level(args.log_level).init();
+    let subscriber = Registry::default()
+        .with(
+            HierarchicalLayer::new(4)
+                .with_indent_lines(true)
+                .with_targets(true)
+        );
+    tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let content = read_to_string(&args.path).map_err(|e| { error!("Failed to read file {} {}", args.path.into_string().unwrap_or("".into()), e); })?;
 
     // Lex + Parse
     let lexer = Lexer::new(content);
-    
-    
-
-    // Unbootstrapped
     let mut parser = parse::Parser::new(lexer).unwrap();
 
     let ast = parser.grammar_spec().unwrap();
     let ir = Arc::new(AntlrIR::new(ast));
 
     println!("{:#?}", match_rule(ir.clone(), 1));
-    // output(ir.clone(), "out.rs".into(), Language::Rust);
+    output(ir.clone(), "out.rs".into(), Language::Rust);
 
     Ok(())
 }

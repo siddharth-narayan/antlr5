@@ -52,7 +52,7 @@ pub fn nth<'a>(
         set.insert(element.clone());
     }
 
-    if let Some(EBNFSuffix::Optional) | Some(EBNFSuffix::Star) = element.suffix() {
+    if element.size().is_optional {
         // Should continuation be cloned here?
         set.extend(nth(n, current_idx, (alt.clone(), element_idx + 1), continuation, nth_set_cache, visited, rules).into_flat_iter().cloned())
     };
